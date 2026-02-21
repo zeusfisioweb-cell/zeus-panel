@@ -29,13 +29,6 @@ export default function Sidebar() {
     const { profile, signOut } = useAuth();
     const [pendingCount, setPendingCount] = useState(0);
 
-    useEffect(() => {
-        loadPending();
-        // Refresh every 60 seconds
-        const interval = setInterval(loadPending, 60_000);
-        return () => clearInterval(interval);
-    }, []);
-
     async function loadPending() {
         const { count } = await supabase
             .from('appointments')
@@ -43,6 +36,13 @@ export default function Sidebar() {
             .eq('status', 'pending');
         setPendingCount(count || 0);
     }
+
+    useEffect(() => {
+        loadPending();
+        // Refresh every 60 seconds
+        const interval = setInterval(loadPending, 60_000);
+        return () => clearInterval(interval);
+    }, []);
 
     const isActive = (href: string) => {
         if (href === '/') return pathname === '/';

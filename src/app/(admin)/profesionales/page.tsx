@@ -35,8 +35,6 @@ export default function ProfesionalesPage() {
         selectedServices: [] as string[],
     });
 
-    useEffect(() => { loadData(); }, []);
-
     async function loadData() {
         const [proRes, svcRes, catRes] = await Promise.all([
             supabase.from('professionals').select('*, profile:profiles(full_name, email), professional_services(service_id)'),
@@ -48,6 +46,8 @@ export default function ProfesionalesPage() {
         setCategories(catRes.data as ServiceCategory[] || []);
         setLoading(false);
     }
+
+    useEffect(() => { loadData(); }, []);
 
     function openNew() {
         setEditing(null);
@@ -78,7 +78,7 @@ export default function ProfesionalesPage() {
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
 
-        let profId = editing?.id;
+        const profId = editing?.id;
 
         if (!editing) {
             // New Professional logic

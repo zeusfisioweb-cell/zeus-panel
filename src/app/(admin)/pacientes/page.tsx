@@ -21,10 +21,6 @@ export default function PacientesPage() {
         gdpr_consent: false,
     });
 
-    useEffect(() => {
-        loadPatients();
-    }, []);
-
     async function loadPatients() {
         const { data } = await supabase
             .from('patients')
@@ -33,6 +29,10 @@ export default function PacientesPage() {
         setPatients(data as Patient[] || []);
         setLoading(false);
     }
+
+    useEffect(() => {
+        loadPatients();
+    }, []);
 
     async function viewPatient(p: Patient) {
         setSelectedPatient(p);

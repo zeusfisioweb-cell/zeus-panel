@@ -36,10 +36,6 @@ export default function DashboardPage() {
     });
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        loadDashboard();
-    }, []);
-
     async function loadDashboard() {
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
@@ -110,6 +106,10 @@ export default function DashboardPage() {
         setProfessionals(profRes.data as Professional[] || []);
         setLoading(false);
     }
+
+    useEffect(() => {
+        loadDashboard();
+    }, []);
 
     async function updateAppointmentStatus(id: string, status: string) {
         await supabase.from('appointments').update({ status }).eq('id', id);

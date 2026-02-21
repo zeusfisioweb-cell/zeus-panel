@@ -18,10 +18,6 @@ export default function ServiciosPage() {
         category_id: '', is_active: true,
     });
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
     async function loadData() {
         const [servicesRes, categoriesRes] = await Promise.all([
             supabase.from('services').select('*, category:service_categories(*)').order('name'),
@@ -31,6 +27,10 @@ export default function ServiciosPage() {
         setCategories(categoriesRes.data as ServiceCategory[] || []);
         setLoading(false);
     }
+
+    useEffect(() => {
+        loadData();
+    }, []);
 
     function openNew() {
         setEditing(null);

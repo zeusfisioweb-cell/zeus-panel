@@ -25,14 +25,6 @@ export default function HorariosPage() {
     // New exception form
     const [newException, setNewException] = useState({ exception_date: '', reason: '', is_available: false });
 
-    useEffect(() => {
-        loadProfessionals();
-    }, []);
-
-    useEffect(() => {
-        if (selectedPro) loadSchedule();
-    }, [selectedPro]);
-
     async function loadProfessionals() {
         const { data } = await supabase
             .from('professionals')
@@ -59,6 +51,14 @@ export default function HorariosPage() {
         setSlots(slotsRes.data as ScheduleSlot[] || []);
         setExceptions(excRes.data as ScheduleException[] || []);
     }
+
+    useEffect(() => {
+        loadProfessionals();
+    }, []);
+
+    useEffect(() => {
+        if (selectedPro) loadSchedule();
+    }, [selectedPro, loadSchedule]);
 
     async function addSlot() {
         await supabase.from('schedule_slots').insert({

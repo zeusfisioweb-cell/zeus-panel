@@ -13,15 +13,15 @@ export default function ConfiguracionPage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        loadSettings();
-    }, []);
-
     async function loadSettings() {
         const { data } = await supabase.from('booking_settings').select('*').limit(1).single();
         setSettings(data as BookingSettings | null);
         setLoading(false);
     }
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
