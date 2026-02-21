@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, useCallback, FormEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -13,15 +13,15 @@ export default function ConfiguracionPage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    async function loadSettings() {
+    const loadSettings = useCallback(async () => {
         const { data } = await supabase.from('booking_settings').select('*').limit(1).single();
         setSettings(data as BookingSettings | null);
         setLoading(false);
-    }
+    }, []);
 
     useEffect(() => {
         loadSettings();
-    }, []);
+    }, [loadSettings]);
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();

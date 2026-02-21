@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -33,22 +33,16 @@ export default function CitasPage() {
     const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
     const [cancelReason, setCancelReason] = useState('');
 
-    useEffect(() => {
-        loadAppointments();
-        loadFormData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dateFilter, filter]);
-
-    async function loadFormData() {
+    const loadFormData = useCallback(async () => {
         const [servicesRes, profRes] = await Promise.all([
             supabase.from('services').select('*').eq('is_active', true).order('name'),
             supabase.from('professionals').select('*, profile:profiles(*)').eq('is_active', true),
         ]);
         setServices(servicesRes.data as Service[] || []);
         setProfessionals(profRes.data as Professional[] || []);
-    }
+    }, []);
 
-    async function loadAppointments() {
+    const loadAppointments = useCallback(async () => {
         setLoading(true);
         let query = supabase
             .from('appointments')
@@ -64,7 +58,12 @@ export default function CitasPage() {
         const { data } = await query;
         setAppointments(data as Appointment[] || []);
         setLoading(false);
-    }
+    }, [dateFilter, filter]);
+
+    useEffect(() => {
+        loadAppointments();
+        loadFormData();
+    }, [loadAppointments, loadFormData]);
 
     async function updateStatus(id: string, status: string) {
         await supabase.from('appointments').update({ status }).eq('id', id);

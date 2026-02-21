@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -29,20 +29,20 @@ export default function Sidebar() {
     const { profile, signOut } = useAuth();
     const [pendingCount, setPendingCount] = useState(0);
 
-    async function loadPending() {
+    const loadPending = useCallback(async () => {
         const { count } = await supabase
             .from('appointments')
             .select('id', { count: 'exact' })
             .eq('status', 'pending');
         setPendingCount(count || 0);
-    }
+    }, []);
 
     useEffect(() => {
         loadPending();
         // Refresh every 60 seconds
         const interval = setInterval(loadPending, 60_000);
         return () => clearInterval(interval);
-    }, []);
+    }, [loadPending]);
 
     const isActive = (href: string) => {
         if (href === '/') return pathname === '/';

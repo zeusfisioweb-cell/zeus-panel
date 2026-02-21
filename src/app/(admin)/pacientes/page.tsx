@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, useCallback, FormEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -21,18 +21,18 @@ export default function PacientesPage() {
         gdpr_consent: false,
     });
 
-    async function loadPatients() {
+    const loadPatients = useCallback(async () => {
         const { data } = await supabase
             .from('patients')
             .select('*')
             .order('created_at', { ascending: false });
         setPatients(data as Patient[] || []);
         setLoading(false);
-    }
+    }, []);
 
     useEffect(() => {
         loadPatients();
-    }, []);
+    }, [loadPatients]);
 
     async function viewPatient(p: Patient) {
         setSelectedPatient(p);

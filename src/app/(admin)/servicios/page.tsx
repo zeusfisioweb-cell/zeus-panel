@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, useCallback, FormEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -18,7 +18,7 @@ export default function ServiciosPage() {
         category_id: '', is_active: true,
     });
 
-    async function loadData() {
+    const loadData = useCallback(async () => {
         const [servicesRes, categoriesRes] = await Promise.all([
             supabase.from('services').select('*, category:service_categories(*)').order('name'),
             supabase.from('service_categories').select('*').order('display_order'),
@@ -26,11 +26,11 @@ export default function ServiciosPage() {
         setServices(servicesRes.data as Service[] || []);
         setCategories(categoriesRes.data as ServiceCategory[] || []);
         setLoading(false);
-    }
+    }, []);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     function openNew() {
         setEditing(null);

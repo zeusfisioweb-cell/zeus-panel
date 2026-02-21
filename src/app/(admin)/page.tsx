@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -36,7 +36,7 @@ export default function DashboardPage() {
     });
     const [saving, setSaving] = useState(false);
 
-    async function loadDashboard() {
+    const loadDashboard = useCallback(async () => {
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
         const weekStart = new Date(today);
@@ -105,11 +105,11 @@ export default function DashboardPage() {
         setServices(servicesRes.data as Service[] || []);
         setProfessionals(profRes.data as Professional[] || []);
         setLoading(false);
-    }
+    }, []);
 
     useEffect(() => {
         loadDashboard();
-    }, []);
+    }, [loadDashboard]);
 
     async function updateAppointmentStatus(id: string, status: string) {
         await supabase.from('appointments').update({ status }).eq('id', id);

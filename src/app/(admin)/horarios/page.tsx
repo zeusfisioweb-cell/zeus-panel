@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
 
@@ -25,7 +25,7 @@ export default function HorariosPage() {
     // New exception form
     const [newException, setNewException] = useState({ exception_date: '', reason: '', is_available: false });
 
-    async function loadProfessionals() {
+    const loadProfessionals = useCallback(async () => {
         const { data } = await supabase
             .from('professionals')
             .select('id, profile:profiles(full_name)')
@@ -33,9 +33,9 @@ export default function HorariosPage() {
         setProfessionals((data as unknown as ProfessionalOption[]) || []);
         if (data && data.length > 0) setSelectedPro(data[0].id);
         setLoading(false);
-    }
+    }, []);
 
-    async function loadSchedule() {
+    const loadSchedule = useCallback(async () => {
         const [slotsRes, excRes] = await Promise.all([
             supabase.from('schedule_slots')
                 .select('*')
@@ -50,11 +50,11 @@ export default function HorariosPage() {
         ]);
         setSlots(slotsRes.data as ScheduleSlot[] || []);
         setExceptions(excRes.data as ScheduleException[] || []);
-    }
+    }, [selectedPro]);
 
     useEffect(() => {
         loadProfessionals();
-    }, []);
+    }, [loadProfessionals]);
 
     useEffect(() => {
         if (selectedPro) loadSchedule();
