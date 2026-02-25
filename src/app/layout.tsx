@@ -5,6 +5,15 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Zeus Admin — Panel de Gestión',
   description: 'Panel de administración para Zeus Fisioterapia y Psicología',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.png', type: 'image/png', sizes: '192x192' },
+    ],
+    apple: [
+      { url: '/img/zeus-favicon.png' },
+    ],
+  },
 };
 
 export default function RootLayout({
