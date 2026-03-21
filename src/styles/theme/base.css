@@ -1,0 +1,146 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+  background: var(--bg-base);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.module-header__title,
+.dashboard-head__title,
+.login-heading h2,
+.cover-text h1 {
+  font-family: var(--font-sans);
+  color: var(--text-main);
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+a {
+  color: var(--brand-main);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--brand-dark);
+}
+
+.loading-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--bg-base);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--brand-main);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-in {
+  animation: panelFadeIn 0.2s ease;
+}
+
+.fade-in {
+  animation-name: panelFadeIn;
+}
+
+@keyframes panelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.text-gray-400,
+.text-gray-500,
+.text-gray-600,
+.text-gray-700,
+.text-gray-900 {
+  color: var(--text-muted) !important;
+}
+
+.text-red-500,
+.text-red-600,
+.text-red-700 {
+  color: #dc2626 !important;
+}
+
+.bg-red-50,
+.dark\:bg-red-500\/10 {
+  background: rgba(220, 38, 38, 0.06) !important;
+}
+
+.border-red-100,
+.dark\:border-red-500\/20 {
+  border-color: rgba(220, 38, 38, 0.15) !important;
+}
+
+.border-gray-300 {
+  border-color: var(--border-color) !important;
+}
+
+.bg-\[var\(--bg-surface\)\],
+.bg-\[var\(--bg-secondary\)\] {
+  background: var(--bg-surface) !important;
+}
+
+.border-\[var\(--border-color\)\],
+.border-\[var\(--border-color\)\]\/40,
+.border-b,
+.border-t,
+.border {
+  border-color: var(--border-color) !important;
+}
+
+.focus\:border-\[var\(--brand-main\)\]:focus,
+.focus\:ring-\[var\(--brand-main\)\]:focus {
+  border-color: var(--brand-main) !important;
+  box-shadow: 0 0 0 3px rgba(173, 115, 50, 0.15) !important;
+}
+
+/* Hide intrusive dev floating controls in local dev to keep UI review clean */
+button[aria-label="Open Tanstack query devtools"],
+button[aria-label="Open Next.js Dev Tools"],
+button[aria-label="Open issues overlay"],
+button[aria-label="Collapse issues badge"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

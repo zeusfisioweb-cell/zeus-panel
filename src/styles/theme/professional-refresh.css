@@ -1,0 +1,132 @@
+/* Professional modern refresh: clean hierarchy, low visual noise, high readability */
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.4);
+  outline-offset: 2px;
+}
+
+.main-content {
+  padding: 16px 28px 34px;
+}
+
+.content-shell,
+.section-shell {
+  gap: 20px;
+}
+
+.panel-topbar {
+  top: 14px;
+  height: 56px;
+  padding: 0 18px;
+  gap: 12px;
+}
+
+.panel-topbar__name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__header {
+  border-bottom-color: var(--line-soft);
+  background: var(--bg-secondary);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.btn--primary:hover {
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+}
+
+.zc-day-event.is-compact {
+  padding: 8px 9px;
+}
+
+.zc-day-event.is-compact .zc-day-event__top {
+  margin-bottom: 2px;
+}
+
+.zc-day-event.is-compact .zc-day-event__time {
+  font-size: 11px;
+}
+
+.zc-day-event.is-compact .zc-day-event__status {
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+.zc-day-event.is-compact .zc-day-event__patient {
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) rgba(241, 245, 249, 0.7);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.7);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 999px;
+  border: 2px solid rgba(241, 245, 249, 0.7);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 1120px) {
+  .main-content {
+    padding: 12px 14px 26px;
+  }
+
+  .panel-topbar {
+    margin-left: 52px;
+  }
+}
+
+@media (max-width: 760px) {
+  .citas-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .citas-actions .btn--primary {
+    grid-column: 1 / -1;
+  }
+
+  .panel-topbar__role {
+    display: none;
+  }
+
+  .panel-topbar__name {
+    max-width: 120px;
+  }
+}

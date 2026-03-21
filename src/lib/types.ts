@@ -111,6 +111,11 @@ export interface ScheduleException {
     created_at: string;
 }
 
+export interface ProfessionalOption {
+    id: string;
+    profile: { full_name: string } | null;
+}
+
 export interface BookingSettings {
     id: string;
     clinic_name: string;
@@ -126,6 +131,8 @@ export interface BookingSettings {
     informed_consent_text: string | null;
     privacy_policy_url: string | null;
     terms_url: string | null;
+    opening_hour: string;
+    closing_hour: string;
     updated_at: string;
 }
 
@@ -142,9 +149,50 @@ export interface ConsentRecord {
     revoked_at: string | null;
 }
 
-// Day names for schedule display
-export const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-export const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+export interface ClinicalRecord {
+    id: string;
+    patient_id: string;
+    professional_id: string;
+    type: RecordType;
+    content: Record<string, unknown>;
+    attachments: string[] | null;
+    created_at: string;
+    updated_at: string;
+    // Joined
+    professional?: { profile?: { full_name: string | null } };
+}
+
+// Day names for schedule display (UI order: 0=Lunes .. 6=Domingo)
+export const DAY_NAMES = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+export const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+
+// Convert database day_of_week to UI index.
+// Canonical DB mapping is 1=Lunes .. 7=Domingo.
+// Legacy rows may still use 0=Lunes .. 6=Domingo.
+export function toUiDayOfWeek(dayOfWeek: number): number | null {
+    if (dayOfWeek >= 1 && dayOfWeek <= 7) return dayOfWeek - 1;
+    if (dayOfWeek >= 0 && dayOfWeek <= 6) return dayOfWeek;
+    return null;
+}
+
+// Persist canonical DB mapping to avoid shifts between screens.
+export function toDbDayOfWeek(uiDayIndex: number): number {
+    return uiDayIndex + 1;
+}
+
+export const RECORD_TYPE_LABELS: Record<RecordType, string> = {
+    anamnesis: 'Anamnesis',
+    exploration: 'Exploracion',
+    evolution: 'Evolucion',
+    report: 'Informe',
+};
+
+export const RECORD_TYPE_COLORS: Record<RecordType, string> = {
+    anamnesis: '#6B8FAD',
+    exploration: '#9B8BB4',
+    evolution: '#7C9A6B',
+    report: '#C06B4E',
+};
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
     pending: 'Pendiente',
@@ -159,3 +207,5 @@ export const STATUS_COLORS: Record<AppointmentStatus, string> = {
     cancelled: '#ef4444',
     completed: '#6366f1',
 };
+
+

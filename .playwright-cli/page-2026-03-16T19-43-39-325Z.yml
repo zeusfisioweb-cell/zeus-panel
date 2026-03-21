@@ -1,0 +1,206 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - button "Abrir menu" [ref=e3] [cursor=pointer]:
+    - img [ref=e4]
+  - complementary [ref=e6]:
+    - generic [ref=e7]:
+      - img "Zeus Clinica" [ref=e9]
+      - button "Cerrar menu" [ref=e10] [cursor=pointer]:
+        - img [ref=e11]
+    - navigation [ref=e13]:
+      - generic [ref=e14]: Panel
+      - link "Resumen" [ref=e15] [cursor=pointer]:
+        - /url: /
+        - img [ref=e17]
+        - text: Resumen
+      - link "Citas" [ref=e19] [cursor=pointer]:
+        - /url: /citas
+        - img [ref=e21]
+        - text: Citas
+      - generic [ref=e23]: Gestion
+      - link "Profesionales" [ref=e24] [cursor=pointer]:
+        - /url: /profesionales
+        - img [ref=e26]
+        - text: Profesionales
+      - link "Servicios" [ref=e28] [cursor=pointer]:
+        - /url: /servicios
+        - img [ref=e30]
+        - text: Servicios
+      - link "Pacientes" [ref=e32] [cursor=pointer]:
+        - /url: /pacientes
+        - img [ref=e34]
+        - text: Pacientes
+      - link "Horarios" [ref=e36] [cursor=pointer]:
+        - /url: /horarios
+        - img [ref=e38]
+        - text: Horarios
+      - link "Configuracion" [ref=e40] [cursor=pointer]:
+        - /url: /configuracion
+        - img [ref=e42]
+        - text: Configuracion
+    - generic [ref=e45]:
+      - generic [ref=e47]: AZ
+      - generic [ref=e48]:
+        - generic [ref=e49]: Admin Zeus
+        - generic [ref=e50]: Direccion
+      - button "Cerrar sesion" [ref=e51] [cursor=pointer]:
+        - img [ref=e52]
+  - main [ref=e54]:
+    - generic [ref=e55]:
+      - generic [ref=e57]: Citas
+      - strong [ref=e60]: Admin Zeus
+    - generic [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: Calendario inteligente
+          - heading "Citas" [level=1] [ref=e65]
+          - paragraph [ref=e66]: Vista clara de dia y semana con foco en lectura rapida y accion inmediata.
+          - paragraph [ref=e67]: 0 citas en pantalla | 0 pendientes de accion
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e70]: Resumen
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - generic [ref=e73]: Total
+                - strong [ref=e74]: "0"
+              - generic [ref=e75]:
+                - generic [ref=e76]: Pendientes
+                - strong [ref=e77]: "0"
+          - generic [ref=e78]:
+            - generic [ref=e79]: Vista
+            - tablist "Modo de vista de citas" [ref=e80]:
+              - button "Cambiar a vista de lista" [ref=e81] [cursor=pointer]:
+                - img [ref=e82]
+                - text: Lista
+              - button "Cambiar a vista de calendario" [pressed] [ref=e84] [cursor=pointer]:
+                - img [ref=e85]
+                - text: Calendario
+          - generic [ref=e87]:
+            - generic [ref=e88]: Escala
+            - tablist "Escala del calendario" [ref=e89]:
+              - button "Ver calendario por día" [pressed] [ref=e90] [cursor=pointer]: Dia
+              - button "Ver calendario por semana" [ref=e91] [cursor=pointer]: Semana
+          - generic [ref=e92]:
+            - generic [ref=e93]: Acciones
+            - generic [ref=e94]:
+              - button "Hoy" [ref=e95] [cursor=pointer]
+              - button "Bloquear" [ref=e96] [cursor=pointer]:
+                - img [ref=e98]
+                - text: Bloquear
+              - button "Nueva cita" [ref=e100] [cursor=pointer]:
+                - img [ref=e102]
+                - text: Nueva cita
+      - generic [ref=e104]:
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - button "Mes anterior" [ref=e108] [cursor=pointer]:
+                - img [ref=e109]
+              - generic [ref=e111]: marzo 2026
+              - button "Mes siguiente" [ref=e112] [cursor=pointer]:
+                - img [ref=e113]
+            - generic [ref=e115]:
+              - generic [ref=e116]: L
+              - generic [ref=e117]: M
+              - generic [ref=e118]: X
+              - generic [ref=e119]: J
+              - generic [ref=e120]: V
+              - generic [ref=e121]: S
+              - generic [ref=e122]: D
+              - button "lunes 23 febrero" [ref=e123] [cursor=pointer]:
+                - generic [ref=e124]: "23"
+              - button "martes 24 febrero" [ref=e125] [cursor=pointer]:
+                - generic [ref=e126]: "24"
+              - button "miércoles 25 febrero" [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]: "25"
+              - button "jueves 26 febrero" [ref=e129] [cursor=pointer]:
+                - generic [ref=e130]: "26"
+              - button "viernes 27 febrero" [ref=e131] [cursor=pointer]:
+                - generic [ref=e132]: "27"
+              - button "sábado 28 febrero" [ref=e133] [cursor=pointer]:
+                - generic [ref=e134]: "28"
+              - button "domingo 1 marzo" [ref=e135] [cursor=pointer]:
+                - generic [ref=e136]: "1"
+              - button "lunes 2 marzo" [ref=e137] [cursor=pointer]:
+                - generic [ref=e138]: "2"
+              - button "martes 3 marzo" [ref=e139] [cursor=pointer]:
+                - generic [ref=e140]: "3"
+              - button "miércoles 4 marzo" [ref=e141] [cursor=pointer]:
+                - generic [ref=e142]: "4"
+              - button "jueves 5 marzo" [ref=e143] [cursor=pointer]:
+                - generic [ref=e144]: "5"
+              - button "viernes 6 marzo" [ref=e145] [cursor=pointer]:
+                - generic [ref=e146]: "6"
+              - button "sábado 7 marzo" [ref=e147] [cursor=pointer]:
+                - generic [ref=e148]: "7"
+              - button "domingo 8 marzo" [ref=e149] [cursor=pointer]:
+                - generic [ref=e150]: "8"
+              - button "lunes 9 marzo" [ref=e151] [cursor=pointer]:
+                - generic [ref=e152]: "9"
+              - button "martes 10 marzo" [ref=e153] [cursor=pointer]:
+                - generic [ref=e154]: "10"
+              - button "miércoles 11 marzo" [ref=e155] [cursor=pointer]:
+                - generic [ref=e156]: "11"
+              - button "jueves 12 marzo" [ref=e157] [cursor=pointer]:
+                - generic [ref=e158]: "12"
+              - button "viernes 13 marzo" [ref=e159] [cursor=pointer]:
+                - generic [ref=e160]: "13"
+              - button "sábado 14 marzo" [ref=e161] [cursor=pointer]:
+                - generic [ref=e162]: "14"
+              - button "domingo 15 marzo" [ref=e163] [cursor=pointer]:
+                - generic [ref=e164]: "15"
+              - button "lunes 16 marzo" [ref=e165] [cursor=pointer]:
+                - generic [ref=e166]: "16"
+              - button "martes 17 marzo" [ref=e167] [cursor=pointer]:
+                - generic [ref=e168]: "17"
+              - button "miércoles 18 marzo" [ref=e169] [cursor=pointer]:
+                - generic [ref=e170]: "18"
+              - button "jueves 19 marzo" [ref=e171] [cursor=pointer]:
+                - generic [ref=e172]: "19"
+              - button "viernes 20 marzo" [ref=e173] [cursor=pointer]:
+                - generic [ref=e174]: "20"
+              - button "sábado 21 marzo" [ref=e175] [cursor=pointer]:
+                - generic [ref=e176]: "21"
+              - button "domingo 22 marzo" [ref=e177] [cursor=pointer]:
+                - generic [ref=e178]: "22"
+              - button "lunes 23 marzo" [ref=e179] [cursor=pointer]:
+                - generic [ref=e180]: "23"
+              - button "martes 24 marzo" [ref=e181] [cursor=pointer]:
+                - generic [ref=e182]: "24"
+              - button "miércoles 25 marzo" [ref=e183] [cursor=pointer]:
+                - generic [ref=e184]: "25"
+              - button "jueves 26 marzo" [ref=e185] [cursor=pointer]:
+                - generic [ref=e186]: "26"
+              - button "viernes 27 marzo" [ref=e187] [cursor=pointer]:
+                - generic [ref=e188]: "27"
+              - button "sábado 28 marzo" [ref=e189] [cursor=pointer]:
+                - generic [ref=e190]: "28"
+              - button "domingo 29 marzo" [ref=e191] [cursor=pointer]:
+                - generic [ref=e192]: "29"
+              - button "lunes 30 marzo" [ref=e193] [cursor=pointer]:
+                - generic [ref=e194]: "30"
+              - button "martes 31 marzo" [ref=e195] [cursor=pointer]:
+                - generic [ref=e196]: "31"
+              - button "miércoles 1 abril" [ref=e197] [cursor=pointer]:
+                - generic [ref=e198]: "1"
+              - button "jueves 2 abril" [ref=e199] [cursor=pointer]:
+                - generic [ref=e200]: "2"
+              - button "viernes 3 abril" [ref=e201] [cursor=pointer]:
+                - generic [ref=e202]: "3"
+              - button "sábado 4 abril" [ref=e203] [cursor=pointer]:
+                - generic [ref=e204]: "4"
+              - button "domingo 5 abril" [ref=e205] [cursor=pointer]:
+                - generic [ref=e206]: "5"
+          - generic [ref=e207]:
+            - generic [ref=e208]:
+              - heading "Proximas citas" [level=3] [ref=e209]
+              - generic [ref=e210]: "0"
+            - generic [ref=e212]:
+              - img [ref=e214]
+              - paragraph [ref=e216]: Dia libre
+              - paragraph [ref=e217]: No hay citas en la fecha seleccionada.
+              - button "Agendar cita" [ref=e218] [cursor=pointer]:
+                - img [ref=e219]
+                - text: Agendar cita
+        - generic [ref=e222]: Cargando...
+  - region "Notifications alt+T"

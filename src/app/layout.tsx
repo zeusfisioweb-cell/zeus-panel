@@ -16,15 +16,19 @@ export const metadata: Metadata = {
   },
 };
 
+import Providers from './providers';
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="es" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <Providers>
+          <AuthProvider>{children}</AuthProvider>
+        </Providers>
       </body>
     </html>
   );

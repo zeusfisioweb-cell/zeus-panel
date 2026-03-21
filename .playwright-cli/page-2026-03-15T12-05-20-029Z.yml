@@ -1,0 +1,168 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e56] [cursor=pointer]:
+    - button "Open issues overlay" [ref=e57]:
+      - img [ref=e59]
+      - generic [ref=e61]:
+        - generic [ref=e62]: "1"
+        - generic [ref=e63]: "2"
+      - generic [ref=e64]:
+        - text: Issue
+        - generic [ref=e65]: s
+    - button "Collapse issues badge" [ref=e66]:
+      - img [ref=e67]
+  - alert [ref=e4]
+  - complementary [ref=e69]:
+    - img "Zeus Clinica" [ref=e72]
+    - navigation [ref=e73]:
+      - generic [ref=e74]: Panel
+      - link "Resumen" [ref=e75] [cursor=pointer]:
+        - /url: /
+        - img [ref=e77]
+        - text: Resumen
+      - link "Citas 4 citas pendientes" [ref=e79] [cursor=pointer]:
+        - /url: /citas
+        - img [ref=e81]
+        - text: Citas
+        - generic "4 citas pendientes" [ref=e83]: "4"
+      - generic [ref=e84]: Gestion
+      - link "Profesionales" [ref=e85] [cursor=pointer]:
+        - /url: /profesionales
+        - img [ref=e87]
+        - text: Profesionales
+      - link "Servicios" [ref=e89] [cursor=pointer]:
+        - /url: /servicios
+        - img [ref=e91]
+        - text: Servicios
+      - link "Pacientes" [ref=e93] [cursor=pointer]:
+        - /url: /pacientes
+        - img [ref=e95]
+        - text: Pacientes
+      - link "Horarios" [ref=e97] [cursor=pointer]:
+        - /url: /horarios
+        - img [ref=e99]
+        - text: Horarios
+      - link "Configuracion" [ref=e101] [cursor=pointer]:
+        - /url: /configuracion
+        - img [ref=e103]
+        - text: Configuracion
+    - generic [ref=e106]:
+      - generic [ref=e108]: QU
+      - generic [ref=e109]:
+        - generic [ref=e110]: QA UI Two
+        - generic [ref=e111]: Direccion
+      - button "Cerrar sesion" [ref=e112] [cursor=pointer]:
+        - img [ref=e113]
+  - main [ref=e115]:
+    - generic [ref=e116]:
+      - generic [ref=e117]:
+        - generic [ref=e118]: Resumen
+        - generic [ref=e120]: domingo, 15 de marzo
+      - generic [ref=e121]:
+        - generic [ref=e122]: Direccion
+        - strong [ref=e123]: QA UI Two
+    - generic [ref=e124]:
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - heading "Buenas tardes, QA" [level=1] [ref=e127]
+          - generic [ref=e128]:
+            - img [ref=e129]
+            - generic [ref=e131]: domingo, 15 de marzo
+        - generic [ref=e132]:
+          - generic [ref=e133]:
+            - button "Dia anterior" [ref=e134] [cursor=pointer]:
+              - img [ref=e135]
+            - generic [ref=e137]: 15 mar 2026
+            - button "Dia siguiente" [ref=e138] [cursor=pointer]:
+              - img [ref=e139]
+          - button "Nueva cita" [ref=e141] [cursor=pointer]:
+            - img [ref=e142]
+            - text: Nueva cita
+      - generic [ref=e144]:
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - article [ref=e147]:
+              - img [ref=e150]
+              - paragraph [ref=e152]: "2"
+              - paragraph [ref=e153]: Citas hoy
+            - article [ref=e154]:
+              - img [ref=e157]
+              - paragraph [ref=e159]: "4"
+              - paragraph [ref=e160]: Pendientes
+            - article [ref=e161]:
+              - img [ref=e164]
+              - paragraph [ref=e166]: "7"
+              - paragraph [ref=e167]: Pacientes
+            - article [ref=e168]:
+              - img [ref=e171]
+              - paragraph [ref=e173]: "4"
+              - paragraph [ref=e174]: Esta semana
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - heading "Distribucion de sesiones" [level=2] [ref=e178]
+              - generic [ref=e179]:
+                - generic [ref=e180]:
+                  - application [ref=e183]
+                  - generic:
+                    - generic: "2"
+                    - generic: Sesiones
+                - generic [ref=e191]:
+                  - generic [ref=e192]:
+                    - generic [ref=e193]: Fisioterapia G
+                    - generic [ref=e194]: 50%
+                  - generic [ref=e195]:
+                    - generic [ref=e196]: Ecografía Diag
+                    - generic [ref=e197]: 50%
+            - generic [ref=e198]:
+              - heading "Requiere atencion" [level=2] [ref=e200]
+              - generic [ref=e203]:
+                - img [ref=e205]
+                - generic [ref=e207]:
+                  - paragraph [ref=e208]: 4 citas pendientes
+                  - paragraph [ref=e209]: Requieren confirmacion manual
+                - link "Revisar" [ref=e210] [cursor=pointer]:
+                  - /url: /citas
+        - complementary [ref=e211]:
+          - generic [ref=e212]:
+            - generic [ref=e214]:
+              - heading "Agenda de hoy" [level=2] [ref=e215]
+              - generic [ref=e216]: 2 activas
+            - generic [ref=e218]:
+              - article [ref=e219]:
+                - generic [ref=e220]:
+                  - strong [ref=e221]: 10:00
+                  - generic [ref=e222]: 11:00
+                - generic [ref=e226]:
+                  - paragraph [ref=e227]: Paciente
+                  - paragraph [ref=e228]:
+                    - img [ref=e229]
+                    - text: Fisioterapia General
+                  - paragraph [ref=e231]:
+                    - img [ref=e232]
+                    - text: Admin Zeus
+                - generic [ref=e234]:
+                  - button "Finalizar" [ref=e235] [cursor=pointer]:
+                    - img [ref=e236]
+                    - text: Finalizar
+                  - button "Cancelar cita" [ref=e238] [cursor=pointer]:
+                    - img [ref=e239]
+              - article [ref=e241]:
+                - generic [ref=e242]:
+                  - strong [ref=e243]: 18:00
+                  - generic [ref=e244]: 19:00
+                - generic:
+                  - paragraph: Paciente
+                  - paragraph:
+                    - img [ref=e247]
+                    - text: Ecografía Diagnóstica
+                  - paragraph:
+                    - img [ref=e249]
+                    - text: Admin Zeus
+                - generic [ref=e251]:
+                  - button "Confirmar" [ref=e252] [cursor=pointer]:
+                    - img [ref=e253]
+                    - text: Confirmar
+                  - link "WA" [ref=e255] [cursor=pointer]:
+                    - /url: https://wa.me/?text=Hola , te escribimos de la clinica para confirmar tu cita de Ecografía Diagnóstica hoy a las 18:00.
+                  - button "Cancelar cita" [ref=e256] [cursor=pointer]:
+                    - img [ref=e257]
+  - region "Notifications alt+T"

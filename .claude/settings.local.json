@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(cd \"C:\\\\Users\\\\jorge\\\\OneDrive\\\\desktop\\\\zeus\\\\panel\" && npx tsc --noEmit --pretty 2>&1 | head -30)",
+      "Bash(cd \"C:\\\\Users\\\\jorge\\\\OneDrive\\\\desktop\\\\zeus\\\\panel\" && npx tsc --noEmit 2>&1 | head -40)",
+      "Bash(cd \"C:\\\\Users\\\\jorge\\\\OneDrive\\\\desktop\\\\zeus\\\\panel\" && npx next build 2>&1 | tail -15)",
+      "Bash(cd:*)"
+    ]
+  }
+}

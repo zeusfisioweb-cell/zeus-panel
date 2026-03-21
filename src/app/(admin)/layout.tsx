@@ -1,73 +1,239 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { Toaster } from 'sonner';
+import { getPanelSectionTitle, isRestrictedForProfessional } from '@/lib/panel-navigation';
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
-    const { user, profile, loading } = useAuth();
+    const { user, profile, loading, profileError, refreshProfile, signOut } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
+    const [profileStuck, setProfileStuck] = useState(false);
+    const [loadingStuck, setLoadingStuck] = useState(false);
+
+    const sectionTitle = getPanelSectionTitle(pathname);
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.replace('/login');
+        if (loading) return;
+
+        if (!user) {
+            if (pathname !== '/login') router.replace('/login');
+            return;
         }
-    }, [user, loading, router]);
+
+        if (profile) {
+            if (profile.role !== 'owner' && profile.role !== 'professional') {
+                if (pathname !== '/login') router.replace('/login');
+                return;
+            }
+
+            if (profile.role === 'professional') {
+                if (pathname !== '/' && isRestrictedForProfessional(pathname)) {
+                    router.replace('/');
+                }
+            }
+        }
+
+    }, [user, profile, loading, profileError, router, pathname]);
 
     useEffect(() => {
-        if (!loading && profile && profile.role !== 'owner') {
-            router.replace('/login');
+        if (loading || !user || profile || profileError) {
+            setProfileStuck(false);
+            return;
         }
-    }, [profile, loading, router]);
 
-    // Show loading spinner while auth state is resolving
+        const timer = setTimeout(() => {
+            setProfileStuck(true);
+        }, 7000);
+
+        return () => clearTimeout(timer);
+    }, [loading, user, profile, profileError]);
+
+    useEffect(() => {
+        if (!loading) {
+            setLoadingStuck(false);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setLoadingStuck(true);
+        }, 12000);
+
+        return () => clearTimeout(timer);
+    }, [loading]);
+
     if (loading) {
+        if (loadingStuck) {
+            return (
+                <div className="loading-page">
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+                        La carga del panel esta tardando demasiado.
+                    </p>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="btn btn--secondary btn--sm"
+                        >
+                            Reintentar
+                        </button>
+                        <button
+                            onClick={async () => {
+                                await signOut();
+                                router.replace('/login');
+                            }}
+                            className="btn btn--primary btn--sm"
+                        >
+                            Ir al login
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--gris)', fontSize: 13 }}>Cargando panel...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Cargando panel...</p>
             </div>
         );
     }
 
-    // Not authenticated — redirect will happen via useEffect above
     if (!user) {
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--gris)', fontSize: 13 }}>Redirigiendo...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Redirigiendo...</p>
             </div>
         );
     }
 
-    // User is authenticated but profile hasn't loaded yet or failed
-    // Show loading state instead of blank page
+    if (!profile && profileError) {
+        return (
+            <div className="loading-page">
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+                    Error al cargar el perfil de usuario.
+                </p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                        onClick={() => {
+                            void refreshProfile();
+                        }}
+                        className="btn btn--secondary btn--sm"
+                    >
+                        Reintentar
+                    </button>
+                    <button
+                        onClick={async () => {
+                            await signOut();
+                            router.replace('/login');
+                        }}
+                        className="btn btn--primary btn--sm"
+                    >
+                        Ir al login
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!profile) {
+        if (profileStuck) {
+            return (
+                <div className="loading-page">
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+                        No se pudo cargar el perfil. Vuelve a iniciar sesion.
+                    </p>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                            onClick={() => {
+                                void refreshProfile();
+                            }}
+                            className="btn btn--secondary btn--sm"
+                        >
+                            Reintentar
+                        </button>
+                        <button
+                            onClick={async () => {
+                                await signOut();
+                                router.replace('/login');
+                            }}
+                            className="btn btn--primary btn--sm"
+                        >
+                            Ir al login
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--gris)', fontSize: 13 }}>Cargando perfil...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Cargando perfil...</p>
             </div>
         );
     }
 
-    // User doesn't have the right role — redirect will happen via useEffect
-    if (profile.role !== 'owner') {
+    if (profile.role !== 'owner' && profile.role !== 'professional') {
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--gris)', fontSize: 13 }}>Sin permisos. Redirigiendo...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin permisos. Redirigiendo...</p>
             </div>
         );
+    }
+
+    if (profile.role === 'professional') {
+        if (isRestrictedForProfessional(pathname)) {
+            return (
+                <div className="loading-page">
+                    <div className="spinner" />
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Area restringida. Volviendo al inicio...</p>
+                </div>
+            );
+        }
     }
 
     return (
         <>
             <Sidebar />
             <main className="main-content">
+                <div className="panel-topbar">
+                    <div className="panel-topbar__left">
+                        <span className="panel-topbar__section">{sectionTitle}</span>
+                        <span className="panel-topbar__dot" />
+                        <span className="panel-topbar__date">
+                            {new Date().toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                day: '2-digit',
+                                month: 'long',
+                            })}
+                        </span>
+                    </div>
+                    <div className="panel-topbar__right">
+                        <span className="panel-topbar__role">
+                            {profile.role === 'owner' ? 'Direccion' : 'Profesional'}
+                        </span>
+                        <strong className="panel-topbar__name">{profile.full_name || 'Usuario'}</strong>
+                    </div>
+                </div>
                 {children}
             </main>
+            <Toaster
+                position="top-right"
+                richColors
+                toastOptions={{
+                    style: {
+                        background: 'var(--bg-base)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-main)',
+                    },
+                    className: 'font-sans',
+                }}
+            />
         </>
     );
 }
@@ -77,7 +243,5 @@ export default function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    return (
-        <AdminLayoutInner>{children}</AdminLayoutInner>
-    );
+    return <AdminLayoutInner>{children}</AdminLayoutInner>;
 }

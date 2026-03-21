@@ -1,0 +1,198 @@
+﻿'use client';
+
+import React, { FormEvent, useEffect, useState, useRef } from 'react';
+import { Service, ServiceCategory } from '@/lib/types';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { ServiceSchema, validateData } from '@/lib/schemas';
+import { toast } from 'sonner';
+
+interface ServiceFormModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    editing: Service | null;
+    categories: ServiceCategory[];
+    onSubmit: (data: Omit<Service, 'id' | 'created_at' | 'category'>) => Promise<void>;
+    onUpdate: (id: string, data: Partial<Service>) => Promise<void>;
+}
+
+export function ServiceFormModal({
+    isOpen,
+    onClose,
+    editing,
+    categories,
+    onSubmit,
+    onUpdate,
+}: ServiceFormModalProps) {
+    const [form, setForm] = useState({
+        name: '',
+        description: '',
+        duration_minutes: 50,
+        price: 0,
+        category_id: '',
+        is_active: true,
+    });
+
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const firstInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (editing) {
+            setForm({
+                name: editing.name,
+                description: editing.description || '',
+                duration_minutes: editing.duration_minutes,
+                price: Number(editing.price),
+                category_id: editing.category_id || '',
+                is_active: editing.is_active,
+            });
+        } else {
+            setForm({
+                name: '',
+                description: '',
+                duration_minutes: 50,
+                price: 0,
+                category_id: categories[0]?.id || '',
+                is_active: true,
+            });
+        }
+
+        setErrors({});
+        setIsSubmitting(false);
+
+        setTimeout(() => {
+            firstInputRef.current?.focus();
+        }, 60);
+    }, [isOpen, editing, categories]);
+
+    async function handleSubmit(event: FormEvent) {
+        event.preventDefault();
+
+        const validation = validateData(ServiceSchema, form);
+        if (!validation.success) {
+            setErrors(validation.errors);
+            toast.error('Revisa los campos obligatorios');
+            return;
+        }
+
+        setErrors({});
+        setIsSubmitting(true);
+
+        try {
+            const payload: Omit<Service, 'id' | 'created_at' | 'category'> = {
+                ...form,
+                price: Number(form.price),
+                requires_medical_history: editing?.requires_medical_history ?? false,
+            };
+
+            if (editing) {
+                await onUpdate(editing.id, payload);
+            } else {
+                await onSubmit(payload);
+            }
+
+            onClose();
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={editing ? 'Configurar servicio' : 'Nuevo servicio'}
+            maxWidth="md"
+        >
+            <form onSubmit={handleSubmit} className="service-form">
+                <div className="service-form__content">
+                    <Input
+                        ref={firstInputRef}
+                        label="Nombre del servicio"
+                        error={errors.name?.[0]}
+                        value={form.name}
+                        onChange={(event) => setForm({ ...form, name: event.target.value })}
+                        placeholder="Ej: Fisioterapia avanzada"
+                        required
+                    />
+
+                    <div className="service-form__field">
+                        <label className="service-form__label">Descripcion</label>
+                        <textarea
+                            className="form-input service-form__textarea"
+                            value={form.description}
+                            onChange={(event) => setForm({ ...form, description: event.target.value })}
+                            placeholder="Detalles visibles en la web"
+                        />
+                        {errors.description && <span className="service-form__error">{errors.description[0]}</span>}
+                    </div>
+
+                    <div className="service-form__grid service-form__grid--2">
+                        <Input
+                            type="number"
+                            label="Duracion (minutos)"
+                            error={errors.duration_minutes?.[0]}
+                            value={form.duration_minutes}
+                            onChange={(event) => setForm({ ...form, duration_minutes: +event.target.value })}
+                            required
+                        />
+
+                        <Input
+                            type="number"
+                            step="0.01"
+                            label="Precio (EUR)"
+                            error={errors.price?.[0]}
+                            value={form.price}
+                            onChange={(event) => setForm({ ...form, price: +event.target.value })}
+                            required
+                        />
+                    </div>
+
+                    <div className="service-form__grid service-form__grid--2">
+                        <div className="service-form__field">
+                            <label className="service-form__label">Categoria</label>
+                            <select
+                                className="form-input form-select"
+                                value={form.category_id}
+                                onChange={(event) => setForm({ ...form, category_id: event.target.value })}
+                                required
+                            >
+                                {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.category_id && <span className="service-form__error">{errors.category_id[0]}</span>}
+                        </div>
+
+                        <div className="service-form__field">
+                            <label className="service-form__label">Estado</label>
+                            <select
+                                className="form-input form-select"
+                                value={form.is_active ? 'yes' : 'no'}
+                                onChange={(event) => setForm({ ...form, is_active: event.target.value === 'yes' })}
+                            >
+                                <option value="yes">Activo (publico)</option>
+                                <option value="no">Suspendido (privado)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="service-form__footer">
+                    <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit" variant="primary" isLoading={isSubmitting}>
+                        {editing ? 'Guardar cambios' : 'Crear servicio'}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
+    );
+}

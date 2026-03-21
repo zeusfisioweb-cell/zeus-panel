@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e4]
+  - complementary [ref=e28]:
+    - img "Zeus Clinica" [ref=e31]
+    - navigation [ref=e32]:
+      - generic [ref=e33]: Panel
+      - link "Resumen" [ref=e34] [cursor=pointer]:
+        - /url: /
+        - img [ref=e36]
+        - text: Resumen
+      - link "Citas 4 citas pendientes" [ref=e38] [cursor=pointer]:
+        - /url: /citas
+        - img [ref=e40]
+        - text: Citas
+        - generic "4 citas pendientes" [ref=e42]: "4"
+      - generic [ref=e43]: Gestion
+      - link "Profesionales" [ref=e44] [cursor=pointer]:
+        - /url: /profesionales
+        - img [ref=e46]
+        - text: Profesionales
+      - link "Servicios" [ref=e48] [cursor=pointer]:
+        - /url: /servicios
+        - img [ref=e50]
+        - text: Servicios
+      - link "Pacientes" [ref=e52] [cursor=pointer]:
+        - /url: /pacientes
+        - img [ref=e54]
+        - text: Pacientes
+      - link "Horarios" [ref=e56] [cursor=pointer]:
+        - /url: /horarios
+        - img [ref=e58]
+        - text: Horarios
+      - link "Configuracion" [ref=e60] [cursor=pointer]:
+        - /url: /configuracion
+        - img [ref=e62]
+        - text: Configuracion
+    - generic [ref=e65]:
+      - generic [ref=e67]: AZ
+      - generic [ref=e68]:
+        - generic [ref=e69]: Admin Zeus
+        - generic [ref=e70]: Direccion
+      - button "Cerrar sesion" [ref=e71] [cursor=pointer]:
+        - img [ref=e72]
+  - main [ref=e74]:
+    - generic [ref=e75]:
+      - generic [ref=e76]:
+        - generic [ref=e77]: Resumen
+        - generic [ref=e79]: lunes, 16 de marzo
+      - generic [ref=e80]:
+        - generic [ref=e81]: Direccion
+        - strong [ref=e82]: Admin Zeus
+  - region "Notifications alt+T"

@@ -1,293 +1,314 @@
 'use client';
 
-import { useEffect, useState, useCallback, FormEvent } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import Icon from '@/components/Icon';
+import type { Patient, Appointment, ClinicalRecord, RecordType } from '@/lib/types';
+import { usePacientes, useCreatePaciente, useUpdatePaciente, useDeletePaciente } from '@/hooks/usePacientes';
 
-const supabase = createClient();
-import type { Patient, Appointment } from '@/lib/types';
+import ConfirmModal from '@/components/ConfirmModal';
+import { PacientesHeader } from './components/PacientesHeader';
+import { PacientesTable } from './components/PacientesTable';
+import { PatientFormModal, PatientFormData } from './components/PatientFormModal';
+import { ClinicalRecordFormModal } from './components/ClinicalRecordFormModal';
+import { PatientDetailsPanel } from './components/PatientDetailsPanel';
+
 
 export default function PacientesPage() {
-    const [patients, setPatients] = useState<Patient[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Stable Supabase instance — inside component, not module scope
+    const [supabase] = useState(() => createClient());
+
+    // Local State
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const pageSize = 50;
+
+    // Queries
+    // Usamos el hook modificado que retorna data y count
+    const { data: result, isLoading: isLoadingPatients, refetch: refetchPatients } = usePacientes({
+        searchTerm: debouncedSearch,
+        page,
+        pageSize
+    });
+    const patients = result?.data || [];
+    const totalCount = result?.count || 0;
+
+    // Mutations
+    const createPaciente = useCreatePaciente();
+    const updatePaciente = useUpdatePaciente();
+    const deletePaciente = useDeletePaciente();
+
+    // Detail State
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
+    const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
 
-    const [showNewModal, setShowNewModal] = useState(false);
-    const [form, setForm] = useState({
-        first_name: '', last_name: '', document_id: '',
-        phone: '', email: '', birth_date: '',
-        gdpr_consent: false,
-    });
-
-    const loadPatients = useCallback(async () => {
-        const { data } = await supabase
-            .from('patients')
-            .select('*')
-            .order('created_at', { ascending: false });
-        setPatients(data as Patient[] || []);
-        setLoading(false);
-    }, []);
-
+    // Debounce the search input
     useEffect(() => {
-        loadPatients();
-    }, [loadPatients]);
+        const handler = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1); // Reset to first page when searching
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [search]);
 
-    async function viewPatient(p: Patient) {
-        setSelectedPatient(p);
-        const { data } = await supabase
-            .from('appointments')
-            .select('*, service:services(name)')
-            .eq('patient_id', p.id)
-            .order('start_time', { ascending: false })
-            .limit(20);
-        setPatientAppointments(data as Appointment[] || []);
-    }
+    // Modals Local State
+    const [showNewModal, setShowNewModal] = useState(false);
+    const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+    const [showRecordModal, setShowRecordModal] = useState(false);
+    const [recordType, setRecordType] = useState<RecordType>('evolution');
+    const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
-    async function deletePatient(id: string) {
-        if (!confirm('¿Eliminar paciente y todos sus datos? Esta acción no se puede deshacer.')) return;
-        await supabase.from('consent_records').delete().eq('patient_id', id);
-        await supabase.from('appointments').update({ patient_id: null }).eq('patient_id', id);
-        await supabase.from('patients').delete().eq('id', id);
-        setSelectedPatient(null);
-        loadPatients();
-    }
+    // Helpers to load detail data
+    const loadPatientDetails = async (patientId: string) => {
+        try {
+            const [appointmentsRes, recordsRes] = await Promise.all([
+                supabase
+                    .from('appointments')
+                    .select('*, service:services(name)')
+                    .eq('patient_id', patientId)
+                    .order('start_time', { ascending: false })
+                    .limit(20),
+                supabase
+                    .from('clinical_records')
+                    .select('*, professional:professionals(profile:profiles(full_name))')
+                    .eq('patient_id', patientId)
+                    .order('created_at', { ascending: false })
+            ]);
 
-    async function handleCreate(e: FormEvent) {
-        e.preventDefault();
-        const payload = {
-            first_name: form.first_name,
-            last_name: form.last_name,
-            document_id: form.document_id || null,
-            phone: form.phone || null,
-            email: form.email || null,
-            birth_date: form.birth_date || null,
-            gdpr_consent: form.gdpr_consent,
-            marketing_consent: false,
-        };
-
-        const { error } = await supabase.from('patients').insert(payload);
-        if (!error) {
-            setShowNewModal(false);
-            setForm({ first_name: '', last_name: '', document_id: '', phone: '', email: '', birth_date: '', gdpr_consent: false });
-            loadPatients();
-        } else {
-            console.error(error);
-            alert('Error al crear paciente: ' + error.message);
+            setPatientAppointments(appointmentsRes.data as Appointment[] || []);
+            setClinicalRecords(recordsRes.data as unknown as ClinicalRecord[] || []);
+        } catch (error) {
+            toast.error('Error cargando los detalles del paciente');
         }
-    }
+    };
 
-    const filtered = patients.filter(p => {
-        if (!search) return true;
-        const s = search.toLowerCase();
+    const handleViewPatient = (p: Patient) => {
+        setSelectedPatient(p);
+        loadPatientDetails(p.id);
+    };
+
+    // Patient Form Handlers
+    const handleCreatePatient = async (data: PatientFormData) => {
+        try {
+            const payload = {
+                first_name: data.first_name,
+                last_name: data.last_name,
+                document_id: data.document_id || null,
+                phone: data.phone || null,
+                email: data.email || null,
+                birth_date: data.birth_date || null,
+                address: data.address || null,
+                gdpr_consent: data.gdpr_consent,
+                marketing_consent: data.marketing_consent,
+            };
+            await createPaciente.mutateAsync(payload);
+            toast.success('Paciente creado correctamente');
+            refetchPatients(); // Though React Query does it automatically sometimes based on mutation config
+        } catch (error: any) {
+            toast.error('Error al crear paciente: ' + error.message);
+            throw error;
+        }
+    };
+
+    const handleUpdatePatient = async (data: PatientFormData) => {
+        if (!editingPatient) return;
+        try {
+            const payload = {
+                id: editingPatient.id,
+                first_name: data.first_name,
+                last_name: data.last_name,
+                document_id: data.document_id || null,
+                phone: data.phone || null,
+                email: data.email || null,
+                birth_date: data.birth_date || null,
+                address: data.address || null,
+                gdpr_consent: data.gdpr_consent,
+                marketing_consent: data.marketing_consent,
+            };
+            await updatePaciente.mutateAsync(payload);
+            toast.success('Paciente actualizado');
+
+            // Re-sync local selected patient if it's the one being edited
+            if (selectedPatient?.id === editingPatient.id) {
+                setSelectedPatient({ ...selectedPatient, ...payload });
+            }
+
+            refetchPatients();
+        } catch (error: any) {
+            toast.error('Error al actualizar: ' + error.message);
+            throw error;
+        }
+    };
+
+    const handleDeletePatientConfirm = (id: string) => {
+        setConfirmAction({
+            title: 'Eliminar paciente',
+            message: '¿Seguro que deseas eliminar este paciente y todo su historial? Esta acción no se puede deshacer.',
+            onConfirm: async () => {
+                try {
+                    const { error: recordsErr } = await supabase.from('clinical_records').delete().eq('patient_id', id);
+                    if (recordsErr) throw recordsErr;
+
+                    const { error: consentErr } = await supabase.from('consent_records').delete().eq('patient_id', id);
+                    if (consentErr) throw consentErr;
+
+                    const { error: aptsErr } = await supabase.from('appointments').update({ patient_id: null }).eq('patient_id', id);
+                    if (aptsErr) throw aptsErr;
+
+                    await deletePaciente.mutateAsync(id);
+
+                    setSelectedPatient(null);
+                    setConfirmAction(null);
+                    toast.success('Paciente eliminado');
+                } catch (error: unknown) {
+                    const msg = error instanceof Error ? error.message : 'Error desconocido';
+                    toast.error('Error al eliminar paciente: ' + msg);
+                }
+            }
+        });
+    };
+
+    // Clinical Records Handlers
+    const handleOpenRecordModal = (type: RecordType) => {
+        setRecordType(type);
+        setShowRecordModal(true);
+    };
+
+    const handleSaveRecord = async (type: RecordType, recordFields: string[]) => {
+        if (!selectedPatient) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            // Re-construct the content using the external RECORD_FIELDS definition
+            // To keep things simple, we fetch the module dynamically or hardcode the labels here?
+            // Usually, this logic is safer inside the form, yielding a complete JSON object.
+            // But since the form just yielded the array of strings, we need the labels:
+            const { RECORD_FIELDS } = await import('./components/ClinicalRecordFormModal');
+
+            const content: Record<string, string> = {};
+            RECORD_FIELDS[type].forEach((field: { label: string }, idx: number) => {
+                content[field.label] = recordFields[idx] || '';
+            });
+
+            const { error } = await supabase.from('clinical_records').insert({
+                patient_id: selectedPatient.id,
+                professional_id: user?.id,
+                type,
+                content,
+            });
+
+            if (error) throw error;
+
+            toast.success('Ficha clínica guardada');
+            loadPatientDetails(selectedPatient.id);
+        } catch (error: any) {
+            toast.error('Error al guardar ficha: ' + error.message);
+            throw error;
+        }
+    };
+
+    const handleDeleteRecordConfirm = (id: string) => {
+        setConfirmAction({
+            title: 'Eliminar ficha clínica',
+            message: '¿Seguro que deseas eliminar esta ficha clínica?',
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase.from('clinical_records').delete().eq('id', id);
+                    if (error) throw error;
+
+                    if (selectedPatient) loadPatientDetails(selectedPatient.id);
+                    setConfirmAction(null);
+                    toast.success('Ficha eliminada');
+                } catch (error: any) {
+                    toast.error('Error al eliminar ficha: ' + error.message);
+                }
+            }
+        });
+    };
+
+
+    if (isLoadingPatients) {
         return (
-            `${p.first_name} ${p.last_name}`.toLowerCase().includes(s) ||
-            (p.phone && p.phone.includes(s)) ||
-            (p.email && p.email.toLowerCase().includes(s))
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+                <div className="spinner" />
+            </div>
         );
-    });
-
-    if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+    }
 
     return (
-        <>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Pacientes</h1>
-                    <p className="page-subtitle">{patients.length} pacientes registrados en el sistema</p>
-                </div>
-                <button className="btn btn--primary" onClick={() => setShowNewModal(true)}>
-                    <Icon name="plus" size={16} /> Nuevo Paciente
-                </button>
-            </div>
+        <div className="content-shell section-shell section-shell--pacientes animate-in fade-in duration-500">
+            <PacientesHeader
+                totalCount={totalCount}
+                onNewPaciente={() => setShowNewModal(true)}
+            />
 
-            <div className="card" style={{ marginBottom: 24 }}>
-                <div className="card__body" style={{ padding: '16px 24px', display: 'flex', gap: 16 }}>
-                    <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
-                        <div style={{ position: 'absolute', left: 12, top: 10, color: 'var(--text-muted)' }}>
-                            <Icon name="search" size={16} />
-                        </div>
-                        <input
-                            className="form-input"
-                            placeholder="Buscar por nombre, teléfono o email..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            style={{ paddingLeft: 36 }}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr 1fr' : '1fr', gap: 24, alignItems: 'start' }}>
-                <div className="card">
-                    <div className="card__body" style={{ padding: 0 }}>
-                        <div className="table-wrapper">
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Contacto</th>
-                                        <th>RGPD</th>
-                                        <th>Alta</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filtered.map(p => (
-                                        <tr
-                                            key={p.id}
-                                            onClick={() => viewPatient(p)}
-                                            style={{ cursor: 'pointer', background: selectedPatient?.id === p.id ? 'var(--bg-hover)' : undefined }}
-                                        >
-                                            <td style={{ fontWeight: 500, color: 'var(--text-main)' }}>{p.first_name} {p.last_name}</td>
-                                            <td>
-                                                <div style={{ fontSize: 13, color: 'var(--text-main)' }}>{p.phone || '—'}</div>
-                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.email || '—'}</div>
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${p.gdpr_consent ? 'badge--confirmed' : 'badge-default'}`}>
-                                                    {p.gdpr_consent ? 'Sí' : 'No'}
-                                                </span>
-                                            </td>
-                                            <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                                {new Date(p.created_at).toLocaleDateString('es-ES')}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filtered.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="empty-state">
-                                                <div className="empty-state__icon"><Icon name="users" size={24} /></div>
-                                                <div className="empty-state__title">Sin resultados</div>
-                                                <div className="empty-state__text">No se encontraron pacientes que coincidan con la búsqueda.</div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            <div className={`patients-layout ${selectedPatient ? 'patients-layout--with-detail' : ''}`}>
+                <div className="patients-layout__main">
+                    <PacientesTable
+                        patients={patients}
+                        search={search}
+                        onSearchChange={setSearch}
+                        onViewPatient={handleViewPatient}
+                        selectedPatientId={selectedPatient?.id}
+                        page={page}
+                        pageSize={pageSize}
+                        totalCount={totalCount}
+                        onPageChange={setPage}
+                    />
                 </div>
 
                 {selectedPatient && (
-                    <div className="card" style={{ position: 'sticky', top: 24 }}>
-                        <div className="card__header">
-                            <h2 className="card__title">
-                                {selectedPatient.first_name} {selectedPatient.last_name}
-                            </h2>
-                            <button className="modal__close" onClick={() => setSelectedPatient(null)}><Icon name="close" size={18} /></button>
-                        </div>
-                        <div className="card__body">
-                            <div className="form-grid-2" style={{ marginBottom: 24 }}>
-                                <div>
-                                    <div className="form-label text-muted">Teléfono</div>
-                                    <div className="text-main" style={{ fontSize: 14 }}>{selectedPatient.phone || '—'}</div>
-                                </div>
-                                <div>
-                                    <div className="form-label text-muted">Email</div>
-                                    <div className="text-main" style={{ fontSize: 14, wordBreak: 'break-all' }}>{selectedPatient.email || '—'}</div>
-                                </div>
-                                <div>
-                                    <div className="form-label text-muted">Documento (DNI/NIE)</div>
-                                    <div className="text-main" style={{ fontSize: 14 }}>{selectedPatient.document_id || '—'}</div>
-                                </div>
-                                <div>
-                                    <div className="form-label text-muted">Fecha nacimiento</div>
-                                    <div className="text-main" style={{ fontSize: 14 }}>{selectedPatient.birth_date ? new Date(selectedPatient.birth_date).toLocaleDateString('es-ES') : '—'}</div>
-                                </div>
-                            </div>
-
-                            <h3 style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 16 }}>
-                                Historial clínico reciente
-                            </h3>
-                            {patientAppointments.length === 0 ? (
-                                <p className="text-sm text-muted">Aún no hay citas registradas para este paciente.</p>
-                            ) : (
-                                <div className="timeline">
-                                    {patientAppointments.map(a => (
-                                        <div key={a.id} className="timeline-item">
-                                            <div className="timeline-item__content">
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                    <div>
-                                                        <div className="timeline-item__title">{a.service?.name || 'Servicio General'}</div>
-                                                        <div className="timeline-item__time">
-                                                            {new Date(a.start_time).toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
-                                                    </div>
-                                                    <span className={`badge badge--${a.status}`}>{a.status}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
-                                <button
-                                    className="btn btn--danger btn--sm"
-                                    onClick={() => deletePatient(selectedPatient.id)}
-                                >
-                                    <Icon name="trash" size={14} /> Eliminar permanentemente
-                                </button>
-                                <p style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8 }}>
-                                    Cumplimiento RGPD: Esta acción borra todos los rastros identificables del paciente.
-                                </p>
-                            </div>
-                        </div>
+                    <div className="patients-layout__detail">
+                        <PatientDetailsPanel
+                            patient={selectedPatient}
+                            appointments={patientAppointments}
+                            records={clinicalRecords}
+                            onClose={() => setSelectedPatient(null)}
+                            onEdit={() => setEditingPatient(selectedPatient)}
+                            onDelete={handleDeletePatientConfirm}
+                            onNewRecord={handleOpenRecordModal}
+                            onDeleteRecord={handleDeleteRecordConfirm}
+                        />
                     </div>
                 )}
             </div>
 
-            {showNewModal && (
-                <div className="modal-overlay" onClick={() => setShowNewModal(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal__header">
-                            <h3 className="modal__title">Añadir Nuevo Paciente</h3>
-                            <button className="modal__close" onClick={() => setShowNewModal(false)}><Icon name="close" size={20} /></button>
-                        </div>
-                        <form onSubmit={handleCreate}>
-                            <div className="modal__body">
-                                <div className="form-grid-2">
-                                    <div className="form-group">
-                                        <label className="form-label">Nombre</label>
-                                        <input required className="form-input" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="Ej: Ana" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Apellidos</label>
-                                        <input required className="form-input" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Ej: García López" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Teléfono</label>
-                                        <input className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+34 600 000 000" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Email</label>
-                                        <input type="email" className="form-input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="ana@ejemplo.com" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">DNI / NIE</label>
-                                        <input className="form-input" value={form.document_id} onChange={e => setForm({ ...form, document_id: e.target.value })} placeholder="12345678A" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Fecha de nacimiento</label>
-                                        <input type="date" className="form-input" value={form.birth_date} onChange={e => setForm({ ...form, birth_date: e.target.value })} />
-                                    </div>
-                                </div>
-                                <div className="form-group" style={{ marginTop: 8 }}>
-                                    <label className="form-checkbox-label">
-                                        <input type="checkbox" checked={form.gdpr_consent} onChange={e => setForm({ ...form, gdpr_consent: e.target.checked })} />
-                                        <span>El paciente ha aceptado la política de privacidad (RGPD)</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="modal__footer">
-                                <button type="button" className="btn btn--secondary" onClick={() => setShowNewModal(false)}>Cancelar</button>
-                                <button type="submit" className="btn btn--primary">Guardar paciente</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* Modals */}
+            <PatientFormModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                editing={null}
+                onSubmit={handleCreatePatient}
+            />
+
+            {editingPatient && (
+                <PatientFormModal
+                    isOpen={true}
+                    onClose={() => setEditingPatient(null)}
+                    editing={editingPatient}
+                    onSubmit={handleUpdatePatient}
+                />
             )}
-        </>
+
+            {showRecordModal && (
+                <ClinicalRecordFormModal
+                    isOpen={showRecordModal}
+                    onClose={() => setShowRecordModal(false)}
+                    initialType={recordType}
+                    onSubmit={handleSaveRecord}
+                />
+            )}
+
+            {confirmAction && (
+                <ConfirmModal
+                    title={confirmAction.title}
+                    message={confirmAction.message}
+                    onConfirm={confirmAction.onConfirm}
+                    onCancel={() => setConfirmAction(null)}
+                />
+            )}
+        </div>
     );
 }

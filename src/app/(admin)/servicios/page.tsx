@@ -1,211 +1,174 @@
 'use client';
 
-import { useEffect, useState, useCallback, FormEvent } from 'react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import Icon from '@/components/Icon';
+import type { Service } from '@/lib/types';
+import {
+    useServicios,
+    useCategorias,
+    useCreateServicio,
+    useUpdateServicio,
+    useDeleteServicio
+} from '@/hooks/useServicios';
 
-const supabase = createClient();
-import type { Service, ServiceCategory } from '@/lib/types';
+import ConfirmModal from '@/components/ConfirmModal';
+import { ServiciosHeader } from './components/ServiciosHeader';
+import { ServiciosTable } from './components/ServiciosTable';
+import { CategoryFormModal } from './components/CategoryFormModal';
+import { ServiceFormModal } from './components/ServiceFormModal';
 
 export default function ServiciosPage() {
-    const [services, setServices] = useState<Service[]>([]);
-    const [categories, setCategories] = useState<ServiceCategory[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState<Service | null>(null);
-    const [form, setForm] = useState({
-        name: '', description: '', duration_minutes: 50, price: 0,
-        category_id: '', is_active: true,
-    });
+    const [supabase] = useState(() => createClient());
+    // Queries
+    const { data: services = [], isLoading: isLoadingServices } = useServicios();
+    const { data: categories = [], isLoading: isLoadingCategories, refetch: refetchCategories } = useCategorias();
 
-    const loadData = useCallback(async () => {
-        const [servicesRes, categoriesRes] = await Promise.all([
-            supabase.from('services').select('*, category:service_categories(*)').order('name'),
-            supabase.from('service_categories').select('*').order('display_order'),
-        ]);
-        setServices(servicesRes.data as Service[] || []);
-        setCategories(categoriesRes.data as ServiceCategory[] || []);
-        setLoading(false);
-    }, []);
+    // Mutations
+    const createService = useCreateServicio();
+    const updateService = useUpdateServicio();
+    const deleteService = useDeleteServicio();
 
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+    // Modal states
+    const [showServiceModal, setShowServiceModal] = useState(false);
+    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
-    function openNew() {
-        setEditing(null);
-        setForm({ name: '', description: '', duration_minutes: 50, price: 0, category_id: categories[0]?.id || '', is_active: true });
-        setShowModal(true);
-    }
+    const isLoading = isLoadingServices || isLoadingCategories;
 
-    function openEdit(s: Service) {
-        setEditing(s);
-        setForm({
-            name: s.name,
-            description: s.description || '',
-            duration_minutes: s.duration_minutes,
-            price: Number(s.price),
-            category_id: s.category_id || '',
-            is_active: s.is_active,
-        });
-        setShowModal(true);
-    }
-
-    async function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        const payload = { ...form, price: Number(form.price) };
-
-        if (editing) {
-            await supabase.from('services').update(payload).eq('id', editing.id);
-        } else {
-            await supabase.from('services').insert(payload);
+    // Handlers
+    function handleOpenNewService() {
+        if (categories.length === 0) {
+            toast.error('Crea al menos una categoría primero');
+            return;
         }
-        setShowModal(false);
-        loadData();
+        setEditingService(null);
+        setShowServiceModal(true);
     }
 
-    async function deleteService(id: string) {
-        if (!confirm('¿Eliminar de forma permanente este servicio?')) return;
-        await supabase.from('services').delete().eq('id', id);
-        loadData();
+    function handleOpenEditService(s: Service) {
+        setEditingService(s);
+        setShowServiceModal(true);
     }
 
-    if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+    async function handleServiceSubmit(data: Omit<Service, 'id' | 'created_at' | 'category'>) {
+        try {
+            await createService.mutateAsync(data as any);
+            toast.success('Servicio creado con éxito');
+        } catch (error: any) {
+            toast.error('Error al crear el servicio: ' + error.message);
+            throw error;
+        }
+    }
 
-    const grouped = categories.map(cat => ({
-        category: cat,
-        services: services.filter(s => s.category_id === cat.id),
-    }));
+    async function handleServiceUpdate(id: string, data: Partial<Service>) {
+        try {
+            await updateService.mutateAsync({ id, ...data });
+            toast.success('Servicio actualizado con éxito');
+        } catch (error: any) {
+            toast.error('Error al actualizar el servicio: ' + error.message);
+            throw error;
+        }
+    }
+
+    async function handleCategorySubmit(data: { name: string; is_active: boolean; display_order: number }) {
+        try {
+            const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            const { error } = await supabase.from('service_categories').insert({
+                ...data,
+                slug,
+            });
+
+            if (error) throw error;
+            toast.success('Categoría creada con éxito');
+            // Optimistically or manually refetch the categories
+            refetchCategories();
+        } catch (error: any) {
+            toast.error('Error al crear la categoría: ' + error.message);
+            throw error;
+        }
+    }
+
+    function handleDeleteServiceRequest(id: string) {
+        setConfirmAction({
+            title: 'Eliminar servicio',
+            message: '¿Seguro que quieres eliminar este servicio de forma permanente? Esta acción no se puede deshacer.',
+            onConfirm: async () => {
+                setConfirmAction(null);
+
+                // Keep the complex validation here or move to a backend function/RPC
+                try {
+                    const { count } = await supabase
+                        .from('appointments')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('service_id', id)
+                        .in('status', ['pending', 'confirmed'])
+                        .gte('start_time', new Date().toISOString());
+
+                    if (count && count > 0) {
+                        toast.error(`No se puede eliminar: hay ${count} cita(s) futuras con este servicio. Desactívalo en su lugar.`);
+                        return;
+                    }
+
+                    await supabase.from('professional_services').delete().eq('service_id', id);
+                    await deleteService.mutateAsync(id);
+                    toast.success('Servicio eliminado permanente');
+                } catch (error: any) {
+                    toast.error('Error al eliminar: ' + error.message);
+                }
+            },
+        });
+    }
+
+    if (isLoading) {
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+                <div className="spinner" />
+            </div>
+        );
+    }
 
     return (
-        <>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Servicios</h1>
-                    <p className="page-subtitle">{services.length} servicios en {categories.length} categorías</p>
-                </div>
-                <button className="btn btn--primary" onClick={openNew}>
-                    <Icon name="plus" size={16} /> Nuevo
-                </button>
-            </div>
+        <div className="content-shell section-shell section-shell--servicios animate-in fade-in duration-500">
+            <ServiciosHeader
+                servicesCount={services.length}
+                categoriesCount={categories.length}
+                onNewCategory={() => setShowCategoryModal(true)}
+                onNewService={handleOpenNewService}
+            />
 
-            {grouped.map(({ category, services: catServices }) => (
-                <div key={category.id} className="card" style={{ marginBottom: 24 }}>
-                    <div className="card__header">
-                        <h2 className="card__title" style={{ fontSize: 16 }}>
-                            {category.name}
-                        </h2>
-                        <span className="badge badge-default">
-                            {catServices.length} servicios
-                        </span>
-                    </div>
-                    <div className="card__body" style={{ padding: 0 }}>
-                        <div className="table-wrapper">
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th>Servicio</th>
-                                        <th>Duración / Precio</th>
-                                        <th>Estado</th>
-                                        <th style={{ textAlign: 'right' }}>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {catServices.map(s => (
-                                        <tr key={s.id}>
-                                            <td>
-                                                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14 }}>{s.name}</div>
-                                                {s.description && (
-                                                    <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 400, marginTop: 4 }}>
-                                                        {s.description.length > 80 ? s.description.substring(0, 80) + '...' : s.description}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div style={{ color: 'var(--text-main)', fontWeight: 500 }}>{Number(s.price).toFixed(0)}€</div>
-                                                <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{s.duration_minutes} min</div>
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${s.is_active ? 'badge--confirmed' : 'badge-default'}`}>
-                                                    {s.is_active ? 'Activo' : 'Inactivo'}
-                                                </span>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                                                    <button className="btn btn--ghost btn--sm" onClick={() => openEdit(s)}><Icon name="edit" size={16} /></button>
-                                                    <button className="btn btn--ghost btn--sm" style={{ color: 'var(--danger)' }} onClick={() => deleteService(s.id)}><Icon name="trash" size={16} /></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {catServices.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="empty-state">
-                                                <div className="empty-state__icon"><Icon name="spa" size={20} /></div>
-                                                <div className="empty-state__title">Sin servicios</div>
-                                                <div className="empty-state__text">No hay servicios en esta categoría.</div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            ))}
+            <ServiciosTable
+                categories={categories}
+                services={services}
+                onEdit={handleOpenEditService}
+                onDelete={handleDeleteServiceRequest}
+            />
 
-            {/* Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal__header">
-                            <h3 className="modal__title">{editing ? 'Configurar Servicio' : 'Nuevo Servicio'}</h3>
-                            <button className="modal__close" onClick={() => setShowModal(false)}><Icon name="close" size={20} /></button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal__body">
-                                <div className="form-group">
-                                    <label className="form-label">Nombre del servicio</label>
-                                    <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Fisioterapia Avanzada" required />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Descripción</label>
-                                    <textarea className="form-input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Detalles visibles en la web..." />
-                                </div>
-                                <div className="form-grid-2">
-                                    <div className="form-group">
-                                        <label className="form-label">Duración (minutos)</label>
-                                        <input type="number" className="form-input" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: +e.target.value })} required />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Precio (€)</label>
-                                        <input type="number" className="form-input" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: +e.target.value })} required />
-                                    </div>
-                                </div>
-                                <div className="form-grid-2">
-                                    <div className="form-group">
-                                        <label className="form-label">Categoría</label>
-                                        <select className="form-input form-select" value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} required>
-                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Status</label>
-                                        <select className="form-input form-select" value={form.is_active ? 'yes' : 'no'} onChange={e => setForm({ ...form, is_active: e.target.value === 'yes' })}>
-                                            <option value="yes">Activo (Público)</option>
-                                            <option value="no">Suspendido (Privado)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal__footer">
-                                <button type="button" className="btn btn--secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                                <button type="submit" className="btn btn--primary">{editing ? 'Guardar Cambios' : 'Crear Servicio'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            <ServiceFormModal
+                isOpen={showServiceModal}
+                onClose={() => setShowServiceModal(false)}
+                editing={editingService}
+                categories={categories}
+                onSubmit={handleServiceSubmit}
+                onUpdate={handleServiceUpdate}
+            />
+
+            <CategoryFormModal
+                isOpen={showCategoryModal}
+                onClose={() => setShowCategoryModal(false)}
+                categoriesCount={categories.length}
+                onSubmit={handleCategorySubmit}
+            />
+
+            {confirmAction && (
+                <ConfirmModal
+                    title={confirmAction.title}
+                    message={confirmAction.message}
+                    onConfirm={confirmAction.onConfirm}
+                    onCancel={() => setConfirmAction(null)}
+                />
             )}
-        </>
+        </div>
     );
 }

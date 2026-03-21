@@ -1,0 +1,26 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: Z
+        - generic [ref=e6]: Zeus Fisioterapia
+      - generic [ref=e7]:
+        - heading "Gestion clara para tu clinica." [level=1] [ref=e8]
+        - paragraph [ref=e9]: Agenda, pacientes, servicios y horarios en un unico panel. Rapido, limpio y preparado para el trabajo diario.
+        - list [ref=e10]:
+          - listitem [ref=e11]: Vista dia, semana y agenda con foco clinico
+          - listitem [ref=e12]: Interfaz visual para confirmar y mover citas rapido
+          - listitem [ref=e13]: Diseno limpio para trabajar todo el dia sin fatiga
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - heading "Iniciar sesion" [level=2] [ref=e17]
+        - paragraph [ref=e18]: Accede con tu cuenta profesional para continuar.
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Correo de acceso
+          - textbox "tunombre@zeus.com" [active] [ref=e22]
+        - generic [ref=e23]:
+          - generic [ref=e24]: Contrasena
+          - textbox "********" [ref=e25]
+        - button "Entrar al panel" [ref=e26] [cursor=pointer]
+  - alert [ref=e27]

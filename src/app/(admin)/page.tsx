@@ -1,540 +1,277 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Icon from '@/components/Icon';
+import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format, subDays, addDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useAuth } from '@/lib/auth-context';
 
-const supabase = createClient();
-import type { Appointment, Service, Professional } from '@/lib/types';
-import { STATUS_LABELS, STATUS_COLORS } from '@/lib/types';
+import type { Appointment, Service, Professional, AppointmentStatus } from '@/lib/types';
+import { DashboardStats } from './components/DashboardStats';
+import { DashboardCharts } from './components/DashboardCharts';
+import { DashboardAgenda } from './components/DashboardAgenda';
+import { AppointmentFormModal, AppointmentFormData } from './citas/components/AppointmentFormModal';
+import { useCreateCita, useUpdateCitaStatus } from '@/hooks/useCitas';
+import { getDashboardData } from './actions';
 
 export default function DashboardPage() {
-    const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
-    const [weekChart, setWeekChart] = useState<{ day: string; count: number }[]>([]);
-    const [stats, setStats] = useState({
-        todayCount: 0,
-        weekCount: 0,
-        totalPatients: 0,
-        pendingCount: 0,
-    });
-    const [loading, setLoading] = useState(true);
+    const [supabase] = useState(() => createClient());
+    const queryClient = useQueryClient();
+    const { profile } = useAuth();
 
-    // Modal nueva cita
+    const [dateRange, setDateRange] = useState({ start: new Date(), end: new Date() });
     const [showNewModal, setShowNewModal] = useState(false);
-    const [services, setServices] = useState<Service[]>([]);
-    const [professionals, setProfessionals] = useState<Professional[]>([]);
-    const [newForm, setNewForm] = useState({
-        patient_name: '',
-        patient_phone: '',
-        patient_email: '',
-        service_id: '',
-        professional_id: '',
-        date: new Date().toISOString().split('T')[0],
-        time: '09:00',
-        notes: '',
-        source: 'admin' as const,
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Buenos dias';
+        if (hour < 20) return 'Buenas tardes';
+        return 'Buenas noches';
+    };
+
+    const { data: dashboardData, isLoading: loading } = useQuery({
+        queryKey: ['dashboard', dateRange.start.toISOString(), dateRange.end.toISOString(), profile?.id, profile?.role],
+        queryFn: async () => {
+            const todayStr = format(dateRange.start, 'yyyy-MM-dd');
+            const endStr = format(dateRange.end, 'yyyy-MM-dd');
+            const startDay = dateRange.start.getDay();
+            const weekStart = new Date(dateRange.start);
+            weekStart.setDate(dateRange.start.getDate() - (startDay === 0 ? 6 : startDay - 1));
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+
+            if (!profile) return null;
+
+            return await getDashboardData(
+                todayStr,
+                endStr,
+                weekStart.toISOString(),
+                weekEnd.toISOString(),
+                profile.id,
+                profile.role
+            );
+        },
+        enabled: !!profile,
     });
-    const [saving, setSaving] = useState(false);
 
-    const loadDashboard = useCallback(async () => {
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay() + 1);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
+    const {
+        todayAppointments = [],
+        stats = { todayCount: 0, weekCount: 0, totalPatients: 0, pendingCount: 0 },
+        services = [],
+        professionals = [],
+    } = dashboardData || {};
 
-        // Build 7-day chart data
-        const days: { day: string; date: string }[] = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            days.push({
-                day: d.toLocaleDateString('es-ES', { weekday: 'short' }),
-                date: d.toISOString().split('T')[0],
-            });
-        }
-
-        const [appointmentsRes, weekRes, patientsRes, pendingRes, servicesRes, profRes] =
-            await Promise.all([
-                supabase
-                    .from('appointments')
-                    .select('*, service:services(*), professional:professionals(*, profile:profiles(*))')
-                    .gte('start_time', `${todayStr}T00:00:00`)
-                    .lte('start_time', `${todayStr}T23:59:59`)
-                    .order('start_time', { ascending: true }),
-                supabase
-                    .from('appointments')
-                    .select('id', { count: 'exact' })
-                    .gte('start_time', weekStart.toISOString())
-                    .lte('start_time', weekEnd.toISOString())
-                    .neq('status', 'cancelled'),
-                supabase.from('patients').select('id', { count: 'exact' }),
-                supabase
-                    .from('appointments')
-                    .select('id', { count: 'exact' })
-                    .eq('status', 'pending'),
-                supabase.from('services').select('*').eq('is_active', true).order('name'),
-                supabase
-                    .from('professionals')
-                    .select('*, profile:profiles(*)')
-                    .eq('is_active', true),
-            ]);
-
-        // Build chart counts per day
-        const chartData = await Promise.all(
-            days.map(async ({ day, date }) => {
-                const { count } = await supabase
-                    .from('appointments')
-                    .select('id', { count: 'exact' })
-                    .gte('start_time', `${date}T00:00:00`)
-                    .lte('start_time', `${date}T23:59:59`)
-                    .neq('status', 'cancelled');
-                return { day, count: count || 0 };
-            })
-        );
-
-        setTodayAppointments(appointmentsRes.data as Appointment[] || []);
-        setWeekChart(chartData);
-        setStats({
-            todayCount: (appointmentsRes.data || []).filter(a => a.status !== 'cancelled').length,
-            weekCount: weekRes.count || 0,
-            totalPatients: patientsRes.count || 0,
-            pendingCount: pendingRes.count || 0,
-        });
-        setServices(servicesRes.data as Service[] || []);
-        setProfessionals(profRes.data as Professional[] || []);
-        setLoading(false);
-    }, []);
+    const createCita = useCreateCita();
+    const updateCitaStatus = useUpdateCitaStatus();
 
     useEffect(() => {
-        loadDashboard();
-    }, [loadDashboard]);
+        const channel = supabase
+            .channel('dashboard-appointments')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'appointments' },
+                () => {
+                    toast.success('Nueva cita recibida', {
+                        description: 'Se acaba de reservar una nueva cita.',
+                        icon: '',
+                        duration: 5000,
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'appointments' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'DELETE', schema: 'public', table: 'appointments' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+                }
+            )
+            .subscribe();
 
-    async function updateAppointmentStatus(id: string, status: string) {
-        await supabase.from('appointments').update({ status }).eq('id', id);
-        loadDashboard();
-    }
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient, supabase]);
 
-    async function handleNewAppointment(e: React.FormEvent) {
-        e.preventDefault();
-        if (!newForm.patient_name || !newForm.service_id || !newForm.date || !newForm.time) return;
-        setSaving(true);
+    const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
+        try {
+            await updateCitaStatus.mutateAsync({ id, status });
+            toast.success('Estado actualizado');
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        } catch {
+            toast.error('Error al actualizar');
+        }
+    };
 
-        const service = services.find(s => s.id === newForm.service_id);
-        const startTime = new Date(`${newForm.date}T${newForm.time}:00`);
+    const handleCreateAppointment = async (form: AppointmentFormData, selectedPatientId: string | null) => {
+        const service = services.find((s) => s.id === form.service_id);
+        const baseDate = selectedDate.toISOString().split('T')[0];
+        const startTime = new Date(`${baseDate}T${form.time}:00`);
         const endTime = new Date(startTime.getTime() + (service?.duration_minutes || 60) * 60000);
 
-        await supabase.from('appointments').insert({
-            patient_name: newForm.patient_name,
-            patient_phone: newForm.patient_phone || null,
-            patient_email: newForm.patient_email || null,
-            service_id: newForm.service_id,
-            professional_id: newForm.professional_id || null,
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString(),
-            notes: newForm.notes || null,
-            source: 'admin',
-            status: 'confirmed',
-        });
+        try {
+            await createCita.mutateAsync({
+                patient_name: form.patient_name,
+                patient_phone: form.patient_phone || null,
+                patient_email: form.patient_email || null,
+                patient_id: selectedPatientId,
+                service_id: form.service_id,
+                professional_id: profile?.role === 'professional' ? profile?.id : (form.professional_id || null),
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                notes: form.notes || null,
+                source: 'admin',
+            });
 
-        setSaving(false);
-        setShowNewModal(false);
-        setNewForm({
-            patient_name: '',
-            patient_phone: '',
-            patient_email: '',
-            service_id: services[0]?.id || '',
-            professional_id: '',
-            date: new Date().toISOString().split('T')[0],
-            time: '09:00',
-            notes: '',
-            source: 'admin',
-        });
-        loadDashboard();
-    }
+            setShowNewModal(false);
+            toast.success('Cita creada correctamente');
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        } catch {
+            toast.error('Error al crear la cita');
+        }
+    };
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+            <div className="flex justify-center py-20">
                 <div className="spinner" />
             </div>
         );
     }
 
-    const formatTime = (iso: string) => {
-        return new Date(iso).toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
+    const sessionTypes = todayAppointments.reduce<Record<string, number>>((acc, apt) => {
+        if (apt.status === 'cancelled') return acc;
+        const name = apt.service?.name || 'Otro';
+        acc[name] = (acc[name] || 0) + 1;
+        return acc;
+    }, {});
 
-    const maxChartCount = Math.max(...weekChart.map(d => d.count), 1);
+    const pieColors = ['#ad7332', '#2f6a3e', '#8a5a1f', '#c9954d', '#7a4e1e', '#5d4a35'];
+    const sessionBreakdown = Object.entries(sessionTypes)
+        .map(([name, value], index) => ({
+            name,
+            value: value as number,
+            color: pieColors[index % pieColors.length],
+        }))
+        .sort((a, b) => (b.value as number) - (a.value as number));
 
     return (
-        <>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Dashboard</h1>
-                    <p className="page-subtitle">
-                        {new Date().toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                        })}
-                    </p>
-                </div>
-                <button className="btn btn--primary" onClick={() => {
-                    setNewForm(f => ({ ...f, service_id: services[0]?.id || '' }));
-                    setShowNewModal(true);
-                }}>
-                    <Icon name="plus" size={16} /> Nueva cita
-                </button>
-            </div>
-
-            {/* Stats */}
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-card__icon stat-card__icon--canela"><Icon name="calendar" /></div>
-                    <div>
-                        <div className="stat-card__value">{stats.todayCount}</div>
-                        <div className="stat-card__label">Citas hoy</div>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-card__icon stat-card__icon--info"><Icon name="chart" /></div>
-                    <div>
-                        <div className="stat-card__value">{stats.weekCount}</div>
-                        <div className="stat-card__label">Esta semana</div>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-card__icon stat-card__icon--success"><Icon name="users" /></div>
-                    <div>
-                        <div className="stat-card__value">{stats.totalPatients}</div>
-                        <div className="stat-card__label">Pacientes totales</div>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-card__icon stat-card__icon--warning"><Icon name="hourglass" /></div>
-                    <div>
-                        <div className="stat-card__value">{stats.pendingCount}</div>
-                        <div className="stat-card__label">Citas Pendientes</div>
-                    </div>
-                </div>
-                <div className="stat-card" style={{ borderLeft: '3px solid var(--canela)' }}>
-                    <div className="stat-card__icon" style={{ background: 'var(--bg-base)', color: 'var(--canela-dark)' }}>
-                        <Icon name="shield" />
-                    </div>
-                    <div>
-                        <div className="stat-card__value">3</div>
-                        <div className="stat-card__label">Alertas LOPD/RGPD</div>
-                    </div>
-                </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-                {/* Mini chart */}
-                <div className="card">
-                    <div className="card__header">
-                        <h2 className="card__title">Últimos 7 días</h2>
-                    </div>
-                    <div className="card__body">
-                        <div className="mini-chart">
-                            {weekChart.map((d, i) => (
-                                <div key={i} className="mini-chart__col">
-                                    <div
-                                        className="mini-chart__bar"
-                                        style={{
-                                            height: `${Math.max((d.count / maxChartCount) * 100, d.count > 0 ? 8 : 0)}%`,
-                                        }}
-                                        title={`${d.count} citas`}
-                                    />
-                                    <div className="mini-chart__label">{d.day}</div>
-                                    <div className="mini-chart__count">{d.count}</div>
-                                </div>
-                            ))}
+        <div className="content-shell dashboard-shell animate-in fade-in duration-300">
+            <section className="dashboard-head dashboard-head--compact">
+                <div className="dashboard-head__left">
+                    <p className="dashboard-head__eyebrow">Panel diario</p>
+                    <h1 className="dashboard-head__title dashboard-head__title--compact">
+                        {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Admin'}
+                    </h1>
+                    <div className="dashboard-head__meta">
+                        <div className="dashboard-head__date-inline dashboard-head__meta-item">
+                            <Icon name="calendar" size={14} />
+                            <span>{format(dateRange.start, "EEEE, d 'de' MMMM", { locale: es })}</span>
                         </div>
+                        <span className="dashboard-head__meta-separator" aria-hidden="true">|</span>
+                        <span className="dashboard-head__meta-item">
+                            {stats.todayCount} citas activas
+                        </span>
+                        <span className="dashboard-head__meta-separator" aria-hidden="true">|</span>
+                        <span className="dashboard-head__meta-item">
+                            {stats.pendingCount} por confirmar
+                        </span>
                     </div>
                 </div>
 
-                {/* Quick actions */}
-                <div className="card">
-                    <div className="card__header">
-                        <h2 className="card__title">Acciones rápidas</h2>
-                    </div>
-                    <div className="card__body">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="dashboard-toolbar">
+                    <div className="date-nav">
+                        <button
+                            className="btn btn--secondary btn--sm"
+                            type="button"
+                            onClick={() => {
+                                const newDate = subDays(dateRange.start, 1);
+                                setSelectedDate(newDate);
+                                setDateRange({ start: newDate, end: newDate });
+                            }}
+                            title="Dia anterior"
+                            aria-label="Ir al día anterior"
+                        >
+                            <Icon name="chevron-left" size={16} />
+                        </button>
+
+                        <span className="date-nav__value" aria-live="polite">
+                            {format(dateRange.start, 'dd MMM yyyy', { locale: es })}
+                        </span>
+
+                        <button
+                            className="btn btn--secondary btn--sm"
+                            type="button"
+                            onClick={() => {
+                                const newDate = addDays(dateRange.start, 1);
+                                setSelectedDate(newDate);
+                                setDateRange({ start: newDate, end: newDate });
+                            }}
+                            title="Dia siguiente"
+                            aria-label="Ir al día siguiente"
+                        >
+                            <Icon name="chevron-right" size={16} />
+                        </button>
+
+                        {dateRange.start.toDateString() !== new Date().toDateString() && (
                             <button
-                                className="btn btn--ghost"
+                                className="btn btn--ghost btn--sm"
+                                type="button"
                                 onClick={() => {
-                                    setNewForm(f => ({ ...f, service_id: services[0]?.id || '' }));
-                                    setShowNewModal(true);
+                                    const newDate = new Date();
+                                    setSelectedDate(newDate);
+                                    setDateRange({ start: newDate, end: newDate });
                                 }}
-                                style={{ justifyContent: 'flex-start', paddingLeft: 8 }}
+                                aria-label="Volver a hoy"
                             >
-                                <Icon name="plus" size={16} /> Nueva cita
+                                Hoy
                             </button>
-                            <a href="/citas" className="btn btn--ghost" style={{ justifyContent: 'flex-start', paddingLeft: 8 }}>
-                                <Icon name="calendar" size={16} /> Ver agenda del día
-                            </a>
-                            <a href="/pacientes" className="btn btn--ghost" style={{ justifyContent: 'flex-start', paddingLeft: 8 }}>
-                                <Icon name="users" size={16} /> Gestionar pacientes
-                            </a>
-                            {stats.pendingCount > 0 && (
-                                <div style={{ marginTop: 24, padding: '12px 16px', background: 'var(--warning-bg)', border: '1px solid #FCD34D', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <Icon name="warning" size={16} style={{ color: 'var(--warning)' }} />
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>{stats.pendingCount} citas pendientes</div>
-                                        <div style={{ fontSize: 12, color: 'var(--warning)' }}>Requieren confirmación</div>
-                                    </div>
-                                    <a href="/citas" className="btn btn--sm btn--primary">
-                                        Revisar
-                                    </a>
-                                </div>
-                            )}
-
-                            <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--danger-bg)', border: '1px solid #FCA5A5', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                                <Icon name="shield" size={16} style={{ color: 'var(--danger)', marginTop: 2 }} />
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>3 Consentimientos Pendientes</div>
-                                    <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 2 }}>Nuevos pacientes sin firmar la RGPD.</div>
-                                </div>
-                                <a href="/legal" className="btn btn--sm btn--danger">
-                                    Gestionar
-                                </a>
-                            </div>
-                        </div>
+                        )}
                     </div>
+
+                    <button className="btn btn--primary dashboard-toolbar__cta" type="button" onClick={() => setShowNewModal(true)} aria-label="Crear nueva cita">
+                        <Icon name="plus" size={16} /> Nueva cita
+                    </button>
                 </div>
+            </section>
+
+            <div className="dashboard-layout">
+                <div className="dashboard-layout__main">
+                    <DashboardStats stats={stats} />
+                    <DashboardCharts sessionBreakdown={sessionBreakdown} pendingCount={stats.pendingCount} />
+                </div>
+
+                <aside className="dashboard-layout__aside">
+                    <DashboardAgenda
+                        todayAppointments={todayAppointments}
+                        onNewAppointmentClick={() => setShowNewModal(true)}
+                        onUpdateStatus={handleUpdateStatus}
+                    />
+                </aside>
             </div>
 
-            {/* Today's appointments */}
-            <div className="card">
-                <div className="card__header">
-                    <h2 className="card__title">Citas de hoy</h2>
-                    <span className="badge badge--pending" style={{ fontSize: 12 }}>
-                        {todayAppointments.filter(a => a.status !== 'cancelled').length} activas
-                    </span>
-                </div>
-                <div className="card__body" style={{ padding: 0 }}>
-                    {todayAppointments.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-state__icon"><Icon name="calendar" size={40} /></div>
-                            <div className="empty-state__title">Sin citas para hoy</div>
-                            <div className="empty-state__text">No hay citas programadas</div>
-                            <button
-                                className="btn btn--primary"
-                                style={{ marginTop: 16 }}
-                                onClick={() => {
-                                    setNewForm(f => ({ ...f, service_id: services[0]?.id || '' }));
-                                    setShowNewModal(true);
-                                }}
-                            >
-                                <Icon name="plus" size={16} /> Nueva cita
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="timeline" style={{ padding: 16 }}>
-                            {todayAppointments.map((apt) => (
-                                <div key={apt.id} className="timeline-item">
-                                    <div className="timeline-item__time">
-                                        {formatTime(apt.start_time)}
-                                    </div>
-                                    <div
-                                        className="timeline-item__dot"
-                                        style={{ backgroundColor: STATUS_COLORS[apt.status] }}
-                                    />
-                                    <div
-                                        className="timeline-item__content"
-                                        style={{ transition: 'all 0.2s', boxShadow: 'var(--shadow-sm)' }}
-                                        onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
-                                    >
-                                        <div className="timeline-item__title">
-                                            {apt.patient_name || 'Paciente'}
-                                            {' — '}
-                                            {apt.service?.name || 'Servicio'}
-                                        </div>
-                                        <div className="timeline-item__subtitle">
-                                            {formatTime(apt.start_time)} - {formatTime(apt.end_time)}
-                                            {apt.professional?.profile?.full_name && (
-                                                <> · {apt.professional.profile.full_name}</>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                        <span className={`badge badge--${apt.status}`}>
-                                            {STATUS_LABELS[apt.status]}
-                                        </span>
-                                        {apt.status === 'pending' && (
-                                            <button
-                                                className="btn btn--primary btn--sm"
-                                                onClick={() => updateAppointmentStatus(apt.id, 'confirmed')}
-                                            >
-                                                Confirmar
-                                            </button>
-                                        )}
-                                        {apt.status === 'confirmed' && (
-                                            <button
-                                                className="btn btn--sm btn--primary"
-                                                onClick={() => updateAppointmentStatus(apt.id, 'completed')}
-                                            >
-                                                <Icon name="check" size={14} /> Finalizar
-                                            </button>
-                                        )}
-                                        {(apt.status === 'pending' || apt.status === 'confirmed') && (
-                                            <button
-                                                className="btn btn--ghost btn--sm"
-                                                onClick={() => updateAppointmentStatus(apt.id, 'cancelled')}
-                                            >
-                                                <Icon name="close" size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Modal nueva cita */}
-            {showNewModal && (
-                <div className="modal-overlay" onClick={() => setShowNewModal(false)}>
-                    <div className="modal modal--lg" onClick={e => e.stopPropagation()}>
-                        <div className="modal__header">
-                            <h3 className="modal__title">Nueva cita</h3>
-                            <button className="modal__close" onClick={() => setShowNewModal(false)} aria-label="Cerrar"><Icon name="close" size={18} /></button>
-                        </div>
-                        <form onSubmit={handleNewAppointment}>
-                            <div className="modal__body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="patient_name">Nombre del paciente *</label>
-                                        <input
-                                            id="patient_name"
-                                            className="form-input"
-                                            value={newForm.patient_name}
-                                            onChange={e => setNewForm({ ...newForm, patient_name: e.target.value })}
-                                            required
-                                            autoComplete="off"
-                                            placeholder="Nombre completo…"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="patient_phone">Teléfono</label>
-                                        <input
-                                            id="patient_phone"
-                                            type="tel"
-                                            className="form-input"
-                                            value={newForm.patient_phone}
-                                            onChange={e => setNewForm({ ...newForm, patient_phone: e.target.value })}
-                                            autoComplete="tel"
-                                            placeholder="600 000 000…"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="patient_email">Email</label>
-                                        <input
-                                            id="patient_email"
-                                            type="email"
-                                            className="form-input"
-                                            value={newForm.patient_email}
-                                            onChange={e => setNewForm({ ...newForm, patient_email: e.target.value })}
-                                            autoComplete="email"
-                                            placeholder="paciente@email.com…"
-                                            spellCheck={false}
-                                        />
-                                    </div>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="service_id">Servicio *</label>
-                                        <select
-                                            id="service_id"
-                                            className="form-input form-select"
-                                            value={newForm.service_id}
-                                            onChange={e => setNewForm({ ...newForm, service_id: e.target.value })}
-                                            required
-                                        >
-                                            <option value="">Seleccionar servicio…</option>
-                                            {services.map(s => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.name} — {s.duration_minutes} min — {Number(s.price).toFixed(0)}€
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="professional_id">Profesional</label>
-                                        <select
-                                            id="professional_id"
-                                            className="form-input form-select"
-                                            value={newForm.professional_id}
-                                            onChange={e => setNewForm({ ...newForm, professional_id: e.target.value })}
-                                        >
-                                            <option value="">Sin asignar</option>
-                                            {professionals.map(p => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.profile?.full_name || 'Profesional'}{p.specialty ? ` — ${p.specialty}` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="apt_date">Fecha *</label>
-                                        <input
-                                            id="apt_date"
-                                            type="date"
-                                            className="form-input"
-                                            value={newForm.date}
-                                            onChange={e => setNewForm({ ...newForm, date: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="apt_time">Hora *</label>
-                                        <input
-                                            id="apt_time"
-                                            type="time"
-                                            className="form-input"
-                                            value={newForm.time}
-                                            onChange={e => setNewForm({ ...newForm, time: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="apt_notes">Notas internas</label>
-                                        <textarea
-                                            id="apt_notes"
-                                            className="form-input"
-                                            value={newForm.notes}
-                                            onChange={e => setNewForm({ ...newForm, notes: e.target.value })}
-                                            rows={2}
-                                            placeholder="Observaciones, motivo de consulta…"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal__footer">
-                                <button type="button" className="btn btn--secondary" onClick={() => setShowNewModal(false)}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="btn btn--primary" disabled={saving}>
-                                    {saving ? (
-                                        <>
-                                            <div className="spinner" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
-                                            Guardando…
-                                        </>
-                                    ) : (
-                                        <><Icon name="check" size={14} /> Confirmar cita</>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </>
+            <AppointmentFormModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                selectedDate={selectedDate}
+                initialTime={'09:00'}
+                services={services}
+                professionals={professionals}
+                currentUserId={profile?.id}
+                currentUserRole={profile?.role}
+                onSubmit={handleCreateAppointment}
+            />
+        </div>
     );
 }
