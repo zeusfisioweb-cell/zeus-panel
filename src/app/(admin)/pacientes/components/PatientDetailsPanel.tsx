@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -32,11 +33,42 @@ export function PatientDetailsPanel({
     onDeleteRecord,
 }: PatientDetailsPanelProps) {
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
+    const [exporting, setExporting] = useState(false);
+
+    const handleExportGdpr = async () => {
+        setExporting(true);
+        try {
+            const res = await fetch(`/api/admin/patients/${encodeURIComponent(patient.id)}/export`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({ error: 'Error de servidor' }));
+                throw new Error((body as { error?: string }).error || 'Error de servidor');
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `paciente_${patient.first_name}_${patient.last_name}_rgpd.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success('Datos exportados correctamente');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al exportar datos');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     const renderDatos = () => (
         <div className="patient-detail-grid">
             <div className="patient-detail-item">
-                <span>Telefono</span>
+                <span>Teléfono</span>
                 <strong>{patient.phone || '—'}</strong>
             </div>
             <div className="patient-detail-item">
@@ -48,11 +80,11 @@ export function PatientDetailsPanel({
                 <strong>{patient.document_id || '—'}</strong>
             </div>
             <div className="patient-detail-item">
-                <span>Fecha nacimiento</span>
+                <span>Fecha de nacimiento</span>
                 <strong>{patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('es-ES') : '—'}</strong>
             </div>
             <div className="patient-detail-item patient-detail-item--full">
-                <span>Direccion</span>
+                <span>Dirección</span>
                 <strong>{patient.address || '—'}</strong>
             </div>
             <div className="patient-detail-item">
@@ -64,11 +96,21 @@ export function PatientDetailsPanel({
             <div className="patient-detail-item">
                 <span>Marketing</span>
                 <Badge variant={patient.marketing_consent ? 'success' : 'default'}>
-                    {patient.marketing_consent ? 'Si' : 'No'}
+                    {patient.marketing_consent ? 'Sí' : 'No'}
                 </Badge>
             </div>
 
             <div className="patient-detail-danger">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleExportGdpr}
+                    disabled={exporting}
+                    leftIcon={<Icon name="download" size={14} />}
+                    isLoading={exporting}
+                >
+                    Exportar datos (RGPD)
+                </Button>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -79,7 +121,7 @@ export function PatientDetailsPanel({
                     Eliminar permanentemente
                 </Button>
                 <p>
-                    Cumplimiento RGPD: esta accion borra los datos identificables del paciente.
+                    Cumplimiento RGPD: exporta o elimina los datos identificables del paciente.
                 </p>
             </div>
         </div>
@@ -147,7 +189,7 @@ export function PatientDetailsPanel({
             {records.length === 0 ? (
                 <div className="patient-empty-box">
                     <Icon name="clipboard" size={22} className="opacity-50" />
-                    <p>Sin fichas clinicas</p>
+                    <p>Sin fichas clínicas</p>
                 </div>
             ) : (
                 <div className="patient-record-list">
@@ -209,7 +251,7 @@ export function PatientDetailsPanel({
     return (
         <Card className="sticky top-6 patient-detail-card">
             <CardHeader className="patient-detail-card__head">
-                <CardTitle className="text-xl">
+                <CardTitle className="patient-detail-card__name">
                     {patient.first_name} {patient.last_name}
                 </CardTitle>
 
@@ -231,16 +273,18 @@ export function PatientDetailsPanel({
                 ] as const).map((tab) => (
                     <button
                         key={tab.key}
+                        type="button"
                         onClick={() => setActiveTab(tab.key)}
+                        aria-pressed={activeTab === tab.key}
                         className={`patient-detail-tab ${activeTab === tab.key ? 'is-active' : ''}`}
                     >
                         <Icon name={tab.icon} size={14} />
-                        {tab.label}
+                        <span className="patient-detail-tab__label">{tab.label}</span>
                     </button>
                 ))}
             </div>
 
-            <CardContent className="p-4 max-h-[640px] overflow-y-auto">
+            <CardContent className="patient-detail-card__content max-h-[640px] overflow-y-auto">
                 {activeTab === 'datos' && renderDatos()}
                 {activeTab === 'citas' && renderCitas()}
                 {activeTab === 'clinico' && renderClinico()}

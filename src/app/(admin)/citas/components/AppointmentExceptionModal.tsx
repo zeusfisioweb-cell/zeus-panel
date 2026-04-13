@@ -58,7 +58,7 @@ export function AppointmentExceptionModal({
         try {
             await onSubmit(form);
             onClose();
-        } catch (error) {
+        } catch {
             // Error managed by parent
         } finally {
             setIsSubmitting(false);

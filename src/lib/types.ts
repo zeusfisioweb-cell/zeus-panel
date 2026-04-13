@@ -136,6 +136,40 @@ export interface BookingSettings {
     updated_at: string;
 }
 
+export interface DashboardSessionBreakdownItem {
+    name: string;
+    value: number;
+}
+
+export interface DashboardGlobalStatus {
+    pending: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+}
+
+export interface DashboardStatsSummary {
+    todayCount: number;
+    weekCount: number;
+    totalPatients: number;
+    pendingCount: number;
+}
+
+export interface DashboardGlobalStats {
+    estimatedRevenue: number;
+    totalGlobalAppointments: number;
+    sessionBreakdown: DashboardSessionBreakdownItem[];
+    globalStatus: DashboardGlobalStatus;
+}
+
+export interface DashboardData {
+    todayAppointments: Appointment[];
+    stats: DashboardStatsSummary;
+    globalStats: DashboardGlobalStats;
+    services: Service[];
+    professionals: Professional[];
+}
+
 export interface ConsentRecord {
     id: string;
     patient_id: string;

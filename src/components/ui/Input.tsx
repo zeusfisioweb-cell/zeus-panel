@@ -8,10 +8,14 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className = '', label, error, icon, ...props }, ref) => {
+        const generatedId = React.useId();
+        const inputId = props.id ?? `input-${generatedId}`;
+        const describedBy = error ? `${inputId}-error` : props['aria-describedby'];
+
         return (
             <div className="flex flex-col gap-1 w-full">
                 {label && (
-                    <label className="text-sm font-medium text-[var(--text-muted)]">
+                    <label htmlFor={inputId} className="text-sm font-medium text-[var(--text-muted)]">
                         {label} {props.required && <span className="text-red-500">*</span>}
                     </label>
                 )}
@@ -23,6 +27,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     )}
                     <input
                         ref={ref}
+                        id={inputId}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={describedBy}
+                        aria-label={props['aria-label'] ?? label ?? props.placeholder}
                         className={`
                             flex w-full form-input
                             disabled:cursor-not-allowed disabled:opacity-50
@@ -33,7 +41,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         {...props}
                     />
                 </div>
-                {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
+                {error && (
+                    <span id={`${inputId}-error`} className="text-xs text-red-500 mt-1">
+                        {error}
+                    </span>
+                )}
             </div>
         );
     }

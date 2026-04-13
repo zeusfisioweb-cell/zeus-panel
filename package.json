@@ -9,12 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/luxon3": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/resource": "^6.1.20",
+    "@fullcalendar/resource-timegrid": "^6.1.20",
+    "@fullcalendar/scrollgrid": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-query-devtools": "^5.91.3",
     "date-fns": "^4.1.0",
+    "luxon": "^3.7.2",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -25,6 +34,9 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/luxon": "^3.7.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -32,8 +44,10 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^29.0.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   }
 }

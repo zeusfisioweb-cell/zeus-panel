@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
+import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
+
+interface CreateProfessionalBody {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    specialty?: string | null;
+    bio?: string | null;
+    color_code?: string | null;
+    is_active?: boolean;
+    service_ids?: string[];
+    schedule_slots?: Array<{
+        day_of_week: number;
+        start_time: string;
+        end_time: string;
+    }>;
+}
 
 // Initialize Supabase admin client (requires service role key)
 // This bypasses RLS and can create users in auth.users
@@ -42,44 +60,65 @@ export async function POST(request: Request) {
 
         const adminAuthClient = getAdminSupabase();
 
-        // Only accept requests with expected data
-        const body = await request.json();
-        const { email, first_name, last_name, temp_password } = body;
+        // Validate request body
+        const rawBody = await request.json();
+        const validation = validateData(ProfessionalCreateSchema, rawBody);
+        
+        if (!validation.success) {
+            return NextResponse.json({ error: 'Validación fallida', details: validation.errors }, { status: 400 });
+        }
 
-        if (!email || !temp_password) {
-            return NextResponse.json({ error: 'Email and temporary password are required' }, { status: 400 });
+        const validBody = validation.data;
+        const body: CreateProfessionalBody = { ...rawBody, ...validBody };
+
+        const {
+            email,
+            first_name,
+            last_name,
+            full_name,
+            specialty,
+            bio,
+            color_code,
+            is_active,
+            service_ids,
+            schedule_slots,
+        } = body;
+
+        // Generate a secure temporary password server-side.
+        // Never accept temp_password from the client to avoid exposure over the network.
+        const tempPassword = `${crypto.randomUUID()}-${crypto.randomUUID()}`.slice(0, 32);
+
+        const normalizedFullName = (full_name || `${first_name || ''} ${last_name || ''}`).trim();
+
+        if (!normalizedFullName) {
+            return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
         }
 
         // 1. Create the user in auth.users
         const { data: authData, error: authError } = await adminAuthClient.auth.admin.createUser({
             email: email,
-            password: temp_password,
+            password: tempPassword,
             email_confirm: true, // Auto confirm so they can log in
             user_metadata: {
-                full_name: `${first_name || ''} ${last_name || ''}`.trim(),
+                full_name: normalizedFullName,
             }
         });
 
-        if (authError) {
+        if (authError || !authData.user) {
             console.error('Error creating auth user:', authError);
-            return NextResponse.json({ error: authError.message }, { status: 500 });
+            return NextResponse.json({ error: authError?.message || 'Error creating auth user' }, { status: 500 });
         }
 
         const userId = authData.user.id;
 
-        // 2. We should also assign them the 'professional' role in profiles
-        // (Usually handled by a trigger, but we can enforce it here if needed,
-        //  but we'll assume the trigger creates it and we update the role).
-
-        // Wait briefly for trigger to create the profile (if you have one)
-        // If you don't use triggers to create profiles, we can just insert one:
+        // 2. Ensure profile exists with professional role
         const { error: profileError } = await adminAuthClient
             .from('profiles')
             .upsert({
                 id: userId,
                 email: email,
                 role: 'professional',
-                full_name: `${first_name || ''} ${last_name || ''}`.trim(),
+                full_name: normalizedFullName,
             });
 
         if (profileError) {
@@ -90,6 +129,71 @@ export async function POST(request: Request) {
                 { error: `Error al crear el perfil del profesional: ${profileError.message}` },
                 { status: 500 }
             );
+        }
+
+        // 3. Create professional record
+        const { error: professionalError } = await adminAuthClient
+            .from('professionals')
+            .upsert({
+                id: userId,
+                user_id: userId,
+                specialty: specialty || null,
+                bio: bio || null,
+                color_code: color_code || '#AD7332',
+                is_active: is_active ?? true,
+            });
+
+        if (professionalError) {
+            console.error('Error creating professional, rolling back auth user:', professionalError);
+            await adminAuthClient.auth.admin.deleteUser(userId);
+            return NextResponse.json(
+                { error: `Error al crear el profesional: ${professionalError.message}` },
+                { status: 500 }
+            );
+        }
+
+        // 4. Create professional-service links when provided
+        if (service_ids && service_ids.length > 0) {
+            const serviceRows = service_ids.map((serviceId) => ({
+                professional_id: userId,
+                service_id: serviceId,
+            }));
+
+            const { error: serviceLinksError } = await adminAuthClient
+                .from('professional_services')
+                .insert(serviceRows);
+
+            if (serviceLinksError) {
+                console.error('Error creating professional services, rolling back auth user:', serviceLinksError);
+                await adminAuthClient.auth.admin.deleteUser(userId);
+                return NextResponse.json(
+                    { error: `Error al asociar servicios al profesional: ${serviceLinksError.message}` },
+                    { status: 500 }
+                );
+            }
+        }
+
+        // 5. Create schedule slots when provided
+        if (schedule_slots && schedule_slots.length > 0) {
+            const slotRows = schedule_slots.map((slot) => ({
+                professional_id: userId,
+                day_of_week: slot.day_of_week,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+            }));
+
+            const { error: scheduleError } = await adminAuthClient
+                .from('schedule_slots')
+                .insert(slotRows);
+
+            if (scheduleError) {
+                console.error('Error creating schedule slots, rolling back auth user:', scheduleError);
+                await adminAuthClient.auth.admin.deleteUser(userId);
+                return NextResponse.json(
+                    { error: `Error al crear el horario del profesional: ${scheduleError.message}` },
+                    { status: 500 }
+                );
+            }
         }
 
         return NextResponse.json({ success: true, user_id: userId });

@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/Button';
 interface CitasHeaderProps {
     mainPageViewMode: 'list' | 'calendar';
     setMainPageViewMode: (mode: 'list' | 'calendar') => void;
-    calViewMode: 'list' | 'day' | 'week';
-    setCalViewMode: (mode: 'list' | 'day' | 'week') => void;
     totalCount: number;
     pendingCount: number;
+    confirmedCount: number;
+    completedCount: number;
     onToday: () => void;
     onBlockSchedule: () => void;
     onNewAppointment: () => void;
@@ -19,109 +19,80 @@ interface CitasHeaderProps {
 export function CitasHeader({
     mainPageViewMode,
     setMainPageViewMode,
-    calViewMode,
-    setCalViewMode,
     totalCount,
     pendingCount,
+    confirmedCount,
+    completedCount,
     onToday,
     onBlockSchedule,
     onNewAppointment,
 }: CitasHeaderProps) {
+    const activeCount = pendingCount + confirmedCount + completedCount;
+    const completionRate = activeCount > 0 ? Math.round((completedCount / activeCount) * 100) : 0;
+
+    const viewOptions = [
+        { key: 'calendar', label: 'Calendario', icon: 'calendar' },
+        { key: 'list', label: 'Lista', icon: 'list' },
+    ] as const;
+
     return (
-        <header className="module-header module-header--citas">
-            <div className="citas-header__intro">
-                <span className="module-header__kicker">Gestión</span>
-                <h1 className="module-header__title">Citas</h1>
-                <p className="module-header__desc">
-                    Gestiona tu agenda de citas de forma rápida y sencilla.
-                </p>
-                <p className="module-header__meta">
-                    {totalCount} citas · {pendingCount} pendientes
-                </p>
-            </div>
-
-            <div className="module-header__actions citas-header__actions">
-                <div className="citas-header__group">
-                    <span className="citas-header__group-label">Datos</span>
-                    <div className="citas-kpis">
-                        <div className="citas-kpi-pill">
-                            <span>Total</span>
-                            <strong>{totalCount}</strong>
-                        </div>
-                        <div className="citas-kpi-pill citas-kpi-pill--alert">
-                            <span>Pendientes</span>
-                            <strong>{pendingCount}</strong>
-                        </div>
+        <div className="citas-control-wrap">
+            <div className="citas-control-hero h-[auto] py-4">
+                <div className="citas-control-hero__top border-b-0 pb-0">
+                    <div className="citas-control-hero__lead">
+                        <span className="citas-control-hero__eyebrow">Agenda Clínica</span>
+                        <h2 className="citas-control-hero__title">Módulo de citas</h2>
+                        <p className="citas-control-hero__subtitle flex gap-2 items-center text-[13px]">
+                            <span>{activeCount} citas activas de {totalCount} este mes.</span>
+                            <span className="opacity-50">|</span>
+                            <span>{pendingCount} pendientes</span>
+                            <span className="opacity-50">|</span>
+                            <span className="text-green-600 dark:text-green-500 font-medium">{completionRate}% completadas</span>
+                        </p>
                     </div>
-                </div>
 
-                <div className="citas-header__group">
-                    <span className="citas-header__group-label">Modo</span>
-                    <div className="citas-toggle" role="tablist" aria-label="Modo de vista de citas">
-                        <button
-                            className={`citas-toggle__btn ${mainPageViewMode === 'list' ? 'is-active' : ''}`}
-                            type="button"
-                            onClick={() => setMainPageViewMode('list')}
-                            aria-pressed={mainPageViewMode === 'list'}
-                            aria-label="Cambiar a vista de lista"
-                        >
-                            <Icon name="list" size={15} />
-                            Lista
-                        </button>
-                        <button
-                            className={`citas-toggle__btn ${mainPageViewMode === 'calendar' ? 'is-active' : ''}`}
-                            type="button"
-                            onClick={() => setMainPageViewMode('calendar')}
-                            aria-pressed={mainPageViewMode === 'calendar'}
-                            aria-label="Cambiar a vista de calendario"
-                        >
-                            <Icon name="calendar" size={15} />
-                            Calendario
-                        </button>
-                    </div>
-                </div>
-
-                {mainPageViewMode === 'calendar' && (
-                    <div className="citas-header__group">
-                        <span className="citas-header__group-label">Calendario</span>
-                        <div className="citas-toggle citas-toggle--secondary" role="tablist" aria-label="Escala del calendario">
-                            <button
-                                className={`citas-toggle__btn ${calViewMode === 'day' ? 'is-active' : ''}`}
-                                type="button"
-                                onClick={() => setCalViewMode('day')}
-                                aria-pressed={calViewMode === 'day'}
-                                aria-label="Ver calendario por día"
-                            >
-                                Dia
-                            </button>
-                            <button
-                                className={`citas-toggle__btn ${calViewMode === 'week' ? 'is-active' : ''}`}
-                                type="button"
-                                onClick={() => setCalViewMode('week')}
-                                aria-pressed={calViewMode === 'week'}
-                                aria-label="Ver calendario por semana"
-                            >
-                                Semana
-                            </button>
+                    <div className="citas-control-hero__actions flex items-center gap-3">
+                        <div className="citas-segment mr-2">
+                            {viewOptions.map((option) => (
+                                <button
+                                    key={option.key}
+                                    className={`citas-segment__btn ${mainPageViewMode === option.key ? 'is-active' : ''}`}
+                                    type="button"
+                                    onClick={() => setMainPageViewMode(option.key)}
+                                    aria-pressed={mainPageViewMode === option.key}
+                                    title={`Ver como ${option.label}`}
+                                >
+                                    <Icon name={option.icon} size={14} />
+                                    <span className="hidden sm:inline">{option.label}</span>
+                                </button>
+                            ))}
                         </div>
-                    </div>
-                )}
 
-                <div className="citas-header__group citas-header__group--actions">
-                    <span className="citas-header__group-label">Atajos</span>
-                    <div className="citas-actions">
-                        <Button variant="secondary" onClick={onToday}>
+                        <div className="w-[1px] h-8 bg-[var(--border-color)] opacity-50 mr-1" />
+
+                        <Button variant="secondary" onClick={onToday} className="h-9 px-4 hidden sm:flex">
                             Hoy
                         </Button>
-                        <Button variant="secondary" onClick={onBlockSchedule} leftIcon={<Icon name="lock" size={14} />}>
-                            Bloquear horario
+                        <Button
+                            variant="secondary"
+                            onClick={onBlockSchedule}
+                            leftIcon={<Icon name="lock" size={14} />}
+                            className="h-9"
+                        >
+                            <span className="hidden sm:inline">Bloquear</span>
                         </Button>
-                        <Button variant="primary" onClick={onNewAppointment} leftIcon={<Icon name="plus" size={15} />}>
+                        <Button
+                            variant="primary"
+                            onClick={onNewAppointment}
+                            leftIcon={<Icon name="plus" size={15} />}
+                            className="h-9 shadow-sm"
+                        >
                             Nueva cita
                         </Button>
                     </div>
                 </div>
             </div>
-        </header>
+        </div>
     );
 }
+

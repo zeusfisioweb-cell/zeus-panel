@@ -61,12 +61,18 @@ export const ProfessionalProfileSchema = z.object({
 // Hook-level schema (matches CreateProfessionalPayload)
 export const ProfessionalCreateSchema = z.object({
     email: z.string().email({ message: 'Correo electrónico inválido' }),
+    temp_password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
     full_name: z.string().min(3, { message: 'El nombre completo es requerido' }),
-    specialty: z.string().optional(),
-    bio: z.string().optional(),
-    color_code: z.string().optional(),
-    is_active: z.boolean().optional(),
-    serviceIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos un servicio' }),
+    specialty: z.string().optional().nullable(),
+    bio: z.string().optional().nullable(),
+    color_code: z.string().optional().nullable(),
+    is_active: z.boolean().default(true).optional(),
+    service_ids: z.array(z.string()).optional(),
+    schedule_slots: z.array(z.object({
+        day_of_week: z.number().int().min(1).max(7),
+        start_time: z.string().regex(timeRegex, { message: 'Formato de hora inválido' }),
+        end_time: z.string().regex(timeRegex, { message: 'Formato de hora inválido' }),
+    })).optional()
 });
 
 // ─── Appointment ───────────────────────────────────────────
@@ -92,8 +98,8 @@ export const AppointmentFormSchema = z.object({
 
 // DB-level schema (timestamps as ISO strings, used in hooks)
 export const AppointmentInsertSchema = z.object({
-    patient_id: z.string().min(1, { message: 'Debe seleccionar un paciente' }),
-    professional_id: z.string().min(1, { message: 'Debe seleccionar un profesional' }),
+    patient_id: z.string().min(1, { message: 'Debe seleccionar un paciente' }).nullable().optional(),
+    professional_id: z.string().min(1, { message: 'Debe seleccionar un profesional' }).nullable().optional(),
     service_id: z.string().min(1, { message: 'Debe seleccionar un servicio' }),
     start_time: z.string().min(1, { message: 'Hora de inicio requerida' }),
     end_time: z.string().min(1, { message: 'Hora de fin requerida' }),

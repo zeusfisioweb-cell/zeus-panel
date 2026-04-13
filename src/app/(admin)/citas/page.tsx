@@ -1,370 +1,436 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useMemo, useState } from 'react';
+import { DateTime } from 'luxon';
+import { addDays, endOfMonth, startOfMonth, subDays } from 'date-fns';
+import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
+import type { Appointment, AppointmentStatus, ScheduleException } from '@/lib/types';
+import {
+    useCancelCita,
+    useCitas,
+    useCreateCita,
+    useCreateException,
+    useScheduleExceptions,
+    useUpdateCitaStatus,
+} from '@/hooks/useCitas';
+import { useProfesionales } from '@/hooks/useProfesionales';
+import { useServicios } from '@/hooks/useServicios';
+import { useSettings } from '@/hooks/useSettings';
+import { AppointmentDetailPanel } from './components/AppointmentDetailPanel';
+import { AppointmentExceptionModal, type ExceptionFormData } from './components/AppointmentExceptionModal';
+import { AppointmentFormModal, type AppointmentFormData } from './components/AppointmentFormModal';
+import { CancelCitaModal } from './components/CancelCitaModal';
+import { CitasTimeline } from './components/CitasTimeline';
+import { CitasFilters } from './components/CitasFilters';
+import { CitasHeader } from './components/CitasHeader';
+import { CitasTable } from './components/CitasTable';
 import Icon from '@/components/Icon';
 
-const supabase = createClient();
-import type { Appointment, Service, Professional } from '@/lib/types';
-import { STATUS_LABELS } from '@/lib/types';
+const CLINIC_TIME_ZONE = 'Europe/Madrid';
+
+function hasProfessionalOverlap(
+    appointments: Appointment[],
+    payload: {
+        professionalId: string | null;
+        start: Date;
+        end: Date;
+        excludeId?: string;
+    }
+): boolean {
+    if (!payload.professionalId) return false;
+
+    const nextStart = payload.start.getTime();
+    const nextEnd = payload.end.getTime();
+
+    return appointments.some((apt) => {
+        if (apt.id === payload.excludeId) return false;
+        if (apt.status === 'cancelled') return false;
+        if (apt.professional_id !== payload.professionalId) return false;
+
+        const currentStart = new Date(apt.start_time).getTime();
+        const currentEnd = new Date(apt.end_time).getTime();
+
+        return nextStart < currentEnd && nextEnd > currentStart;
+    });
+}
 
 export default function CitasPage() {
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { profile } = useAuth();
+    const { data: settings } = useSettings();
+
+    const openHour = settings?.opening_hour ? parseInt(settings.opening_hour.split(':')[0], 10) : 7;
+    const closeHour = settings?.closing_hour ? parseInt(settings.closing_hour.split(':')[0], 10) : 20;
+
+    const [mainPageViewMode, setMainPageViewMode] = useState<'list' | 'calendar'>('calendar');
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
     const [filter, setFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
 
-    // New appointment modal
     const [showNewModal, setShowNewModal] = useState(false);
-    const [services, setServices] = useState<Service[]>([]);
-    const [professionals, setProfessionals] = useState<Professional[]>([]);
-    const [newForm, setNewForm] = useState({
-        patient_name: '',
-        patient_phone: '',
-        patient_email: '',
-        service_id: '',
-        professional_id: '',
-        time: '09:00',
-        notes: '',
-    });
-    const [saving, setSaving] = useState(false);
+    const [showExceptionModal, setShowExceptionModal] = useState(false);
+    const [initialTimeForm, setInitialTimeForm] = useState('09:00');
+    const [initialProfessionalId, setInitialProfessionalId] = useState<string | null>(null);
 
-    // Cancel appointment modal
+    const [selectedEvent, setSelectedEvent] = useState<Appointment | null>(null);
     const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
-    const [cancelReason, setCancelReason] = useState('');
 
-    const loadFormData = useCallback(async () => {
-        const [servicesRes, profRes] = await Promise.all([
-            supabase.from('services').select('*').eq('is_active', true).order('name'),
-            supabase.from('professionals').select('*, profile:profiles(*)').eq('is_active', true),
-        ]);
-        setServices(servicesRes.data as Service[] || []);
-        setProfessionals(profRes.data as Professional[] || []);
-    }, []);
+    const isProfessional = profile?.role === 'professional';
+    const profId = isProfessional ? profile?.id : undefined;
 
-    const loadAppointments = useCallback(async () => {
-        setLoading(true);
-        let query = supabase
-            .from('appointments')
-            .select('*, service:services(name, category_id), professional:professionals(*, profile:profiles(full_name))')
-            .gte('start_time', `${dateFilter}T00:00:00`)
-            .lte('start_time', `${dateFilter}T23:59:59`)
-            .order('start_time', { ascending: true });
+    const rangeStart = useMemo(() => subDays(startOfMonth(selectedDate), 7).toISOString(), [selectedDate]);
+    const rangeEnd = useMemo(() => addDays(endOfMonth(selectedDate), 7).toISOString(), [selectedDate]);
 
-        if (filter !== 'all') {
-            query = query.eq('status', filter);
+    const {
+        data: appointments = [],
+        isLoading: loadingApts,
+        isError: errorApts,
+        refetch: refetchAppointments,
+    } = useCitas(rangeStart, rangeEnd);
+
+    const calendarAppointments = useMemo(() => {
+        if (!profId) return appointments;
+        return appointments.filter((apt) => apt.professional_id === profId);
+    }, [appointments, profId]);
+
+    const { data: exceptions = [] } = useScheduleExceptions({
+        startDate: rangeStart.split('T')[0],
+        endDate: rangeEnd.split('T')[0],
+        professionalId: profId,
+    });
+
+    const { data: services = [] } = useServicios();
+    const { data: professionals = [] } = useProfesionales();
+
+    const createCita = useCreateCita();
+    const updateStatus = useUpdateCitaStatus();
+    const cancelCita = useCancelCita();
+    const createException = useCreateException();
+
+    const filteredAppointments = useMemo(() => {
+        return appointments
+            .filter((apt) => {
+                if (profId && apt.professional_id !== profId) return false;
+
+                if (filter !== 'all') {
+                    if (filter === 'upcoming') {
+                        if (apt.status === 'cancelled' || apt.status === 'completed') return false;
+                    } else if (apt.status !== filter) {
+                        return false;
+                    }
+                }
+
+                if (dateFilter && !apt.start_time.startsWith(dateFilter)) {
+                    return false;
+                }
+
+                if (searchTerm) {
+                    const term = searchTerm.toLowerCase();
+                    const matchName = apt.patient_name?.toLowerCase().includes(term);
+                    const patientDocId = apt.patient?.document_id || '';
+                    const matchDoc = patientDocId.toLowerCase().includes(term);
+                    if (!matchName && !matchDoc) return false;
+                }
+
+                return true;
+            })
+            .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    }, [appointments, dateFilter, filter, profId, searchTerm]);
+
+    const handleSlotClick = (date: Date, professionalId: string | null) => {
+        const slotDate = DateTime.fromJSDate(date, { zone: CLINIC_TIME_ZONE });
+        setSelectedDate(date);
+        setInitialTimeForm(slotDate.toFormat('HH:mm'));
+        setInitialProfessionalId(professionalId);
+        setShowNewModal(true);
+    };
+
+    const handleCreateAppointment = async (form: AppointmentFormData, selectedPatientId: string | null) => {
+        const service = services.find((s) => s.id === form.service_id);
+        const selectedDay = DateTime.fromJSDate(selectedDate, { zone: CLINIC_TIME_ZONE });
+        const baseDate = selectedDay.toISODate();
+
+        if (!baseDate) {
+            toast.error('No se pudo interpretar la fecha de la cita');
+            throw new Error('INVALID_DATE');
         }
 
-        const { data } = await query;
-        setAppointments(data as Appointment[] || []);
-        setLoading(false);
-    }, [dateFilter, filter]);
+        const startDateTime = DateTime.fromISO(`${baseDate}T${form.time}`, { zone: CLINIC_TIME_ZONE });
+        if (!startDateTime.isValid) {
+            toast.error('La hora seleccionada no es valida');
+            throw new Error('INVALID_TIME');
+        }
 
-    useEffect(() => {
-        loadAppointments();
-        loadFormData();
-    }, [loadAppointments, loadFormData]);
+        const endDateTime = startDateTime.plus({ minutes: service?.duration_minutes || 60 });
+        const dateOnly = startDateTime.toISODate();
+        const effectiveProfessionalId =
+            (isProfessional && profile ? profile.id : null) ||
+            form.professional_id ||
+            initialProfessionalId ||
+            null;
 
-    async function updateStatus(id: string, status: string) {
-        await supabase.from('appointments').update({ status }).eq('id', id);
-        loadAppointments();
-    }
+        if (effectiveProfessionalId && dateOnly) {
+            const dayExceptions = (exceptions as ScheduleException[]).filter(
+                (ex) => ex.professional_id === effectiveProfessionalId && ex.exception_date === dateOnly
+            );
 
-    async function confirmCancel() {
+            for (const ex of dayExceptions) {
+                if (ex.is_available) continue;
+
+                if (!ex.start_time || !ex.end_time) {
+                    toast.warning(`El profesional no esta disponible este dia${ex.reason ? `: ${ex.reason}` : ''}`);
+                    throw new Error('NOT_AVAILABLE');
+                }
+
+                const exStart = DateTime.fromISO(`${dateOnly}T${ex.start_time}`, { zone: CLINIC_TIME_ZONE });
+                const exEnd = DateTime.fromISO(`${dateOnly}T${ex.end_time}`, { zone: CLINIC_TIME_ZONE });
+                const overlapsException = startDateTime < exEnd && endDateTime > exStart;
+
+                if (overlapsException) {
+                    toast.warning(`El profesional no esta disponible en este horario${ex.reason ? `: ${ex.reason}` : ''}`);
+                    throw new Error('NOT_AVAILABLE');
+                }
+            }
+
+            const overlapsAppointment = hasProfessionalOverlap(calendarAppointments, {
+                professionalId: effectiveProfessionalId,
+                start: startDateTime.toJSDate(),
+                end: endDateTime.toJSDate(),
+            });
+
+            if (overlapsAppointment) {
+                toast.warning('No se permite solapar citas del mismo profesional');
+                throw new Error('OVERLAP');
+            }
+        }
+
+        try {
+            const startIso = startDateTime.toUTC().toISO();
+            const endIso = endDateTime.toUTC().toISO();
+
+            if (!startIso || !endIso) {
+                throw new Error('INVALID_TIME');
+            }
+
+            await createCita.mutateAsync({
+                patient_name: form.patient_name,
+                patient_phone: form.patient_phone || null,
+                patient_email: form.patient_email || null,
+                patient_id: selectedPatientId,
+                service_id: form.service_id,
+                professional_id: effectiveProfessionalId,
+                start_time: startIso,
+                end_time: endIso,
+                notes: form.notes || null,
+                source: 'admin',
+            });
+
+            setShowNewModal(false);
+            setInitialProfessionalId(null);
+            toast.success('Cita creada correctamente');
+        } catch (error) {
+            if (error instanceof Error && (error.message === 'NOT_AVAILABLE' || error.message === 'OVERLAP')) {
+                throw error;
+            }
+            toast.error('Error al crear la cita');
+            throw error;
+        }
+    };
+
+    const handleCreateException = async (form: ExceptionFormData) => {
+        try {
+            await createException.mutateAsync({
+                professional_id: form.professional_id,
+                exception_date: form.exception_date,
+                is_available: false,
+                start_time: form.start_time || null,
+                end_time: form.end_time || null,
+                reason: form.reason || 'No disponible',
+            });
+            setShowExceptionModal(false);
+            toast.success('Horario bloqueado correctamente');
+        } catch (error) {
+            toast.error('Error al bloquear el horario');
+            throw error;
+        }
+    };
+
+    const handleConfirmCancel = async (reason: string) => {
         if (!cancelTarget) return;
-        await supabase
-            .from('appointments')
-            .update({ status: 'cancelled', cancellation_reason: cancelReason || null })
-            .eq('id', cancelTarget.id);
-        setCancelTarget(null);
-        setCancelReason('');
-        loadAppointments();
-    }
 
-    async function deleteAppointment(id: string) {
-        await supabase.from('appointments').delete().eq('id', id);
-        loadAppointments();
-    }
+        try {
+            await cancelCita.mutateAsync({ id: cancelTarget.id, reason: reason || null });
+            toast.success('Cita cancelada correctamente');
+            setCancelTarget(null);
+            setSelectedEvent(null);
+        } catch {
+            toast.error('Error al cancelar la cita');
+        }
+    };
 
-    async function handleNewAppointment(e: React.FormEvent) {
-        e.preventDefault();
-        if (!newForm.patient_name || !newForm.service_id) return;
-        setSaving(true);
+    const pendingCount = appointments.filter((apt) => apt.status === 'pending').length;
+    const confirmedCount = appointments.filter((apt) => apt.status === 'confirmed').length;
+    const completedCount = appointments.filter((apt) => apt.status === 'completed').length;
 
-        const service = services.find(s => s.id === newForm.service_id);
-        const startTime = new Date(`${dateFilter}T${newForm.time}:00`);
-        const endTime = new Date(startTime.getTime() + (service?.duration_minutes || 60) * 60000);
+    const handleRetryLoad = () => {
+        void refetchAppointments();
+    };
 
-        await supabase.from('appointments').insert({
-            patient_name: newForm.patient_name,
-            patient_phone: newForm.patient_phone || null,
-            patient_email: newForm.patient_email || null,
-            service_id: newForm.service_id,
-            professional_id: newForm.professional_id || null,
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString(),
-            notes: newForm.notes || null,
-            source: 'admin',
-            status: 'confirmed',
-        });
-
-        setSaving(false);
-        setShowNewModal(false);
-        setNewForm({ patient_name: '', patient_phone: '', patient_email: '', service_id: services[0]?.id || '', professional_id: '', time: '09:00', notes: '' });
-        loadAppointments();
-    }
-
-    const formatTime = (iso: string) =>
-        new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
-    const navigateDate = (days: number) => {
-        const d = new Date(dateFilter);
-        d.setDate(d.getDate() + days);
-        setDateFilter(d.toISOString().split('T')[0]);
+    const handleUpdateFromDetail = async (id: string, status: string) => {
+        try {
+            const nextStatus = status as AppointmentStatus;
+            await updateStatus.mutateAsync({ id, status: nextStatus });
+            setSelectedEvent((prev) => (prev ? { ...prev, status: nextStatus } : null));
+            toast.success('Estado actualizado');
+        } catch {
+            toast.error('Error al actualizar estado');
+        }
     };
 
     return (
-        <>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Citas</h1>
-                    <p className="page-subtitle">Gestión de citas y reservas</p>
-                </div>
-                <button className="btn btn--primary" onClick={() => {
-                    setNewForm(f => ({ ...f, service_id: services[0]?.id || '', time: '09:00' }));
+        <div className={`content-shell citas-shell citas-shell--clean ${mainPageViewMode === 'calendar' ? 'citas-shell--calendar' : ''}`}>
+            <CitasHeader
+                mainPageViewMode={mainPageViewMode}
+                setMainPageViewMode={setMainPageViewMode}
+                totalCount={appointments.length}
+                pendingCount={pendingCount}
+                confirmedCount={confirmedCount}
+                completedCount={completedCount}
+                onToday={() => setSelectedDate(new Date())}
+                onBlockSchedule={() => setShowExceptionModal(true)}
+                onNewAppointment={() => {
+                    setInitialTimeForm('09:00');
+                    setInitialProfessionalId(isProfessional && profile ? profile.id : null);
                     setShowNewModal(true);
-                }}>
-                    + Nueva cita
-                </button>
-            </div>
+                }}
+            />
 
-            {/* Filters bar */}
-            <div className="card" style={{ marginBottom: 20 }}>
-                <div className="card__body" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '14px 20px' }}>
-                    <button className="btn btn--secondary btn--sm" onClick={() => navigateDate(-1)}>◀</button>
-                    <input
-                        type="date"
-                        className="form-input"
-                        style={{ width: 'auto' }}
-                        value={dateFilter}
-                        onChange={e => setDateFilter(e.target.value)}
-                    />
-                    <button className="btn btn--secondary btn--sm" onClick={() => navigateDate(1)}>▶</button>
-                    <button
-                        className="btn btn--ghost btn--sm"
-                        onClick={() => setDateFilter(new Date().toISOString().split('T')[0])}
-                    >
-                        Hoy
-                    </button>
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                        {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(f => (
-                            <button
-                                key={f}
-                                className={`btn btn--sm ${filter === f ? 'btn--primary' : 'btn--ghost'}`}
-                                onClick={() => setFilter(f)}
-                            >
-                                {f === 'all' ? 'Todas' : STATUS_LABELS[f as keyof typeof STATUS_LABELS]}
-                            </button>
-                        ))}
+            {mainPageViewMode === 'calendar' ? (
+                <div className={`citas-stage flex-1 flex gap-5 min-h-0 ${selectedEvent ? 'zc-layout--detail' : ''} transition-all duration-300`}>
+                    <div className="citas-stage__main flex-1 min-h-0 flex flex-col min-w-0">
+                        {loadingApts ? (
+                            <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
+                                <div className="spinner mr-2 border-[var(--brand-main)]" /> Cargando...
+                            </div>
+                        ) : errorApts ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] gap-4 p-8 text-center bg-transparent">
+                                <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-2 shadow-sm border border-red-100 dark:border-red-500/20">
+                                    <Icon name="alert-circle" size={32} className="text-red-500" />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-lg font-medium text-[var(--text-primary)]">No se pudieron cargar las citas</h3>
+                                    <p className="text-sm max-w-md mx-auto opacity-80">
+                                        Ha ocurrido un problema al cargar la informacion. Revisa tu conexion e intentalo de nuevo.
+                                    </p>
+                                </div>
+                                <button onClick={handleRetryLoad} className="btn btn--secondary mt-2 flex items-center gap-2 mx-auto justify-center">
+                                    <Icon name="refresh-cw" size={16} />
+                                    <span>Reintentar</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <CitasTimeline
+                                appointments={calendarAppointments}
+                                professionals={professionals}
+                                selectedDate={selectedDate}
+                                setSelectedDate={setSelectedDate}
+                                openHour={openHour}
+                                closeHour={closeHour}
+                                onSlotClick={handleSlotClick}
+                                onAppointmentClick={setSelectedEvent}
+                            />
+                        )}
                     </div>
-                </div>
-            </div>
 
-            <div className="card">
-                <div className="card__body" style={{ padding: 0 }}>
-                    {loading ? (
-                        <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                            <div className="spinner" />
+                    {selectedEvent && (
+                        <AppointmentDetailPanel
+                            variant="inline"
+                            appointment={selectedEvent}
+                            onClose={() => setSelectedEvent(null)}
+                            onUpdateStatus={handleUpdateFromDetail}
+                            onInitiateCancel={(apt) => setCancelTarget(apt)}
+                        />
+                    )}
+                </div>
+            ) : (
+                <div className="animate-in fade-in duration-300">
+                    <CitasFilters
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        filter={filter}
+                        onFilterChange={setFilter}
+                        dateFilter={dateFilter}
+                        onDateFilterChange={setDateFilter}
+                        totalCount={filteredAppointments.length}
+                    />
+
+                    {loadingApts ? (
+                        <div className="text-center p-12 text-[var(--text-muted)] flex flex-col items-center">
+                            <div className="spinner mb-4 border-[var(--brand-main)] h-8 w-8" />
+                            Cargando citas...
                         </div>
-                    ) : appointments.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-state__icon"><Icon name="calendar" size={40} /></div>
-                            <div className="empty-state__title">Sin citas</div>
-                            <div className="empty-state__text">No hay citas para esta fecha</div>
-                            <button className="btn btn--primary" style={{ marginTop: 16 }} onClick={() => setShowNewModal(true)}>
-                                + Nueva cita
+                    ) : errorApts ? (
+                        <div className="text-center p-16 text-[var(--text-secondary)] flex flex-col items-center gap-4 border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl mt-4 shadow-sm">
+                            <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-2 shadow-sm border border-red-100 dark:border-red-500/20">
+                                <Icon name="alert-circle" size={32} className="text-red-500" />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-lg font-medium text-[var(--text-primary)]">No se pudieron cargar las citas</h3>
+                                <p className="text-sm max-w-md mx-auto opacity-80">
+                                    Ha ocurrido un problema al cargar la informacion. Revisa tu conexion e intentalo de nuevo.
+                                </p>
+                            </div>
+                            <button onClick={handleRetryLoad} className="btn btn--secondary mt-2 flex items-center gap-2 mx-auto justify-center">
+                                <Icon name="refresh-cw" size={16} />
+                                <span>Reintentar</span>
                             </button>
                         </div>
                     ) : (
-                        <div className="table-wrapper">
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th>Hora</th>
-                                        <th>Paciente</th>
-                                        <th>Servicio</th>
-                                        <th>Profesional</th>
-                                        <th>Estado</th>
-                                        <th>Origen</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {appointments.map((apt) => (
-                                        <tr key={apt.id}>
-                                            <td style={{ fontWeight: 600 }}>
-                                                {formatTime(apt.start_time)} - {formatTime(apt.end_time)}
-                                            </td>
-                                            <td>
-                                                <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    {apt.patient_name || '—'}
-                                                    {apt.source !== 'web' && (
-                                                        <span title="Firma RGPD pendiente o en papel" style={{ color: 'var(--danger)', fontSize: 12, cursor: 'help' }}>
-                                                            ⚠️ RGPD
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {apt.patient_phone && (
-                                                    <div style={{ fontSize: 11, color: 'var(--gris)', marginTop: 2 }}>{apt.patient_phone}</div>
-                                                )}
-                                            </td>
-                                            <td>{apt.service?.name || '—'}</td>
-                                            <td>{apt.professional?.profile?.full_name || '—'}</td>
-                                            <td>
-                                                <span className={`badge badge--${apt.status}`}>
-                                                    {STATUS_LABELS[apt.status]}
-                                                </span>
-                                            </td>
-                                            <td style={{ fontSize: 12, color: 'var(--gris)' }}>
-                                                {apt.source === 'web' ? <><Icon name="globe" size={14} /> Web</> : apt.source === 'phone' ? <><Icon name="phone" size={14} /> Tel</> : <><Icon name="user" size={14} /> Admin</>}
-                                            </td>
-                                            <td>
-                                                <div style={{ display: 'flex', gap: 4 }}>
-                                                    {apt.status === 'pending' && (
-                                                        <button
-                                                            className="btn btn--primary btn--sm"
-                                                            onClick={() => updateStatus(apt.id, 'confirmed')}
-                                                            title="Confirmar"
-                                                        >
-                                                            <Icon name="check" size={14} />
-                                                        </button>
-                                                    )}
-                                                    {apt.status === 'confirmed' && (
-                                                        <button
-                                                            className="btn btn--sm"
-                                                            style={{ background: 'var(--info)', color: '#fff' }}
-                                                            onClick={() => updateStatus(apt.id, 'completed')}
-                                                            title="Marcar completada"
-                                                        >
-                                                            <Icon name="check" size={14} /><Icon name="check" size={14} />
-                                                        </button>
-                                                    )}
-                                                    {apt.status !== 'cancelled' && (
-                                                        <button
-                                                            className="btn btn--ghost btn--sm"
-                                                            onClick={() => { setCancelTarget(apt); setCancelReason(''); }}
-                                                            title="Cancelar cita"
-                                                        >
-                                                            <Icon name="close" size={14} />
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        className="btn btn--ghost btn--sm"
-                                                        style={{ color: 'var(--danger)' }}
-                                                        onClick={() => deleteAppointment(apt.id)}
-                                                        title="Eliminar permanentemente"
-                                                    >
-                                                        <Icon name="trash" size={14} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <CitasTable appointments={filteredAppointments} onViewAppointment={setSelectedEvent} />
                     )}
                 </div>
-            </div>
-
-            {/* Modal nueva cita */}
-            {showNewModal && (
-                <div className="modal-overlay" onClick={() => setShowNewModal(false)}>
-                    <div className="modal modal--lg" onClick={e => e.stopPropagation()}>
-                        <div className="modal__header">
-                            <h3 className="modal__title">Nueva cita — {new Date(dateFilter).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-                            <button className="modal__close" onClick={() => setShowNewModal(false)} aria-label="Cerrar"><Icon name="close" size={18} /></button>
-                        </div>
-                        <form onSubmit={handleNewAppointment}>
-                            <div className="modal__body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="nc_patient_name">Nombre del paciente *</label>
-                                        <input id="nc_patient_name" className="form-input" value={newForm.patient_name} onChange={e => setNewForm({ ...newForm, patient_name: e.target.value })} required placeholder="Nombre completo…" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="nc_phone">Teléfono</label>
-                                        <input id="nc_phone" type="tel" className="form-input" value={newForm.patient_phone} onChange={e => setNewForm({ ...newForm, patient_phone: e.target.value })} placeholder="600 000 000…" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="nc_email">Email</label>
-                                        <input id="nc_email" type="email" className="form-input" value={newForm.patient_email} onChange={e => setNewForm({ ...newForm, patient_email: e.target.value })} placeholder="paciente@email.com…" spellCheck={false} />
-                                    </div>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="nc_service">Servicio *</label>
-                                        <select id="nc_service" className="form-input form-select" value={newForm.service_id} onChange={e => setNewForm({ ...newForm, service_id: e.target.value })} required>
-                                            <option value="">Seleccionar servicio…</option>
-                                            {services.map(s => <option key={s.id} value={s.id}>{s.name} — {s.duration_minutes} min</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                        <label className="form-label" htmlFor="nc_professional">Profesional</label>
-                                        <select id="nc_professional" className="form-input form-select" value={newForm.professional_id} onChange={e => setNewForm({ ...newForm, professional_id: e.target.value })}>
-                                            <option value="">Sin asignar</option>
-                                            {professionals.map(p => <option key={p.id} value={p.id}>{p.profile?.full_name}{p.specialty ? ` — ${p.specialty}` : ''}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="nc_time">Hora *</label>
-                                        <input id="nc_time" type="time" className="form-input" value={newForm.time} onChange={e => setNewForm({ ...newForm, time: e.target.value })} required />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label" htmlFor="nc_notes">Notas</label>
-                                        <input id="nc_notes" className="form-input" value={newForm.notes} onChange={e => setNewForm({ ...newForm, notes: e.target.value })} placeholder="Observaciones…" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal__footer">
-                                <button type="button" className="btn btn--secondary" onClick={() => setShowNewModal(false)}>Cancelar</button>
-                                <button type="submit" className="btn btn--primary" disabled={saving}>
-                                    {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} /> Guardando...</> : <><Icon name="check" size={14} /> Confirmar cita</>}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             )}
 
-            {/* Modal cancelar cita */}
-            {cancelTarget && (
-                <div className="modal-overlay" onClick={() => setCancelTarget(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal__header">
-                            <h3 className="modal__title">Cancelar cita</h3>
-                            <button className="modal__close" onClick={() => setCancelTarget(null)} aria-label="Cerrar"><Icon name="close" size={18} /></button>
-                        </div>
-                        <div className="modal__body">
-                            <p style={{ marginBottom: 16, color: 'var(--gris)' }}>
-                                ¿Cancelar la cita de <strong>{cancelTarget.patient_name}</strong> a las {formatTime(cancelTarget.start_time)}?
-                            </p>
-                            <div className="form-group">
-                                <label className="form-label" htmlFor="cancel_reason">Motivo de cancelación (opcional)</label>
-                                <input
-                                    id="cancel_reason"
-                                    className="form-input"
-                                    value={cancelReason}
-                                    onChange={e => setCancelReason(e.target.value)}
-                                    placeholder="Ej: paciente no se presentó…"
-                                />
-                            </div>
-                        </div>
-                        <div className="modal__footer">
-                            <button className="btn btn--secondary" onClick={() => setCancelTarget(null)}>Volver</button>
-                            <button className="btn btn--danger" onClick={confirmCancel}>Cancelar cita</button>
-                        </div>
-                    </div>
-                </div>
+            {mainPageViewMode === 'list' && (
+                <AppointmentDetailPanel
+                    variant="overlay"
+                    appointment={selectedEvent}
+                    onClose={() => setSelectedEvent(null)}
+                    onUpdateStatus={handleUpdateFromDetail}
+                    onInitiateCancel={(apt) => setCancelTarget(apt)}
+                />
             )}
-        </>
+
+            <AppointmentFormModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                selectedDate={selectedDate}
+                initialTime={initialTimeForm}
+                initialProfessionalId={initialProfessionalId}
+                services={services}
+                professionals={professionals}
+                currentUserId={profile?.id}
+                currentUserRole={profile?.role}
+                onSubmit={handleCreateAppointment}
+            />
+
+            <AppointmentExceptionModal
+                isOpen={showExceptionModal}
+                onClose={() => setShowExceptionModal(false)}
+                selectedDate={selectedDate}
+                professionals={professionals}
+                onSubmit={handleCreateException}
+            />
+
+            <CancelCitaModal
+                isOpen={!!cancelTarget}
+                appointment={cancelTarget}
+                isLoading={cancelCita.isPending}
+                onClose={() => setCancelTarget(null)}
+                onConfirm={handleConfirmCancel}
+            />
+        </div>
     );
 }

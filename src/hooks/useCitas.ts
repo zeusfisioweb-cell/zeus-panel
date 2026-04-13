@@ -1,111 +1,109 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Appointment, AppointmentStatus } from '@/lib/types';
-import { logAuditEvent } from '@/lib/audit';
+import { Appointment, AppointmentStatus, ScheduleException } from '@/lib/types';
 import { AppointmentInsertSchema, AppointmentUpdateSchema, ScheduleExceptionSchema } from '@/lib/schemas';
 
 export const APPOINTMENTS_QUERY_KEY = ['citas'];
 
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
+
 export function useCitas(start_date?: string, end_date?: string) {
-    const supabase = createClient();
+    // Stable reference: createClient() uses an internal singleton, but wrapping in useMemo
+    // ensures the object reference doesn't change on every render, preventing the useEffect
+    // from re-subscribing WebSocket channels on each render cycle.
+    const supabase = useMemo(() => createClient(), []);
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('appointments_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+                queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
+            })
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    // queryClient is stable from React Query; supabase is stable from useMemo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return useQuery({
         queryKey: [...APPOINTMENTS_QUERY_KEY, start_date, end_date],
         queryFn: async () => {
-            let query = supabase
-                .from('appointments')
-                .select(`
-                    id,
-                    patient_id,
-                    professional_id,
-                    service_id,
-                    start_time,
-                    end_time,
-                    status,
-                    notes,
-                    patient_name,
-                    patient_phone,
-                    patient_email,
-                    source,
-                    cancellation_reason,
-                    created_at,
-                    updated_at,
-                    patient:patients(id, first_name, last_name, phone, email),
-                    professional:professionals(id, color_code, profile:profiles(full_name)),
-                    service:services(id, name, duration_minutes, price, category:service_categories(color))
-                `)
-                .order('start_time', { ascending: true });
+            const params = new URLSearchParams();
+            if (start_date) params.set('start_date', start_date);
+            if (end_date) params.set('end_date', end_date);
+            const queryString = params.toString();
 
-            if (start_date) {
-                query = query.gte('start_time', start_date);
-            }
-            if (end_date) {
-                query = query.lt('start_time', end_date);
+            const response = await fetch(`/api/admin/appointments${queryString ? `?${queryString}` : ''}`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-
-            // Format the joined data to match the expected Appointment type
-            return data.map((apt: unknown) => {
-                const rawApt = apt as Record<string, unknown>;
-                const prof = rawApt.professional as Record<string, unknown> | null;
-                
-                return {
-                    ...rawApt,
-                    professional: prof ? {
-                        ...prof,
-                        profile: Array.isArray(prof.profiles)
-                            ? prof.profiles[0]
-                            : prof.profiles
-                    } : undefined
-                };
-            }) as Appointment[];
+            return (await response.json()) as Appointment[];
         },
     });
 }
 
 export function useCreateCita() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (newAppointment: Partial<Appointment>) => {
-            AppointmentInsertSchema.parse(newAppointment);
+            const parsed = AppointmentInsertSchema.parse(newAppointment);
 
-            const { data, error } = await supabase
-                .from('appointments')
-                .insert([newAppointment])
-                .select()
-                .single();
+            const response = await fetch('/api/admin/appointments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(parsed),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Appointment;
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
-            logAuditEvent({ action: 'CREATE', table_name: 'appointments', record_id: data.id });
         },
     });
 }
 
 export function useUpdateCita() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async ({ id, ...updateData }: Partial<Appointment> & { id: string }) => {
-            AppointmentUpdateSchema.parse(updateData);
+            const parsedUpdateData = AppointmentUpdateSchema.parse(updateData);
 
-            const { data, error } = await supabase
-                .from('appointments')
-                .update(updateData)
-                .eq('id', id)
-                .select()
-                .single();
+            const response = await fetch('/api/admin/appointments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id, ...parsedUpdateData }),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Appointment;
         },
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -113,12 +111,12 @@ export function useUpdateCita() {
 
             queryClient.setQueriesData({ queryKey: APPOINTMENTS_QUERY_KEY }, (oldData: Appointment[] | undefined) => {
                 if (!oldData) return oldData;
-                return oldData.map(apt => apt.id === variables.id ? { ...apt, ...variables } : apt);
+                return oldData.map((apt) => (apt.id === variables.id ? { ...apt, ...variables } : apt));
             });
 
             return { previousAppointments };
         },
-        onError: (err, variables, context) => {
+        onError: (_err, _variables, context) => {
             if (context?.previousAppointments) {
                 context.previousAppointments.forEach(([queryKey, data]) => {
                     queryClient.setQueryData(queryKey, data);
@@ -127,28 +125,27 @@ export function useUpdateCita() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
-        },
-        onSuccess: (data) => {
-            logAuditEvent({ action: 'UPDATE', table_name: 'appointments', record_id: data.id });
         },
     });
 }
 
 export function useUpdateCitaStatus() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, status }: { id: string, status: AppointmentStatus }) => {
-            const { data, error } = await supabase
-                .from('appointments')
-                .update({ status })
-                .eq('id', id)
-                .select()
-                .single();
+        mutationFn: async ({ id, status }: { id: string; status: AppointmentStatus }) => {
+            const response = await fetch('/api/admin/appointments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id, status }),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Appointment;
         },
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -156,12 +153,12 @@ export function useUpdateCitaStatus() {
 
             queryClient.setQueriesData({ queryKey: APPOINTMENTS_QUERY_KEY }, (oldData: Appointment[] | undefined) => {
                 if (!oldData) return oldData;
-                return oldData.map(apt => apt.id === variables.id ? { ...apt, status: variables.status } : apt);
+                return oldData.map((apt) => (apt.id === variables.id ? { ...apt, status: variables.status } : apt));
             });
 
             return { previousAppointments };
         },
-        onError: (err, variables, context) => {
+        onError: (_err, _variables, context) => {
             if (context?.previousAppointments) {
                 context.previousAppointments.forEach(([queryKey, data]) => {
                     queryClient.setQueryData(queryKey, data);
@@ -171,33 +168,36 @@ export function useUpdateCitaStatus() {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        },
-        onSuccess: (data) => {
-            logAuditEvent({ action: 'UPDATE', table_name: 'appointments', record_id: data.id, details: { status: data.status } });
         },
     });
 }
 
 export function useCancelCita() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, reason }: { id: string, reason?: string | null }) => {
-            const updateData: { status: string; cancellation_reason?: string } = { status: 'cancelled' };
+        mutationFn: async ({ id, reason }: { id: string; reason?: string | null }) => {
+            const payload: { id: string; status: AppointmentStatus; cancellation_reason?: string } = {
+                id,
+                status: 'cancelled',
+            };
+
             if (reason) {
-                updateData.cancellation_reason = reason;
+                payload.cancellation_reason = reason;
             }
 
-            const { data, error } = await supabase
-                .from('appointments')
-                .update(updateData)
-                .eq('id', id)
-                .select()
-                .single();
+            const response = await fetch('/api/admin/appointments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Appointment;
         },
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -205,16 +205,18 @@ export function useCancelCita() {
 
             queryClient.setQueriesData({ queryKey: APPOINTMENTS_QUERY_KEY }, (oldData: Appointment[] | undefined) => {
                 if (!oldData) return oldData;
-                return oldData.map(apt => apt.id === variables.id ? {
-                    ...apt,
-                    status: 'cancelled',
-                    ...(variables.reason ? { cancellation_reason: variables.reason } : {})
-                } : apt);
+                return oldData.map((apt) => (apt.id === variables.id
+                    ? {
+                        ...apt,
+                        status: 'cancelled',
+                        ...(variables.reason ? { cancellation_reason: variables.reason } : {}),
+                    }
+                    : apt));
             });
 
             return { previousAppointments };
         },
-        onError: (err, variables, context) => {
+        onError: (_err, _variables, context) => {
             if (context?.previousAppointments) {
                 context.previousAppointments.forEach(([queryKey, data]) => {
                     queryClient.setQueryData(queryKey, data);
@@ -225,77 +227,82 @@ export function useCancelCita() {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         },
-        onSuccess: (data) => {
-            logAuditEvent({ action: 'UPDATE', table_name: 'appointments', record_id: data.id, details: { status: 'cancelled' } });
-        },
     });
 }
 
 export function useDeleteCita() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase
-                .from('appointments')
-                .delete()
-                .eq('id', id);
+            const response = await fetch(`/api/admin/appointments/${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
         },
-        onSuccess: (_, id) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
-            logAuditEvent({ action: 'DELETE', table_name: 'appointments', record_id: id });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         },
     });
 }
 
-// --- Schedule Exceptions ---
-
 export const SCHEDULE_EXCEPTIONS_QUERY_KEY = ['schedule_exceptions'];
 
-export function useScheduleExceptions({ startDate, endDate, professionalId }: { startDate?: string, endDate?: string, professionalId?: string }) {
-    const supabase = createClient();
-
+export function useScheduleExceptions({
+    startDate,
+    endDate,
+    professionalId,
+}: {
+    startDate?: string;
+    endDate?: string;
+    professionalId?: string;
+}) {
     return useQuery({
         queryKey: [...SCHEDULE_EXCEPTIONS_QUERY_KEY, startDate, endDate, professionalId],
         queryFn: async () => {
-            let query = supabase.from('schedule_exceptions').select('*');
+            const params = new URLSearchParams();
+            if (startDate) params.set('start_date', startDate);
+            if (endDate) params.set('end_date', endDate);
+            if (professionalId) params.set('professional_id', professionalId);
 
-            if (startDate) {
-                query = query.gte('exception_date', startDate);
-            }
-            if (endDate) {
-                query = query.lte('exception_date', endDate);
-            }
-            if (professionalId) {
-                query = query.eq('professional_id', professionalId);
+            const response = await fetch(`/api/admin/schedule-exceptions?${params.toString()}`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-            return data;
+            return (await response.json()) as ScheduleException[];
         },
     });
 }
 
 export function useCreateException() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (newException: Record<string, unknown>) => {
-            ScheduleExceptionSchema.parse(newException);
+            const parsed = ScheduleExceptionSchema.parse(newException);
 
-            const { data, error } = await supabase
-                .from('schedule_exceptions')
-                .insert([newException])
-                .select()
-                .single();
+            const response = await fetch('/api/admin/schedule-exceptions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(parsed),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as ScheduleException;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SCHEDULE_EXCEPTIONS_QUERY_KEY });

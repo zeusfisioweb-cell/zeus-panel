@@ -62,7 +62,7 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
         try {
             await onSubmit(recordType, recordFields);
             onClose();
-        } catch (error) {
+        } catch {
             // Handled by parent
         } finally {
             setSavingRecord(false);
@@ -111,7 +111,7 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                                 <label className="text-sm font-medium text-[var(--text-muted)]">{field.label}</label>
                                 <textarea
                                     ref={i === 0 ? firstInputRef : null}
-                                    className="w-full px-3 py-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-main)] transition-colors text-sm font-inherit min-h-[80px]"
+                                    className="w-full px-3 py-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-muted)] focus-visible:border-[var(--brand-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(173,115,50,0.22)] transition-colors text-sm font-inherit min-h-[80px]"
                                     value={recordFields[i] || ''}
                                     onChange={e => {
                                         const updated = [...recordFields];

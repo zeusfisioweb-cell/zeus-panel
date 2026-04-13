@@ -1,7 +1,7 @@
 /* Professional modern refresh: clean hierarchy, low visual noise, high readability */
 
 :where(a, button, input, select, textarea):focus-visible {
-  outline: 2px solid rgba(79, 70, 229, 0.4);
+  outline: 2px solid rgba(173, 115, 50, 0.4);
   outline-offset: 2px;
 }
 
@@ -38,58 +38,664 @@
 }
 
 .btn--primary {
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 4px 12px rgba(173, 115, 50, 0.25);
 }
 
 .btn--primary:hover {
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 6px 16px rgba(173, 115, 50, 0.3);
 }
 
-.zc-day-event.is-compact {
-  padding: 8px 9px;
+/* Agenda visual system */
+.citas-shell--clean {
+  --agenda-accent: #ad7332;
+  --agenda-accent-strong: #8f5f26;
+  --agenda-accent-soft: rgba(173, 115, 50, 0.14);
+  --agenda-accent-faint: rgba(173, 115, 50, 0.06);
+  --agenda-line: #e6d9cb;
+  --agenda-line-soft: #efe5da;
+  --agenda-text: #1f2937;
+  --agenda-muted: #6b7280;
+  --agenda-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --agenda-surface: #ffffff;
+  --agenda-surface-soft: #fffcf8;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-.zc-day-event.is-compact .zc-day-event__top {
-  margin-bottom: 2px;
+.citas-shell--clean .zc-layout,
+.citas-shell--clean .zc-layout--detail {
+  gap: 14px !important;
 }
 
-.zc-day-event.is-compact .zc-day-event__time {
+.citas-shell--clean .zc-sidebar-cal,
+.citas-shell--clean .zc-mini-cal,
+.citas-shell--clean .zc-upcoming,
+.citas-shell--clean .zc-timeline-wrap,
+.citas-shell--clean .zc-detail-panel {
+  border-radius: 16px !important;
+  border: 1px solid var(--agenda-line) !important;
+  background: var(--agenda-surface) !important;
+  box-shadow: var(--agenda-shadow) !important;
+}
+
+.citas-shell--clean .zc-mini-cal {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fffcf8 0%, #ffffff 44%) !important;
+}
+
+.citas-shell--clean .zc-mini-cal::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ad7332 0%, #d59d55 100%);
+}
+
+.citas-shell--clean .zc-mini-cal__month {
+  color: var(--agenda-text);
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-mini-cal__nav-btn {
+  border: 1px solid var(--agenda-line);
+  background: #ffffff;
+  color: var(--agenda-muted);
+}
+
+.citas-shell--clean .zc-mini-cal__nav-btn:hover {
+  border-color: rgba(173, 115, 50, 0.35);
+  background: rgba(173, 115, 50, 0.08);
+  color: var(--agenda-accent);
+}
+
+.citas-shell--clean .zc-mini-cal__day {
+  height: 36px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #546275;
+}
+
+.citas-shell--clean .zc-mini-cal__day:hover {
+  background: rgba(173, 115, 50, 0.08);
+  color: var(--agenda-text);
+}
+
+.citas-shell--clean .zc-mini-cal__day.is-out {
+  color: #b8c1ce;
+}
+
+.citas-shell--clean .zc-mini-cal__day.is-selected {
+  border-color: rgba(173, 115, 50, 0.4);
+  background: linear-gradient(180deg, #c4873f 0%, #ad7332 100%);
+  color: #ffffff;
+}
+
+.citas-shell--clean .zc-mini-cal__day.is-today {
+  outline: 2px solid rgba(173, 115, 50, 0.4);
+  outline-offset: -2px;
+}
+
+.citas-shell--clean .zc-mini-cal__day.is-selected.is-today {
+  outline: none;
+}
+
+.citas-shell--clean .zc-mini-cal__dot {
+  width: 5px;
+  height: 5px;
+  background: #0f766e;
+}
+
+.citas-shell--clean .zc-upcoming {
+  background: linear-gradient(180deg, #ffffff 0%, #fffcf7 100%) !important;
+}
+
+.citas-shell--clean .zc-upcoming__head {
+  background: var(--agenda-accent-faint);
+  border-bottom-color: var(--agenda-line-soft) !important;
+}
+
+.citas-shell--clean .zc-upcoming__title {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #5b6470;
+}
+
+.citas-shell--clean .zc-upcoming__count {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(173, 115, 50, 0.28);
+  background: #ffffff;
+  color: var(--agenda-accent-strong);
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-upcoming__list {
+  padding: 10px;
+}
+
+.citas-shell--clean .zc-upcoming-item {
+  position: relative;
+  width: 100%;
+  border: 1px solid #e7ecf2 !important;
+  border-left: 4px solid transparent !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  padding: 10px 11px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.citas-shell--clean .zc-upcoming-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  border-color: #d8e0ea !important;
+  background: #ffffff !important;
+}
+
+.citas-shell--clean .zc-upcoming-item.is-confirmed {
+  border-left-color: #059669 !important;
+}
+
+.citas-shell--clean .zc-upcoming-item.is-pending {
+  border-left-color: #d97706 !important;
+}
+
+.citas-shell--clean .zc-upcoming-item.is-completed {
+  border-left-color: #2563eb !important;
+}
+
+.citas-shell--clean .zc-upcoming-item.is-cancelled {
+  border-left-color: #dc2626 !important;
+  opacity: 0.68;
+}
+
+.citas-shell--clean .zc-upcoming-item__time {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-upcoming-item__patient {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-upcoming-item__service {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.citas-shell--clean .zc-upcoming-item__arrow {
+  color: #94a3b8;
+}
+
+.citas-shell--clean .zc-upcoming-empty {
+  border-radius: 12px;
+  border: 1px dashed var(--agenda-line);
+  background: #fffdf9;
+}
+
+.citas-shell--clean .zc-upcoming-empty__btn {
+  border-color: var(--agenda-accent);
+  background: linear-gradient(180deg, #c4873f 0%, #ad7332 100%);
+}
+
+.citas-shell--clean .zc-upcoming-empty__btn:hover {
+  background: linear-gradient(180deg, #b77b36 0%, #996127 100%);
+}
+
+.citas-shell--clean .zc-cal-head {
+  padding: 18px 24px 14px;
+  border-bottom-color: var(--agenda-line-soft);
+  background: linear-gradient(180deg, #ffffff 0%, #fdf9f4 100%);
+}
+
+.citas-shell--clean .zc-cal-head__kicker {
+  color: #0f766e;
+  letter-spacing: 0.1em;
+}
+
+.citas-shell--clean .zc-cal-head__title {
+  margin-top: 2px;
+  font-size: clamp(30px, 2.1vw, 38px);
+  letter-spacing: -0.03em;
+  color: var(--agenda-text);
+}
+
+.citas-shell--clean .zc-cal-head__meta {
+  margin-top: 7px;
+  font-size: 13px;
+  color: var(--agenda-muted);
+}
+
+.citas-shell--clean .zc-cal-head__nav {
+  border: 1px solid var(--agenda-line);
+  background: #ffffff;
+  color: #7b8796;
+}
+
+.citas-shell--clean .zc-cal-head__nav:hover {
+  border-color: rgba(173, 115, 50, 0.36);
+  background: var(--agenda-accent-faint);
+  color: var(--agenda-accent);
+}
+
+.citas-shell--clean .zc-cal-legend {
+  padding: 10px 24px 12px;
+  border-bottom-color: var(--agenda-line-soft);
+  background: #ffffff;
+  gap: 8px;
+}
+
+.citas-shell--clean .zc-cal-legend__item {
+  border-radius: 10px;
+  border-color: #e1e7ee;
+  background: #f8fafc;
+  color: #475569;
   font-size: 11px;
+  padding: 4px 8px;
+  gap: 6px;
 }
 
-.zc-day-event.is-compact .zc-day-event__status {
+.citas-shell--clean .zc-cal-legend__label {
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-cal-legend__count {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-timeline {
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdfbf8 100%);
+}
+
+.citas-shell--clean .zc-hour-row__label {
+  width: 72px;
+  padding-right: 12px;
+  color: #7a8797;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-hour-row__lane {
+  border-top: 1px dashed #d8e0e8;
+}
+
+.citas-shell--clean .zc-hour-row:hover .zc-hour-row__lane {
+  background: rgba(173, 115, 50, 0.07);
+}
+
+.citas-shell--clean .zc-timeline__events {
+  left: 84px;
+  right: 10px;
+}
+
+.citas-shell--clean .zc-timeline__now {
+  padding-left: 74px;
+}
+
+.citas-shell--clean .zc-timeline__now-dot {
+  background: #ad7332;
+  box-shadow: 0 0 0 3px rgba(173, 115, 50, 0.24);
+}
+
+.citas-shell--clean .zc-timeline__now-line {
+  background: #ad7332;
+}
+
+.citas-shell--clean .zc-timeline__now-label {
+  border-color: rgba(173, 115, 50, 0.35);
+  background: rgba(173, 115, 50, 0.12);
+  color: #8f5f26;
+}
+
+.citas-shell--clean .zc-day-event,
+.citas-shell--clean .zc-week-event {
+  border-radius: 10px 12px 12px 10px !important;
+  border: 1px solid #e1e7ef !important;
+  border-left-width: 4px !important;
+  border-left-style: solid !important;
+  border-left-color: #64748b !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    filter var(--transition-fast);
+}
+
+.citas-shell--clean .zc-day-event {
+  min-height: 30px !important;
+  padding: 8px 9px;
+  gap: 3px;
+}
+
+.citas-shell--clean .zc-day-event:hover,
+.citas-shell--clean .zc-week-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+.citas-shell--clean .zc-day-event.is-confirmed,
+.citas-shell--clean .zc-week-event.is-confirmed {
+  border-left-color: #059669 !important;
+  background: linear-gradient(90deg, rgba(5, 150, 105, 0.09) 0%, #ffffff 27%) !important;
+}
+
+.citas-shell--clean .zc-day-event.is-pending,
+.citas-shell--clean .zc-week-event.is-pending {
+  border-left-color: #d97706 !important;
+  background: linear-gradient(90deg, rgba(217, 119, 6, 0.1) 0%, #ffffff 27%) !important;
+}
+
+.citas-shell--clean .zc-day-event.is-completed,
+.citas-shell--clean .zc-week-event.is-completed {
+  border-left-color: #2563eb !important;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, #ffffff 27%) !important;
+}
+
+.citas-shell--clean .zc-day-event.is-cancelled,
+.citas-shell--clean .zc-week-event.is-cancelled {
+  border-left-color: #dc2626 !important;
+  filter: grayscale(0.16);
+  opacity: 0.56;
+}
+
+.citas-shell--clean .zc-day-event__top {
+  margin-bottom: 1px;
+  align-items: center;
+}
+
+.citas-shell--clean .zc-day-event__time,
+.citas-shell--clean .zc-week-event__time {
+  color: #334155;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.citas-shell--clean .zc-day-event__status {
+  border-radius: 7px !important;
+  border: 1px solid #d9e1ea;
+  background: #f8fafc;
+  color: #475569;
   padding: 2px 6px;
   font-size: 9px;
 }
 
-.zc-day-event.is-compact .zc-day-event__patient {
+.citas-shell--clean .zc-day-event__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-top: 1px;
+  background: #64748b;
+}
+
+.citas-shell--clean .zc-day-event__dot.is-confirmed {
+  background: #059669;
+}
+
+.citas-shell--clean .zc-day-event__dot.is-pending {
+  background: #d97706;
+}
+
+.citas-shell--clean .zc-day-event__dot.is-completed {
+  background: #2563eb;
+}
+
+.citas-shell--clean .zc-day-event__dot.is-cancelled {
+  background: #dc2626;
+}
+
+.citas-shell--clean .zc-day-event__micro-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  font-size: 10px;
+}
+
+.citas-shell--clean .zc-day-event__micro-sep {
+  color: #94a3b8;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.citas-shell--clean .zc-day-event__micro-state {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 1px solid #d9e1ea;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.citas-shell--clean .zc-day-event__patient,
+.citas-shell--clean .zc-week-event__patient {
+  color: #0f172a;
   font-size: 12px;
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.citas-shell--clean .zc-day-event__patient.is-inline {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.citas-shell--clean .zc-day-event__service,
+.citas-shell--clean .zc-week-event__service {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.citas-shell--clean .zc-day-event.is-compact {
+  padding: 6px 7px;
+  gap: 2px;
+}
+
+.citas-shell--clean .zc-day-event.is-compact .zc-day-event__status {
+  padding: 1px 5px;
+  font-size: 8px;
+}
+
+.citas-shell--clean .zc-day-event.is-compact .zc-day-event__top {
+  margin-bottom: 1px;
+}
+
+/* Clamp patient names in compact cards so they never overflow */
+.citas-shell--clean .zc-day-event.is-compact .zc-day-event__patient {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  max-width: 100%;
+}
+
+.citas-shell--clean .zc-day-event.is-micro {
+  padding: 3px 6px !important;
+  gap: 0 !important;
+  min-width: 0;
+}
+
+.citas-shell--clean .zc-day-event.is-micro .zc-day-event__micro-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.citas-shell--clean .zc-day-event.is-micro .zc-day-event__top {
+  margin-bottom: 0 !important;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.citas-shell--clean .zc-day-event.is-micro .zc-day-event__time {
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.citas-shell--clean .zc-day-event.is-micro .zc-day-event__patient {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 10px;
+}
+
+.citas-shell--clean .zc-day-event.is-micro .zc-day-event__dot {
+  display: none;
+}
+
+.citas-shell--clean .zc-day-event.is-micro .zc-day-event__service {
+  display: none;
+}
+
+.citas-shell--clean .zc-week-grid {
+  border-top: 1px solid var(--agenda-line-soft);
+  background: linear-gradient(180deg, #ffffff 0%, #fdfbf8 100%);
+}
+
+.citas-shell--clean .zc-week-col {
+  border-right-color: var(--agenda-line-soft);
+  min-width: 186px;
+}
+
+.citas-shell--clean .zc-week-col.is-weekend {
+  background: #fffcf8;
+}
+
+.citas-shell--clean .zc-week-col__head {
+  border-bottom-color: var(--agenda-line-soft);
+  background: rgba(173, 115, 50, 0.05);
+}
+
+.citas-shell--clean .zc-week-col.is-selected .zc-week-col__head,
+.citas-shell--clean .zc-week-col.is-today .zc-week-col__head {
+  background: rgba(173, 115, 50, 0.12);
+}
+
+.citas-shell--clean .zc-week-col__weekday {
+  color: #667485;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.citas-shell--clean .zc-week-col__day {
+  color: #1f2937;
+}
+
+.citas-shell--clean .zc-week-col__count {
+  color: #6b7280;
+}
+
+.citas-shell--clean .zc-week-col__body {
+  padding: 8px;
+  gap: 7px;
+}
+
+.citas-shell--clean .zc-week-event {
+  padding: 8px 8px 9px;
+}
+
+.citas-shell--clean .zc-week-empty {
+  border-color: #d7e2f0;
+  background: #f8fbff;
+}
+
+.citas-shell--clean .zc-week-empty:hover {
+  border-color: rgba(173, 115, 50, 0.45);
+  color: #8f5f26;
+  background: #fffdf8;
+}
+
+@keyframes agenda-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.citas-shell--clean .zc-day-event,
+.citas-shell--clean .zc-week-event,
+.citas-shell--clean .zc-upcoming-item {
+  animation: agenda-card-in 0.24s ease-out both;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.35) rgba(241, 245, 249, 0.7);
+  scrollbar-color: rgba(100, 116, 139, 0.30) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 *::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.7);
+  background: transparent;
   border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.4);
+  background: rgba(100, 116, 139, 0.32);
   border-radius: 999px;
-  border: 2px solid rgba(241, 245, 249, 0.7);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.6);
+  background: rgba(100, 116, 139, 0.55);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -111,6 +717,11 @@
   .panel-topbar {
     margin-left: 52px;
   }
+
+  .citas-shell--clean .zc-layout,
+  .citas-shell--clean .zc-layout--detail {
+    gap: 12px !important;
+  }
 }
 
 @media (max-width: 760px) {
@@ -129,4 +740,125 @@
   .panel-topbar__name {
     max-width: 120px;
   }
+
+  .citas-shell--clean .zc-cal-head {
+    padding: 12px;
+  }
+
+  .citas-shell--clean .zc-cal-head__title {
+    font-size: clamp(21px, 6vw, 30px);
+  }
+
+  .citas-shell--clean .zc-cal-legend {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .citas-shell--clean .zc-cal-legend__item {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .citas-shell--clean .zc-timeline {
+    padding: 9px;
+  }
+
+  .citas-shell--clean .zc-hour-row__label {
+    width: 56px;
+    padding-right: 8px;
+    font-size: 10px;
+  }
+
+  .citas-shell--clean .zc-timeline__events {
+    left: 64px;
+    right: 4px;
+  }
+
+  .citas-shell--clean .zc-timeline__now {
+    padding-left: 56px;
+  }
+
+  .citas-shell--clean .zc-day-event {
+    padding: 5px 6px;
+  }
+}
+
+/* Calendar shell: full-page scroll, no fixed height */
+.citas-shell--clean.citas-shell--calendar {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.citas-shell--clean.citas-shell--calendar .citas-stage,
+.citas-shell--clean.citas-shell--calendar .citas-stage__main {
+  overflow: visible;
+  min-height: 0;
+}
+
+.citas-shell--clean .zc-day-view--resource {
+  overflow: visible;
+}
+
+.citas-shell--clean .zc-day-resource__viewport {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+.citas-shell--clean .zc-day-resource__columns {
+  align-items: start;
+}
+
+.citas-shell--clean .zc-day-resource__column-head {
+  height: 48px;
+  padding: 0 12px;
+}
+
+.citas-shell--clean .zc-day-resource__column-head-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.citas-shell--clean .zc-day-resource__column-head-copy small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.citas-shell--clean .zc-day-resource__overlaps {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.citas-shell--clean .zc-day-event {
+  min-height: 58px;
+  padding: 8px 10px;
+  gap: 3px;
+}
+
+.citas-shell--clean .zc-day-event__top {
+  margin-bottom: 1px;
+}
+
+.citas-shell--clean .zc-day-event__time {
+  font-size: 10px;
+}
+
+.citas-shell--clean .zc-day-event__patient {
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.citas-shell--clean .zc-day-event__service {
+  display: block;
+  font-size: 10px;
 }

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "../styles/legacy-base.css";
 @import "../styles/theme/tokens.css";
@@ -6,7 +5,11 @@
 @import "../styles/theme/layout.css";
 @import "../styles/theme/components.css";
 @import "../styles/theme/calendar.css";
-@import "../styles/theme/dashboard.css";
 @import "../styles/theme/citas.css";
+@import "../styles/theme/summary-v5.css";
+@import "../styles/theme/bento.css";
+@import "../styles/theme/panel-v6.css";
 @import "../styles/theme/professional-refresh.css";
-@import "../styles/theme/professional-rich.css";
+
+/* Forced HMR update for bento styles */
+/* turbopack-bust-2 */

@@ -2,34 +2,38 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
 import type { Service } from '@/lib/types';
 import {
-    useServicios,
     useCategorias,
     useCreateServicio,
+    useDeleteServicio,
+    useServicios,
     useUpdateServicio,
-    useDeleteServicio
 } from '@/hooks/useServicios';
 
 import ConfirmModal from '@/components/ConfirmModal';
-import { ServiciosHeader } from './components/ServiciosHeader';
-import { ServiciosTable } from './components/ServiciosTable';
 import { CategoryFormModal } from './components/CategoryFormModal';
 import { ServiceFormModal } from './components/ServiceFormModal';
+import { ServiciosHeader } from './components/ServiciosHeader';
+import { ServiciosTable } from './components/ServiciosTable';
+
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
 
 export default function ServiciosPage() {
-    const [supabase] = useState(() => createClient());
-    // Queries
     const { data: services = [], isLoading: isLoadingServices } = useServicios();
     const { data: categories = [], isLoading: isLoadingCategories, refetch: refetchCategories } = useCategorias();
 
-    // Mutations
     const createService = useCreateServicio();
     const updateService = useUpdateServicio();
     const deleteService = useDeleteServicio();
 
-    // Modal states
     const [showServiceModal, setShowServiceModal] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -37,27 +41,31 @@ export default function ServiciosPage() {
 
     const isLoading = isLoadingServices || isLoadingCategories;
 
-    // Handlers
+    const getErrorMessage = (error: unknown): string => {
+        if (error instanceof Error) return error.message;
+        return 'Error desconocido';
+    };
+
     function handleOpenNewService() {
         if (categories.length === 0) {
-            toast.error('Crea al menos una categoría primero');
+            toast.error('Crea al menos una categoria primero');
             return;
         }
         setEditingService(null);
         setShowServiceModal(true);
     }
 
-    function handleOpenEditService(s: Service) {
-        setEditingService(s);
+    function handleOpenEditService(service: Service) {
+        setEditingService(service);
         setShowServiceModal(true);
     }
 
     async function handleServiceSubmit(data: Omit<Service, 'id' | 'created_at' | 'category'>) {
         try {
-            await createService.mutateAsync(data as any);
-            toast.success('Servicio creado con éxito');
-        } catch (error: any) {
-            toast.error('Error al crear el servicio: ' + error.message);
+            await createService.mutateAsync(data);
+            toast.success('Servicio creado con exito');
+        } catch (error: unknown) {
+            toast.error(`Error al crear el servicio: ${getErrorMessage(error)}`);
             throw error;
         }
     }
@@ -65,27 +73,30 @@ export default function ServiciosPage() {
     async function handleServiceUpdate(id: string, data: Partial<Service>) {
         try {
             await updateService.mutateAsync({ id, ...data });
-            toast.success('Servicio actualizado con éxito');
-        } catch (error: any) {
-            toast.error('Error al actualizar el servicio: ' + error.message);
+            toast.success('Servicio actualizado con exito');
+        } catch (error: unknown) {
+            toast.error(`Error al actualizar el servicio: ${getErrorMessage(error)}`);
             throw error;
         }
     }
 
     async function handleCategorySubmit(data: { name: string; is_active: boolean; display_order: number }) {
         try {
-            const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-            const { error } = await supabase.from('service_categories').insert({
-                ...data,
-                slug,
+            const response = await fetch('/api/admin/service-categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(data),
             });
 
-            if (error) throw error;
-            toast.success('Categoría creada con éxito');
-            // Optimistically or manually refetch the categories
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            toast.success('Categoria creada con exito');
             refetchCategories();
-        } catch (error: any) {
-            toast.error('Error al crear la categoría: ' + error.message);
+        } catch (error: unknown) {
+            toast.error(`Error al crear la categoria: ${getErrorMessage(error)}`);
             throw error;
         }
     }
@@ -93,29 +104,14 @@ export default function ServiciosPage() {
     function handleDeleteServiceRequest(id: string) {
         setConfirmAction({
             title: 'Eliminar servicio',
-            message: '¿Seguro que quieres eliminar este servicio de forma permanente? Esta acción no se puede deshacer.',
+            message: 'Seguro que quieres eliminar este servicio de forma permanente? Esta accion no se puede deshacer.',
             onConfirm: async () => {
                 setConfirmAction(null);
-
-                // Keep the complex validation here or move to a backend function/RPC
                 try {
-                    const { count } = await supabase
-                        .from('appointments')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('service_id', id)
-                        .in('status', ['pending', 'confirmed'])
-                        .gte('start_time', new Date().toISOString());
-
-                    if (count && count > 0) {
-                        toast.error(`No se puede eliminar: hay ${count} cita(s) futuras con este servicio. Desactívalo en su lugar.`);
-                        return;
-                    }
-
-                    await supabase.from('professional_services').delete().eq('service_id', id);
                     await deleteService.mutateAsync(id);
-                    toast.success('Servicio eliminado permanente');
-                } catch (error: any) {
-                    toast.error('Error al eliminar: ' + error.message);
+                    toast.success('Servicio eliminado permanentemente');
+                } catch (error: unknown) {
+                    toast.error(`Error al eliminar: ${getErrorMessage(error)}`);
                 }
             },
         });
@@ -130,7 +126,7 @@ export default function ServiciosPage() {
     }
 
     return (
-        <div className="content-shell section-shell section-shell--servicios animate-in fade-in duration-500">
+        <div className="content-shell section-shell section-shell--servicios ops-screen animate-in fade-in duration-500">
             <ServiciosHeader
                 servicesCount={services.length}
                 categoriesCount={categories.length}

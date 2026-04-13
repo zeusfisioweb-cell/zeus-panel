@@ -1,21 +1,47 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import Icon from '@/components/Icon';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { DateTime } from 'luxon';
 import { useAuth } from '@/lib/auth-context';
 
-import type { Appointment, Service, Professional, AppointmentStatus } from '@/lib/types';
+import type {
+    Appointment,
+    AppointmentStatus,
+    DashboardData,
+    DashboardGlobalStats,
+    DashboardStatsSummary,
+} from '@/lib/types';
 import { DashboardStats } from './components/DashboardStats';
 import { DashboardCharts } from './components/DashboardCharts';
 import { DashboardAgenda } from './components/DashboardAgenda';
 import { AppointmentFormModal, AppointmentFormData } from './citas/components/AppointmentFormModal';
-import { useCreateCita, useUpdateCitaStatus } from '@/hooks/useCitas';
+import { useCreateCita, useCitas, useUpdateCitaStatus } from '@/hooks/useCitas';
 import { getDashboardData } from './actions';
+
+const CLINIC_TIME_ZONE = 'Europe/Madrid';
+
+/** Checks if a new appointment would overlap with any existing non-cancelled appointment for the same professional. */
+function hasProfessionalOverlap(
+    appointments: Appointment[],
+    payload: { professionalId: string | null; start: Date; end: Date; }
+): boolean {
+    if (!payload.professionalId) return false;
+    const nextStart = payload.start.getTime();
+    const nextEnd = payload.end.getTime();
+    return appointments.some((apt) => {
+        if (apt.status === 'cancelled') return false;
+        if (apt.professional_id !== payload.professionalId) return false;
+        const curStart = new Date(apt.start_time).getTime();
+        const curEnd = new Date(apt.end_time).getTime();
+        return nextStart < curEnd && nextEnd > curStart;
+    });
+}
 
 export default function DashboardPage() {
     const [supabase] = useState(() => createClient());
@@ -26,14 +52,12 @@ export default function DashboardPage() {
     const [showNewModal, setShowNewModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-    const getGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) return 'Buenos dias';
-        if (hour < 20) return 'Buenas tardes';
-        return 'Buenas noches';
+    const updateDashboardDate = (nextDate: Date) => {
+        setSelectedDate(nextDate);
+        setDateRange({ start: nextDate, end: nextDate });
     };
 
-    const { data: dashboardData, isLoading: loading } = useQuery({
+    const { data: dashboardData, isLoading: loading } = useQuery<DashboardData | null>({
         queryKey: ['dashboard', dateRange.start.toISOString(), dateRange.end.toISOString(), profile?.id, profile?.role],
         queryFn: async () => {
             const todayStr = format(dateRange.start, 'yyyy-MM-dd');
@@ -50,23 +74,40 @@ export default function DashboardPage() {
                 todayStr,
                 endStr,
                 weekStart.toISOString(),
-                weekEnd.toISOString(),
-                profile.id,
-                profile.role
+                weekEnd.toISOString()
             );
         },
         enabled: !!profile,
     });
 
+    const defaultStats: DashboardStatsSummary = {
+        todayCount: 0,
+        weekCount: 0,
+        totalPatients: 0,
+        pendingCount: 0,
+    };
+    const defaultGlobalStats: DashboardGlobalStats = {
+        estimatedRevenue: 0,
+        totalGlobalAppointments: 0,
+        sessionBreakdown: [],
+        globalStatus: { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
+    };
+
     const {
         todayAppointments = [],
-        stats = { todayCount: 0, weekCount: 0, totalPatients: 0, pendingCount: 0 },
+        stats = defaultStats,
+        globalStats = defaultGlobalStats,
         services = [],
         professionals = [],
-    } = dashboardData || {};
+    } = dashboardData ?? {};
 
     const createCita = useCreateCita();
     const updateCitaStatus = useUpdateCitaStatus();
+
+    // Load today's appointments for overlap validation on dashboard quick-create
+    const todayIso = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day').toISO() ?? '';
+    const tomorrowIso = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day').plus({ days: 1 }).toISO() ?? '';
+    const { data: todayAllAppointments = [] } = useCitas(todayIso, tomorrowIso);
 
     useEffect(() => {
         const channel = supabase
@@ -116,9 +157,47 @@ export default function DashboardPage() {
 
     const handleCreateAppointment = async (form: AppointmentFormData, selectedPatientId: string | null) => {
         const service = services.find((s) => s.id === form.service_id);
-        const baseDate = selectedDate.toISOString().split('T')[0];
-        const startTime = new Date(`${baseDate}T${form.time}:00`);
-        const endTime = new Date(startTime.getTime() + (service?.duration_minutes || 60) * 60000);
+
+        // Use Luxon with clinic timezone — matches citas/page.tsx behaviour
+        const selectedDay = DateTime.fromJSDate(selectedDate, { zone: CLINIC_TIME_ZONE });
+        const baseDate = selectedDay.toISODate();
+
+        if (!baseDate) {
+            toast.error('No se pudo interpretar la fecha de la cita');
+            return;
+        }
+
+        const startDateTime = DateTime.fromISO(`${baseDate}T${form.time}`, { zone: CLINIC_TIME_ZONE });
+        if (!startDateTime.isValid) {
+            toast.error('La hora seleccionada no es válida');
+            return;
+        }
+
+        const endDateTime = startDateTime.plus({ minutes: service?.duration_minutes || 60 });
+
+        const effectiveProfessionalId =
+            profile?.role === 'professional' ? profile?.id : (form.professional_id || null);
+
+        // Overlap guard — same logic as citas/page.tsx
+        if (effectiveProfessionalId) {
+            const overlaps = hasProfessionalOverlap(todayAllAppointments, {
+                professionalId: effectiveProfessionalId,
+                start: startDateTime.toJSDate(),
+                end: endDateTime.toJSDate(),
+            });
+            if (overlaps) {
+                toast.warning('No se permite solapar citas del mismo profesional');
+                return;
+            }
+        }
+
+        const startIso = startDateTime.toUTC().toISO();
+        const endIso = endDateTime.toUTC().toISO();
+
+        if (!startIso || !endIso) {
+            toast.error('Error al calcular la hora de la cita');
+            return;
+        }
 
         try {
             await createCita.mutateAsync({
@@ -127,9 +206,9 @@ export default function DashboardPage() {
                 patient_email: form.patient_email || null,
                 patient_id: selectedPatientId,
                 service_id: form.service_id,
-                professional_id: profile?.role === 'professional' ? profile?.id : (form.professional_id || null),
-                start_time: startTime.toISOString(),
-                end_time: endTime.toISOString(),
+                professional_id: effectiveProfessionalId,
+                start_time: startIso,
+                end_time: endIso,
                 notes: form.notes || null,
                 source: 'admin',
             });
@@ -150,113 +229,134 @@ export default function DashboardPage() {
         );
     }
 
-    const sessionTypes = todayAppointments.reduce<Record<string, number>>((acc, apt) => {
-        if (apt.status === 'cancelled') return acc;
-        const name = apt.service?.name || 'Otro';
-        acc[name] = (acc[name] || 0) + 1;
-        return acc;
-    }, {});
+    const now = new Date();
+    const isTodaySelected = dateRange.start.toDateString() === now.toDateString();
+    const actionableAppointments = todayAppointments
+        .filter((apt) => apt.status === 'pending' || apt.status === 'confirmed')
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    const upcomingBase = isTodaySelected
+        ? actionableAppointments.filter((apt) => new Date(apt.end_time).getTime() >= now.getTime())
+        : actionableAppointments;
+    const agendaAppointments = (upcomingBase.length > 0 ? upcomingBase : actionableAppointments).slice(0, 6);
 
-    const pieColors = ['#ad7332', '#2f6a3e', '#8a5a1f', '#c9954d', '#7a4e1e', '#5d4a35'];
-    const sessionBreakdown = Object.entries(sessionTypes)
-        .map(([name, value], index) => ({
-            name,
-            value: value as number,
-            color: pieColors[index % pieColors.length],
-        }))
-        .sort((a, b) => (b.value as number) - (a.value as number));
+    const pieColors = ['#AD7332', '#C9954D', '#2563EB', '#059669', '#D97706', '#0F766E', '#8B5A26', '#64748B'];
+    const sessionBreakdown = globalStats.sessionBreakdown.map((item, index) => ({
+        name: item.name,
+        value: item.value,
+        color: pieColors[index % pieColors.length],
+    }));
+
+    const statusMeta = [
+        { key: 'pending', label: 'Pendientes', color: '#D97706' },
+        { key: 'confirmed', label: 'Confirmadas', color: '#059669' },
+        { key: 'completed', label: 'Finalizadas', color: '#2563EB' },
+        { key: 'cancelled', label: 'Canceladas', color: '#DC2626' },
+    ] as const;
+
+    const statusBreakdown = statusMeta.map((status) => ({
+        key: status.key,
+        name: status.label,
+        color: status.color,
+        value: globalStats.globalStatus[status.key as keyof typeof globalStats.globalStatus] || 0,
+    }));
+
+    const selectedDateLabel = format(dateRange.start, "EEEE, d 'de' MMMM", { locale: es });
+    const selectedDateShort = format(dateRange.start, 'dd MMM yyyy', { locale: es });
 
     return (
-        <div className="content-shell dashboard-shell animate-in fade-in duration-300">
-            <section className="dashboard-head dashboard-head--compact">
-                <div className="dashboard-head__left">
-                    <p className="dashboard-head__eyebrow">Panel diario</p>
-                    <h1 className="dashboard-head__title dashboard-head__title--compact">
-                        {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Admin'}
-                    </h1>
-                    <div className="dashboard-head__meta">
-                        <div className="dashboard-head__date-inline dashboard-head__meta-item">
-                            <Icon name="calendar" size={14} />
-                            <span>{format(dateRange.start, "EEEE, d 'de' MMMM", { locale: es })}</span>
-                        </div>
-                        <span className="dashboard-head__meta-separator" aria-hidden="true">|</span>
-                        <span className="dashboard-head__meta-item">
-                            {stats.todayCount} citas activas
-                        </span>
-                        <span className="dashboard-head__meta-separator" aria-hidden="true">|</span>
-                        <span className="dashboard-head__meta-item">
-                            {stats.pendingCount} por confirmar
-                        </span>
-                    </div>
+        <div className="content-shell summary-v5 animate-in fade-in duration-300">
+            <header className="summary-v5__header">
+                <div className="summary-v5__header-main">
+                    <p className="summary-v5__eyebrow">Zeus Fisioterapia</p>
+                    <h1 className="summary-v5__title">Resumen del centro</h1>
+                    <p className="summary-v5__subtitle">
+                        {selectedDateLabel} | {profile?.full_name || 'Usuario'}
+                    </p>
                 </div>
 
-                <div className="dashboard-toolbar">
-                    <div className="date-nav">
-                        <button
-                            className="btn btn--secondary btn--sm"
-                            type="button"
-                            onClick={() => {
-                                const newDate = subDays(dateRange.start, 1);
-                                setSelectedDate(newDate);
-                                setDateRange({ start: newDate, end: newDate });
-                            }}
-                            title="Dia anterior"
-                            aria-label="Ir al día anterior"
-                        >
-                            <Icon name="chevron-left" size={16} />
-                        </button>
+                <div className="summary-v5__header-side">
+                    <div className="summary-v5__header-day" aria-label="Fecha seleccionada">
+                        <span>Fecha</span>
+                        <strong>{selectedDateShort}</strong>
+                    </div>
 
-                        <span className="date-nav__value" aria-live="polite">
-                            {format(dateRange.start, 'dd MMM yyyy', { locale: es })}
-                        </span>
-
-                        <button
-                            className="btn btn--secondary btn--sm"
-                            type="button"
-                            onClick={() => {
-                                const newDate = addDays(dateRange.start, 1);
-                                setSelectedDate(newDate);
-                                setDateRange({ start: newDate, end: newDate });
-                            }}
-                            title="Dia siguiente"
-                            aria-label="Ir al día siguiente"
-                        >
-                            <Icon name="chevron-right" size={16} />
-                        </button>
-
-                        {dateRange.start.toDateString() !== new Date().toDateString() && (
+                    <div className="summary-v5__header-tools">
+                        <div className="summary-v5__date-nav">
                             <button
-                                className="btn btn--ghost btn--sm"
+                                className="btn btn--ghost"
                                 type="button"
                                 onClick={() => {
-                                    const newDate = new Date();
-                                    setSelectedDate(newDate);
-                                    setDateRange({ start: newDate, end: newDate });
+                                    updateDashboardDate(subDays(dateRange.start, 1));
                                 }}
-                                aria-label="Volver a hoy"
+                                title="Dia anterior"
+                                aria-label="Ir al dia anterior"
                             >
-                                Hoy
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
-                        )}
-                    </div>
 
-                    <button className="btn btn--primary dashboard-toolbar__cta" type="button" onClick={() => setShowNewModal(true)} aria-label="Crear nueva cita">
-                        <Icon name="plus" size={16} /> Nueva cita
-                    </button>
+                            <span className="summary-v5__date-value" aria-live="polite">
+                                {selectedDateShort}
+                            </span>
+
+                            <button
+                                className="btn btn--ghost"
+                                type="button"
+                                onClick={() => {
+                                    updateDashboardDate(addDays(dateRange.start, 1));
+                                }}
+                                title="Dia siguiente"
+                                aria-label="Ir al dia siguiente"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                            </button>
+
+                            {dateRange.start.toDateString() !== new Date().toDateString() && (
+                                <button
+                                    className="btn btn--ghost"
+                                    type="button"
+                                    onClick={() => {
+                                        updateDashboardDate(new Date());
+                                    }}
+                                    aria-label="Volver a hoy"
+                                >
+                                    Hoy
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="summary-v5__header-actions">
+                            <button className="btn btn--primary" type="button" onClick={() => setShowNewModal(true)} aria-label="Crear nueva cita">
+                                Nueva cita
+                            </button>
+                            <Link href="/citas" className="btn btn--secondary" aria-label="Abrir agenda completa">
+                                Abrir agenda
+                            </Link>
+                        </div>
+                    </div>
                 </div>
+            </header>
+
+            <section className="summary-v5__overview">
+                <DashboardStats stats={stats} globalStats={globalStats} todayAppointments={todayAppointments} />
             </section>
 
-            <div className="dashboard-layout">
-                <div className="dashboard-layout__main">
-                    <DashboardStats stats={stats} />
-                    <DashboardCharts sessionBreakdown={sessionBreakdown} pendingCount={stats.pendingCount} />
-                </div>
-
-                <aside className="dashboard-layout__aside">
+            <div className="summary-v5__grid">
+                <main className="summary-v5__main">
                     <DashboardAgenda
-                        todayAppointments={todayAppointments}
+                        todayAppointments={agendaAppointments}
+                        totalActionableCount={actionableAppointments.length}
                         onNewAppointmentClick={() => setShowNewModal(true)}
                         onUpdateStatus={handleUpdateStatus}
+                    />
+                </main>
+
+                <aside className="summary-v5__aside">
+                    <DashboardCharts
+                        sessionBreakdown={sessionBreakdown}
+                        statusBreakdown={statusBreakdown}
+                        pendingCount={stats.pendingCount}
+                        totalActionableCount={actionableAppointments.length}
+                        globalTotalSessions={globalStats.totalGlobalAppointments}
                     />
                 </aside>
             </div>

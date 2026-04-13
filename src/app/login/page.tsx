@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const isBusy = submitting || loading;
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
@@ -28,14 +29,6 @@ export default function LoginPage() {
         } else {
             router.push('/');
         }
-    }
-
-    if (loading) {
-        return (
-            <div className="loading-page">
-                <div className="spinner" />
-            </div>
-        );
     }
 
     return (
@@ -67,6 +60,13 @@ export default function LoginPage() {
                         <p>Accede con tu cuenta profesional para continuar.</p>
                     </div>
 
+                    {loading && (
+                        <div className="login-info" role="status" aria-live="polite">
+                            <div className="spinner" style={{ width: 14, height: 14 }} />
+                            Verificando sesion...
+                        </div>
+                    )}
+
                     {error && (
                         <div className="login-error" role="alert" aria-live="polite">
                             <Icon name="warning" size={16} /> {error}
@@ -84,7 +84,6 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 required
-                                autoFocus
                                 autoComplete="email"
                             />
                         </div>
@@ -107,12 +106,12 @@ export default function LoginPage() {
                             type="submit"
                             className="btn btn--primary btn--lg"
                             style={{ width: '100%' }}
-                            disabled={submitting}
+                            disabled={isBusy}
                         >
-                            {submitting ? (
+                            {isBusy ? (
                                 <>
                                     <div className="spinner" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
-                                    Verificando...
+                                    {loading ? 'Preparando...' : 'Verificando...'}
                                 </>
                             ) : (
                                 'Entrar al panel'

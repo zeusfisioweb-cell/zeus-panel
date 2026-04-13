@@ -1,95 +1,95 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
-import type { Patient, Appointment, ClinicalRecord, RecordType } from '@/lib/types';
-import { usePacientes, useCreatePaciente, useUpdatePaciente, useDeletePaciente } from '@/hooks/usePacientes';
+import type { Appointment, ClinicalRecord, Patient, RecordType } from '@/lib/types';
+import { useCreatePaciente, useDeletePaciente, usePacientes, useUpdatePaciente } from '@/hooks/usePacientes';
 
 import ConfirmModal from '@/components/ConfirmModal';
+import { ClinicalRecordFormModal } from './components/ClinicalRecordFormModal';
 import { PacientesHeader } from './components/PacientesHeader';
 import { PacientesTable } from './components/PacientesTable';
-import { PatientFormModal, PatientFormData } from './components/PatientFormModal';
-import { ClinicalRecordFormModal } from './components/ClinicalRecordFormModal';
 import { PatientDetailsPanel } from './components/PatientDetailsPanel';
+import { PatientFormData, PatientFormModal } from './components/PatientFormModal';
 
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
 
 export default function PacientesPage() {
-    // Stable Supabase instance — inside component, not module scope
-    const [supabase] = useState(() => createClient());
-
-    // Local State
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(1);
     const pageSize = 50;
 
-    // Queries
-    // Usamos el hook modificado que retorna data y count
     const { data: result, isLoading: isLoadingPatients, refetch: refetchPatients } = usePacientes({
         searchTerm: debouncedSearch,
         page,
-        pageSize
+        pageSize,
     });
     const patients = result?.data || [];
     const totalCount = result?.count || 0;
 
-    // Mutations
     const createPaciente = useCreatePaciente();
     const updatePaciente = useUpdatePaciente();
     const deletePaciente = useDeletePaciente();
 
-    // Detail State
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
     const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
 
-    // Debounce the search input
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(search);
-            setPage(1); // Reset to first page when searching
+            setPage(1);
         }, 500);
         return () => clearTimeout(handler);
     }, [search]);
 
-    // Modals Local State
     const [showNewModal, setShowNewModal] = useState(false);
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
     const [showRecordModal, setShowRecordModal] = useState(false);
     const [recordType, setRecordType] = useState<RecordType>('evolution');
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
-    // Helpers to load detail data
+    const getErrorMessage = (error: unknown): string => {
+        if (error instanceof Error) return error.message;
+        return 'Error desconocido';
+    };
+
     const loadPatientDetails = async (patientId: string) => {
         try {
-            const [appointmentsRes, recordsRes] = await Promise.all([
-                supabase
-                    .from('appointments')
-                    .select('*, service:services(name)')
-                    .eq('patient_id', patientId)
-                    .order('start_time', { ascending: false })
-                    .limit(20),
-                supabase
-                    .from('clinical_records')
-                    .select('*, professional:professionals(profile:profiles(full_name))')
-                    .eq('patient_id', patientId)
-                    .order('created_at', { ascending: false })
-            ]);
+            const response = await fetch(`/api/admin/patients/${encodeURIComponent(patientId)}/details`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
 
-            setPatientAppointments(appointmentsRes.data as Appointment[] || []);
-            setClinicalRecords(recordsRes.data as unknown as ClinicalRecord[] || []);
-        } catch (error) {
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            const payload = (await response.json()) as {
+                appointments: Appointment[];
+                records: ClinicalRecord[];
+            };
+
+            setPatientAppointments(payload.appointments ?? []);
+            setClinicalRecords(payload.records ?? []);
+        } catch {
             toast.error('Error cargando los detalles del paciente');
         }
     };
 
-    const handleViewPatient = (p: Patient) => {
-        setSelectedPatient(p);
-        loadPatientDetails(p.id);
+    const handleViewPatient = (patient: Patient) => {
+        setSelectedPatient(patient);
+        void loadPatientDetails(patient.id);
     };
 
-    // Patient Form Handlers
     const handleCreatePatient = async (data: PatientFormData) => {
         try {
             const payload = {
@@ -105,15 +105,16 @@ export default function PacientesPage() {
             };
             await createPaciente.mutateAsync(payload);
             toast.success('Paciente creado correctamente');
-            refetchPatients(); // Though React Query does it automatically sometimes based on mutation config
-        } catch (error: any) {
-            toast.error('Error al crear paciente: ' + error.message);
+            refetchPatients();
+        } catch (error: unknown) {
+            toast.error(`Error al crear paciente: ${getErrorMessage(error)}`);
             throw error;
         }
     };
 
     const handleUpdatePatient = async (data: PatientFormData) => {
         if (!editingPatient) return;
+
         try {
             const payload = {
                 id: editingPatient.id,
@@ -127,17 +128,17 @@ export default function PacientesPage() {
                 gdpr_consent: data.gdpr_consent,
                 marketing_consent: data.marketing_consent,
             };
+
             await updatePaciente.mutateAsync(payload);
             toast.success('Paciente actualizado');
 
-            // Re-sync local selected patient if it's the one being edited
             if (selectedPatient?.id === editingPatient.id) {
                 setSelectedPatient({ ...selectedPatient, ...payload });
             }
 
             refetchPatients();
-        } catch (error: any) {
-            toast.error('Error al actualizar: ' + error.message);
+        } catch (error: unknown) {
+            toast.error(`Error al actualizar: ${getErrorMessage(error)}`);
             throw error;
         }
     };
@@ -145,32 +146,20 @@ export default function PacientesPage() {
     const handleDeletePatientConfirm = (id: string) => {
         setConfirmAction({
             title: 'Eliminar paciente',
-            message: '¿Seguro que deseas eliminar este paciente y todo su historial? Esta acción no se puede deshacer.',
+            message: 'Seguro que deseas eliminar este paciente y su historial? Esta accion no se puede deshacer.',
             onConfirm: async () => {
                 try {
-                    const { error: recordsErr } = await supabase.from('clinical_records').delete().eq('patient_id', id);
-                    if (recordsErr) throw recordsErr;
-
-                    const { error: consentErr } = await supabase.from('consent_records').delete().eq('patient_id', id);
-                    if (consentErr) throw consentErr;
-
-                    const { error: aptsErr } = await supabase.from('appointments').update({ patient_id: null }).eq('patient_id', id);
-                    if (aptsErr) throw aptsErr;
-
                     await deletePaciente.mutateAsync(id);
-
                     setSelectedPatient(null);
                     setConfirmAction(null);
                     toast.success('Paciente eliminado');
                 } catch (error: unknown) {
-                    const msg = error instanceof Error ? error.message : 'Error desconocido';
-                    toast.error('Error al eliminar paciente: ' + msg);
+                    toast.error(`Error al eliminar paciente: ${getErrorMessage(error)}`);
                 }
-            }
+            },
         });
     };
 
-    // Clinical Records Handlers
     const handleOpenRecordModal = (type: RecordType) => {
         setRecordType(type);
         setShowRecordModal(true);
@@ -178,56 +167,65 @@ export default function PacientesPage() {
 
     const handleSaveRecord = async (type: RecordType, recordFields: string[]) => {
         if (!selectedPatient) return;
+
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            // Re-construct the content using the external RECORD_FIELDS definition
-            // To keep things simple, we fetch the module dynamically or hardcode the labels here?
-            // Usually, this logic is safer inside the form, yielding a complete JSON object.
-            // But since the form just yielded the array of strings, we need the labels:
             const { RECORD_FIELDS } = await import('./components/ClinicalRecordFormModal');
-
             const content: Record<string, string> = {};
-            RECORD_FIELDS[type].forEach((field: { label: string }, idx: number) => {
-                content[field.label] = recordFields[idx] || '';
+
+            RECORD_FIELDS[type].forEach((field: { label: string }, index: number) => {
+                content[field.label] = recordFields[index] || '';
             });
 
-            const { error } = await supabase.from('clinical_records').insert({
-                patient_id: selectedPatient.id,
-                professional_id: user?.id,
-                type,
-                content,
+            const response = await fetch('/api/admin/clinical-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    patient_id: selectedPatient.id,
+                    type,
+                    content,
+                }),
             });
 
-            if (error) throw error;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
 
-            toast.success('Ficha clínica guardada');
-            loadPatientDetails(selectedPatient.id);
-        } catch (error: any) {
-            toast.error('Error al guardar ficha: ' + error.message);
+            toast.success('Ficha clinica guardada');
+            await loadPatientDetails(selectedPatient.id);
+        } catch (error: unknown) {
+            toast.error(`Error al guardar ficha: ${getErrorMessage(error)}`);
             throw error;
         }
     };
 
     const handleDeleteRecordConfirm = (id: string) => {
         setConfirmAction({
-            title: 'Eliminar ficha clínica',
-            message: '¿Seguro que deseas eliminar esta ficha clínica?',
+            title: 'Eliminar ficha clinica',
+            message: 'Seguro que deseas eliminar esta ficha clinica?',
             onConfirm: async () => {
                 try {
-                    const { error } = await supabase.from('clinical_records').delete().eq('id', id);
-                    if (error) throw error;
+                    const response = await fetch(`/api/admin/clinical-records/${encodeURIComponent(id)}`, {
+                        method: 'DELETE',
+                        credentials: 'same-origin',
+                    });
 
-                    if (selectedPatient) loadPatientDetails(selectedPatient.id);
+                    if (!response.ok) {
+                        throw new Error(await readApiError(response));
+                    }
+
+                    if (selectedPatient) {
+                        await loadPatientDetails(selectedPatient.id);
+                    }
+
                     setConfirmAction(null);
                     toast.success('Ficha eliminada');
-                } catch (error: any) {
-                    toast.error('Error al eliminar ficha: ' + error.message);
+                } catch (error: unknown) {
+                    toast.error(`Error al eliminar ficha: ${getErrorMessage(error)}`);
                 }
-            }
+            },
         });
     };
-
 
     if (isLoadingPatients) {
         return (
@@ -238,11 +236,8 @@ export default function PacientesPage() {
     }
 
     return (
-        <div className="content-shell section-shell section-shell--pacientes animate-in fade-in duration-500">
-            <PacientesHeader
-                totalCount={totalCount}
-                onNewPaciente={() => setShowNewModal(true)}
-            />
+        <div className="content-shell section-shell section-shell--pacientes ops-screen animate-in fade-in duration-500">
+            <PacientesHeader totalCount={totalCount} onNewPaciente={() => setShowNewModal(true)} />
 
             <div className={`patients-layout ${selectedPatient ? 'patients-layout--with-detail' : ''}`}>
                 <div className="patients-layout__main">
@@ -275,7 +270,6 @@ export default function PacientesPage() {
                 )}
             </div>
 
-            {/* Modals */}
             <PatientFormModal
                 isOpen={showNewModal}
                 onClose={() => setShowNewModal(false)}

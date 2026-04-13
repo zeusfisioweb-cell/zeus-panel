@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/Input';
 import Icon from '@/components/Icon';
 import { getAvatarColor, getInitials } from '@/lib/utils';
 import type { Professional, Service } from '@/lib/types';
-import { createClient } from '@/lib/supabase/client';
 import type { AppointmentStatus } from '@/lib/types';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -32,6 +31,7 @@ interface AppointmentFormModalProps {
     onClose: () => void;
     selectedDate: Date;
     initialTime: string;
+    initialProfessionalId?: string | null;
     services: Service[];
     professionals: Professional[];
     currentUserId?: string;
@@ -53,13 +53,13 @@ export function AppointmentFormModal({
     onClose,
     selectedDate,
     initialTime,
+    initialProfessionalId,
     services,
     professionals,
     currentUserId,
     currentUserRole,
     onSubmit,
 }: AppointmentFormModalProps) {
-    const supabase = createClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const {
@@ -94,7 +94,9 @@ export function AppointmentFormModal({
         reset({
             time: initialTime,
             service_id: services[0]?.id || '',
-            professional_id: currentUserRole === 'professional' ? currentUserId || '' : '',
+            professional_id: currentUserRole === 'professional'
+                ? currentUserId || ''
+                : initialProfessionalId || '',
             patient_name: '',
             patient_phone: '',
             patient_email: '',
@@ -107,11 +109,11 @@ export function AppointmentFormModal({
         setShowPatientDropdown(false);
 
         const timer = setTimeout(() => {
-            searchInputRef.current?.focus();
+            searchInputRef.current?.focus({ preventScroll: true });
         }, 60);
 
         return () => clearTimeout(timer);
-    }, [isOpen, initialTime, services, currentUserId, currentUserRole, reset]);
+    }, [isOpen, initialTime, services, currentUserId, currentUserRole, initialProfessionalId, reset]);
 
     const handleSearchPatients = async (query: string) => {
         setPatientSearch(query);
@@ -122,15 +124,30 @@ export function AppointmentFormModal({
             return;
         }
 
-        const { data } = await supabase
-            .from('patients')
-            .select('id, first_name, last_name, document_id, phone, email')
-            .or(`document_id.ilike.%${query}%,first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
-            .limit(5);
+        try {
+            const params = new URLSearchParams({
+                search: query,
+                page: '1',
+                pageSize: '5',
+            });
 
-        const results = (data || []) as PatientSearchResult[];
-        setPatientResults(results);
-        setShowPatientDropdown(results.length > 0);
+            const response = await fetch(`/api/admin/patients?${params.toString()}`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error('Error cargando pacientes');
+            }
+
+            const payload = (await response.json()) as { data: PatientSearchResult[] };
+            const results = payload.data ?? [];
+            setPatientResults(results);
+            setShowPatientDropdown(results.length > 0);
+        } catch {
+            setPatientResults([]);
+            setShowPatientDropdown(false);
+        }
     };
 
     const handleSelectPatient = (patient: PatientSearchResult) => {
@@ -162,6 +179,7 @@ export function AppointmentFormModal({
             onClose={onClose}
             title="Nueva cita"
             maxWidth="2xl"
+            bodyClassName="modal__body--appointment"
         >
             <form onSubmit={hookFormSubmit(onValidSubmit)} className="appointment-form">
                 <div className="appointment-form__content">

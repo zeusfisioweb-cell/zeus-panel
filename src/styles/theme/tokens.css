@@ -23,16 +23,17 @@
   --text-inverse: #FFFFFF;
 
   /* Backgrounds */
-  --bg-body: #F9FAFB; /* Ultra clean off-white */
-  --bg-base: #F9FAFB; /* Override legacy cream background */
+  --bg-body: #F4F4F5; /* Zync-100 pure professional gray-ish white */
+  --bg-base: #F4F4F5; 
   --bg-surface: #FFFFFF; /* Pure white cards */
-  --bg-surface-hover: #F3F4F6;
-  --bg-sidebar: var(--brand-dark);
-  --bg-topbar: rgba(255, 255, 255, 0.9);
+  --bg-surface-hover: #FAFAFB;
+  --bg-sidebar: #0A0A0B; /* Deep sophisticated dark */
+  --bg-topbar: rgba(255, 255, 255, 0.85);
   
   /* Borders and Lines */
-  --line-soft: #E5E7EB;
-  --line-medium: #D1D5DB;
+  --border-color: #E6E8EB;
+  --line-soft: #F0F1F3;
+  --line-medium: #E6E8EB;
 
   /* Status Colors (Clean & Modern) */
   --success-main: #059669;
@@ -45,20 +46,24 @@
   --info-bg: #EFF6FF;
 
   /* =========================================================================
-     2. SHADOWS (CRISP, APPLE-LIKE)
+     2. SHADOWS (CRISP, APPLE-LIKE BENTO)
   ========================================================================= */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.02);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04);
+  /* =========================================================================
+     2. SHADOWS (FLAT, CLEAN, APPLE-LIKE BENTO)
+  ========================================================================= */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 8px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 
   /* =========================================================================
-     3. BORDER RADII (SHARP & PROFESSIONAL)
+     3. BORDER RADII (GEOMETRIC & PROFESSIONAL BENTO)
   ========================================================================= */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
+  --radius-sm: 8px;   /* Inputs, Badges, internal blocks */
+  --radius-md: 12px;  /* Typical Cards, Modal inner content */
+  --radius-lg: 16px;  /* Dashboard main cards */
+  --radius-xl: 24px;  /* Modals and ultra wide elements */
+  --radius-2xl: 32px; 
   --radius-full: 9999px;
 
   /* =========================================================================

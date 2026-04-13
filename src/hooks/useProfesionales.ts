@@ -1,9 +1,23 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Professional } from '@/lib/types';
-import { ProfessionalCreateSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 export const PROFESSIONALS_QUERY_KEY = ['profesionales'];
+
+const createProfessionalPayloadSchema = z.object({
+    email: z.string().email(),
+    full_name: z.string().min(3),
+    specialty: z.string().optional(),
+    bio: z.string().optional(),
+    color_code: z.string().optional(),
+    is_active: z.boolean().optional(),
+    serviceIds: z.array(z.string()).min(1),
+    scheduleSlots: z.array(z.object({
+        day_of_week: z.number().int().min(1).max(7),
+        start_time: z.string().min(1),
+        end_time: z.string().min(1),
+    })).optional(),
+});
 
 interface CreateProfessionalPayload {
     email: string;
@@ -13,6 +27,11 @@ interface CreateProfessionalPayload {
     color_code?: string;
     is_active?: boolean;
     serviceIds: string[];
+    scheduleSlots?: Array<{
+        day_of_week: number;
+        start_time: string;
+        end_time: string;
+    }>;
 }
 
 interface UpdateProfessionalPayload {
@@ -25,102 +44,79 @@ interface UpdateProfessionalPayload {
     serviceIds?: string[];
 }
 
-export function useProfesionales() {
-    const supabase = createClient();
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
 
+export function useProfesionales() {
     return useQuery({
         queryKey: PROFESSIONALS_QUERY_KEY,
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('professionals')
-                .select(`
-                    id,
-                    specialty,
-                    license_number,
-                    bio,
-                    color_code,
-                    is_active,
-                    created_at,
-                    profile:profiles (
-                        id,
-                        email,
-                        role,
-                        full_name,
-                        created_at
-                    ),
-                    professional_services(service_id)
-                `);
+            const response = await fetch('/api/admin/professionals', {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
 
-            return (data || []).map((d: any) => ({
-                id: d.id,
-                specialty: d.specialty,
-                license_number: d.license_number,
-                bio: d.bio,
-                color_code: d.color_code,
-                is_active: d.is_active,
-                created_at: d.created_at,
-                profile: Array.isArray(d.profile) ? d.profile[0] : d.profile,
-                professional_services: d.professional_services
-            })) as Professional[];
+            const data = (await response.json()) as unknown[];
+
+            return (data || []).map((row: unknown) => {
+                const d = row as Record<string, unknown>;
+                const profile = d.profile as Record<string, unknown> | Record<string, unknown>[] | null | undefined;
+
+                return {
+                    id: d.id as string,
+                    specialty: (d.specialty as string | null) ?? null,
+                    license_number: (d.license_number as string | null) ?? null,
+                    bio: (d.bio as string | null) ?? null,
+                    color_code: (d.color_code as string) ?? '#AD7332',
+                    is_active: Boolean(d.is_active),
+                    created_at: d.created_at as string,
+                    profile: Array.isArray(profile) ? profile[0] : profile,
+                };
+            }) as Professional[];
         },
     });
 }
 
 export function useCreateProfesional() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (payload: CreateProfessionalPayload) => {
-            ProfessionalCreateSchema.parse(payload);
+            const parsedPayload = createProfessionalPayloadSchema.parse(payload);
 
-            // 1. Call API route to create auth user + profile (uses SERVICE_ROLE_KEY server-side)
-            const tempPassword = crypto.randomUUID().slice(0, 16);
-            const res = await fetch('/api/admin/create-professional', {
+            // temp_password is now generated server-side for security.
+            const response = await fetch('/api/admin/create-professional', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
                 body: JSON.stringify({
-                    email: payload.email,
-                    first_name: payload.full_name,
-                    last_name: '',
-                    temp_password: tempPassword,
+                    email: parsedPayload.email,
+                    full_name: parsedPayload.full_name,
+                    specialty: parsedPayload.specialty || null,
+                    bio: parsedPayload.bio || null,
+                    color_code: parsedPayload.color_code || '#AD7332',
+                    is_active: parsedPayload.is_active ?? true,
+                    service_ids: parsedPayload.serviceIds,
+                    schedule_slots: parsedPayload.scheduleSlots || [],
                 }),
             });
 
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.error || 'Error al crear usuario');
-
-            const userId = result.user_id;
-
-            // 2. Create professional record
-            const { error: profError } = await supabase
-                .from('professionals')
-                .insert([{
-                    id: userId,
-                    specialty: payload.specialty || null,
-                    bio: payload.bio || null,
-                    color_code: payload.color_code || '#AD7332',
-                    is_active: payload.is_active ?? true,
-                }]);
-
-            if (profError) throw profError;
-
-            // 3. Insert into professional_services junction table
-            if (payload.serviceIds.length > 0) {
-                const serviceRows = payload.serviceIds.map(serviceId => ({
-                    professional_id: userId,
-                    service_id: serviceId,
-                }));
-                const { error: svcError } = await supabase
-                    .from('professional_services')
-                    .insert(serviceRows);
-
-                if (svcError) throw svcError;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
             }
 
-            return { user_id: userId };
+            const result = (await response.json()) as { user_id: string };
+            return { user_id: result.user_id };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PROFESSIONALS_QUERY_KEY });
@@ -129,60 +125,22 @@ export function useCreateProfesional() {
 }
 
 export function useUpdateProfesional() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async ({ id, serviceIds, ...professionalData }: UpdateProfessionalPayload) => {
-            // Update profile if full_name provided
-            if (professionalData.full_name) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .update({ full_name: professionalData.full_name })
-                    .eq('id', id);
+            const response = await fetch('/api/admin/professionals', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id, serviceIds, ...professionalData }),
+            });
 
-                if (profileError) throw profileError;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
             }
 
-            // Update professional record
-            const profUpdate: Record<string, unknown> = {};
-            if (professionalData.specialty !== undefined) profUpdate.specialty = professionalData.specialty;
-            if (professionalData.bio !== undefined) profUpdate.bio = professionalData.bio;
-            if (professionalData.color_code !== undefined) profUpdate.color_code = professionalData.color_code;
-            if (professionalData.is_active !== undefined) profUpdate.is_active = professionalData.is_active;
-
-            if (Object.keys(profUpdate).length > 0) {
-                const { error: profError } = await supabase
-                    .from('professionals')
-                    .update(profUpdate)
-                    .eq('id', id);
-
-                if (profError) throw profError;
-            }
-
-            // Update services: delete + re-insert
-            if (serviceIds !== undefined) {
-                const { error: delError } = await supabase
-                    .from('professional_services')
-                    .delete()
-                    .eq('professional_id', id);
-
-                if (delError) throw delError;
-
-                if (serviceIds.length > 0) {
-                    const serviceRows = serviceIds.map(serviceId => ({
-                        professional_id: id,
-                        service_id: serviceId,
-                    }));
-                    const { error: insError } = await supabase
-                        .from('professional_services')
-                        .insert(serviceRows);
-
-                    if (insError) throw insError;
-                }
-            }
-
-            return { success: true };
+            return (await response.json()) as { success: boolean };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PROFESSIONALS_QUERY_KEY });
@@ -191,17 +149,22 @@ export function useUpdateProfesional() {
 }
 
 export function useDeleteProfesional() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase
-                .from('professionals')
-                .update({ is_active: false })
-                .eq('id', id);
+            const response = await fetch('/api/admin/professionals', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id }),
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as { success: boolean; reassignedAppointments: number };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PROFESSIONALS_QUERY_KEY });

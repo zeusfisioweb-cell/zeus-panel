@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/client';
-
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW';
 
 interface AuditEventParams {
@@ -10,24 +8,30 @@ interface AuditEventParams {
 }
 
 /**
- * Writes an entry to the audit_logs table.
- * Should be called after successful mutations on sensitive data (patients, appointments, clinical records).
- * Failures are logged to console but do NOT throw — audit failures should not break user flows.
+ * Writes an entry to audit_logs via server API.
+ * Failures are logged to console but do not throw.
  */
 export async function logAuditEvent(params: AuditEventParams): Promise<void> {
     try {
-        const supabase = createClient();
-        const { error } = await supabase.from('audit_logs').insert({
-            action: params.action,
-            table_name: params.table_name,
-            record_id: params.record_id,
-            details: params.details ?? null,
+        const response = await fetch('/api/admin/audit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(params),
         });
 
-        if (error) {
-            console.error('[Audit] Failed to write audit log:', error.message, params);
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}`;
+            try {
+                const body = (await response.json()) as { error?: string };
+                errorMessage = body.error || errorMessage;
+            } catch {
+                // Ignore response parse errors.
+            }
+
+            console.error('[Audit] Failed to write audit log:', errorMessage, params);
         }
-    } catch (err) {
-        console.error('[Audit] Unexpected error writing audit log:', err);
+    } catch (error: unknown) {
+        console.error('[Audit] Unexpected error writing audit log:', error, params);
     }
 }

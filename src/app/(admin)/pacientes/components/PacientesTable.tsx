@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Icon from '@/components/Icon';
@@ -30,48 +30,58 @@ export function PacientesTable({
     onPageChange,
 }: PacientesTableProps) {
     const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+    const searchInputId = 'patients-table-search';
 
     return (
-        <div className="pacientes-table-shell">
-            <Card>
+        <div className="pacientes-table-shell ops-data-module">
+            <Card className="ops-filter-card">
                 <CardContent>
                     <div className="filter-bar pacientes-filter-bar">
                         <div className="filter-bar__search">
+                            <label htmlFor={searchInputId} className="sr-only">
+                                Buscar pacientes por nombre, apellido o documento
+                            </label>
                             <span className="filter-bar__search-icon">
                                 <Icon name="search" size={16} />
                             </span>
                             <input
+                                id={searchInputId}
+                                name="patients_search"
+                                autoComplete="off"
                                 className="form-input"
-                                placeholder="Buscar por nombre, apellido o DNI"
+                                placeholder="Buscar por nombre o documento"
                                 value={search}
                                 onChange={(event) => onSearchChange(event.target.value)}
                             />
                         </div>
-                        <div className="filter-bar__count">Total registrados: {totalCount}</div>
+                        <div className="filter-bar__count" aria-live="polite">
+                            {totalCount} registrados
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            <Card className="overflow-hidden flex flex-col">
+            <Card className="overflow-hidden flex flex-col ops-data-table-card">
                 <CardContent className="p-0 flex-1 overflow-auto">
                     <div className="table-wrapper">
                         <table className="table w-full pacientes-table">
+                            <caption className="sr-only">Listado de pacientes registrados</caption>
                             <thead>
                                 <tr>
-                                    <th>Paciente</th>
-                                    <th>Contacto</th>
-                                    <th>Consentimiento</th>
-                                    <th>Alta</th>
-                                    <th className="text-right">Ficha</th>
+                                    <th scope="col">Paciente</th>
+                                    <th scope="col">Contacto</th>
+                                    <th scope="col">Consentimiento</th>
+                                    <th scope="col">Alta</th>
+                                    <th scope="col" className="text-right">Ficha</th>
                                 </tr>
                             </thead>
 
-                            <tbody>
+                            <tbody className="pacientes-table__body">
                                 {patients.map((patient) => (
                                     <tr
                                         key={patient.id}
                                         onClick={() => onViewPatient(patient)}
-                                        className={`cursor-pointer transition-colors ${
+                                        className={`cursor-pointer transition-colors pacientes-table__row ${
                                             selectedPatientId === patient.id ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
@@ -80,13 +90,13 @@ export function PacientesTable({
                                                 {patient.first_name} {patient.last_name}
                                             </div>
                                             <div className="pacientes-table__meta" title={patient.document_id || 'Sin documento'}>
-                                                DNI: {patient.document_id || 'Sin documento'}
+                                                Documento: {patient.document_id || 'Sin documento'}
                                             </div>
                                         </td>
 
                                         <td>
-                                            <div className="pacientes-table__phone" title={patient.phone || 'Sin telefono'}>
-                                                {patient.phone || 'Sin telefono'}
+                                            <div className="pacientes-table__phone" title={patient.phone || 'Sin teléfono'}>
+                                                {patient.phone || 'Sin teléfono'}
                                             </div>
                                             <div className="pacientes-table__email" title={patient.email || 'Sin email'}>
                                                 {patient.email || 'Sin email'}
@@ -95,7 +105,7 @@ export function PacientesTable({
 
                                         <td>
                                             <Badge variant={patient.gdpr_consent ? 'success' : 'default'}>
-                                                {patient.gdpr_consent ? 'Aprobado' : 'Pendiente'}
+                                                {patient.gdpr_consent ? 'Aceptado' : 'Pendiente'}
                                             </Badge>
                                         </td>
 
@@ -126,7 +136,7 @@ export function PacientesTable({
                                                     <Icon name="users" size={24} />
                                                 </div>
                                                 <span className="text-sm font-medium">Sin resultados</span>
-                                                <span className="text-xs mt-1">No se encontraron pacientes con ese filtro.</span>
+                                                <span className="text-xs mt-1">Sin pacientes para este filtro.</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -136,7 +146,7 @@ export function PacientesTable({
                     </div>
                 </CardContent>
 
-                <div className="p-3 border-t border-[var(--border-color)] flex items-center justify-between text-sm flex-wrap gap-2">
+                <div className="p-3 border-t border-[var(--border-color)] flex items-center justify-between text-sm flex-wrap gap-2 pacientes-table__footer">
                     <span className="text-[var(--text-muted)]">
                         Mostrando {patients.length} de {totalCount} pacientes
                     </span>
@@ -151,7 +161,7 @@ export function PacientesTable({
                         </button>
 
                         <span className="px-2 text-[var(--text-main)] font-medium">
-                            Pagina {page} de {totalPages}
+                            Página {page} de {totalPages}
                         </span>
 
                         <button

@@ -87,14 +87,14 @@ export function CitasTable({ appointments, onViewAppointment }: CitasTableProps)
                 </div>
                 <h3 className="citas-empty-state__title">Sin resultados</h3>
                 <p className="citas-empty-state__text">
-                    No hay citas que coincidan con los filtros seleccionados o la fecha actual.
+                    No hay citas para los filtros actuales.
                 </p>
             </div>
         );
     }
 
     return (
-        <div className="citas-list">
+        <div className="citas-list ops-data-module">
             {groupedAppointments.map(([dayKey, dayAppointments]) => (
                 <section className="citas-list-day" key={dayKey}>
                     <header className="citas-list-day__head">
@@ -114,18 +114,19 @@ export function CitasTable({ appointments, onViewAppointment }: CitasTableProps)
                                 <li key={apt.id}>
                                     <button
                                         type="button"
-                                        className="citas-list-item"
+                                        className="citas-list-item citas-list-item--ops group"
                                         onClick={() => onViewAppointment(apt)}
                                         title="Ver detalle de cita"
+                                        style={{ borderLeftColor: apt.professional?.color_code || 'var(--line-soft)', borderLeftWidth: '4px' }}
                                     >
                                         <div className="citas-list-item__time">
                                             <div className="citas-time__range">
-                                                <Icon name="clock" size={14} />
+                                                <Icon name="clock" size={14} className="opacity-70" />
                                                 <span>
                                                     {formatTime(apt.start_time)} - {formatTime(apt.end_time)}
                                                 </span>
                                             </div>
-                                            <span className="citas-time__duration">{getDuration(apt.start_time, apt.end_time)}</span>
+                                            <span className="citas-time__duration pl-5">{getDuration(apt.start_time, apt.end_time)}</span>
                                         </div>
 
                                         <div className="citas-list-item__patient">
@@ -138,19 +139,19 @@ export function CitasTable({ appointments, onViewAppointment }: CitasTableProps)
                                             <div className="citas-list-item__content">
                                                 <span className="citas-list-item__label">Paciente</span>
                                                 <strong>{patientName}</strong>
-                                                <span>{patientMeta || 'Sin documento ni telefono'}</span>
+                                                <span className="opacity-80">{patientMeta || 'Sin documento/telefono'}</span>
                                             </div>
                                         </div>
 
                                         <div className="citas-list-item__service">
                                             <span
-                                                className="citas-service-dot"
-                                                style={{ background: 'var(--text-main)' }}
+                                                className="citas-service-dot shadow-sm"
+                                                style={{ background: apt.professional?.color_code || 'var(--text-main)' }}
                                             />
                                             <div className="citas-list-item__content">
-                                                <span className="citas-list-item__label">Servicio</span>
-                                                <strong>{apt.service?.name || 'Cita general'}</strong>
-                                                <span>{professionalName}</span>
+                                                <span className="citas-list-item__label">Profesional / Serv.</span>
+                                                <strong style={{ color: apt.professional?.color_code || 'inherit' }}>{professionalName}</strong>
+                                                <span className="opacity-80 font-medium">{apt.service?.name || 'Cita general'}</span>
                                             </div>
                                         </div>
 
@@ -163,10 +164,10 @@ export function CitasTable({ appointments, onViewAppointment }: CitasTableProps)
                                             </Badge>
                                         </div>
 
-                                        <span className="citas-list-item__action">
-                                            Ver detalle
+                                        <div className="citas-list-item__action ml-auto text-[var(--accent-color)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                            <span className="text-xs font-semibold uppercase tracking-wider">Ver detalle</span>
                                             <Icon name="chevron-right" size={16} />
-                                        </span>
+                                        </div>
                                     </button>
                                 </li>
                             );

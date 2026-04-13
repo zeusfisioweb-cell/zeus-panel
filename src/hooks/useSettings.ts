@@ -1,24 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
 import type { BookingSettings } from '@/lib/types';
 
-// useSettings: createClient() is called inside queryFn, which runs
-// in the React Query context (safe). No module-scope instantiation.
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
+
 export function useSettings() {
     return useQuery({
         queryKey: ['booking_settings'],
         queryFn: async () => {
-            // Creating client inside queryFn is acceptable for hooks
-            // that don't need a stable client reference for subscriptions.
-            const supabase = createClient();
-            const { data, error } = await supabase
-                .from('booking_settings')
-                .select('*')
-                .single();
+            const response = await fetch('/api/admin/booking-settings', {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
 
-            if (error) throw error;
-            return data as BookingSettings;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as BookingSettings;
         },
-        staleTime: 5 * 60 * 1000, // Settings change rarely — cache for 5 minutes
+        staleTime: 5 * 60 * 1000,
     });
 }

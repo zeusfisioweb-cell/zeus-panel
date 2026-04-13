@@ -1,18 +1,35 @@
 import type { Metadata } from 'next';
+import { Cormorant_Garamond, Manrope, Montserrat } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import './globals.css';
 
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-body',
+  weight: ['400', '500', '600', '700', '800'],
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-zeus-sans',
+  weight: ['400', '500', '600', '700', '800'],
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-zeus-display',
+  weight: ['500', '600', '700'],
+});
+
 export const metadata: Metadata = {
-  title: 'Zeus Admin — Panel de Gestión',
-  description: 'Panel de administración para Zeus Fisioterapia y Psicología',
+  title: 'Zeus Admin - Panel de Gestion',
+  description: 'Panel de administracion para Zeus Fisioterapia y Psicologia',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.png', type: 'image/png', sizes: '192x192' },
+      { url: '/zeus-favicon.png', type: 'image/png', sizes: '192x192' },
     ],
-    apple: [
-      { url: '/img/zeus-favicon.png' },
-    ],
+    apple: [{ url: '/zeus-favicon.png' }],
   },
 };
 
@@ -25,7 +42,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body className={`${manrope.variable} ${montserrat.variable} ${cormorantGaramond.variable}`} suppressHydrationWarning>
         <Providers>
           <AuthProvider>{children}</AuthProvider>
         </Providers>
@@ -33,3 +50,4 @@ export default function RootLayout({
     </html>
   );
 }
+

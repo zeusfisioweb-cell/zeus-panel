@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useState, useCallback, FormEvent } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Icon from '@/components/Icon';
 import { toast } from 'sonner';
 import type { BookingSettings } from '@/lib/types';
 
-export default function ConfiguracionPage() {
-    const [supabase] = useState(() => createClient());
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
 
+export default function ConfiguracionPage() {
     const [settings, setSettings] = useState<BookingSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -32,75 +38,88 @@ export default function ConfiguracionPage() {
     });
 
     const loadSettings = useCallback(async () => {
-        const { data, error } = await supabase
-            .from('booking_settings')
-            .select('*')
-            .limit(1)
-            .single();
+        try {
+            const response = await fetch('/api/admin/booking-settings', {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
 
-        if (error) {
-            toast.error('Error al cargar la configuracion');
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            const data = (await response.json()) as BookingSettings;
+            setSettings(data);
+            setForm({
+                clinic_name: data.clinic_name || '',
+                phone: data.phone || '',
+                email: data.email || '',
+                address: data.address || '',
+                booking_advance_days: data.booking_advance_days || 30,
+                min_booking_notice_hours: data.min_booking_notice_hours || 2,
+                cancellation_hours: data.cancellation_hours || 24,
+                slot_interval_minutes: data.slot_interval_minutes || 30,
+                buffer_minutes: data.buffer_minutes || 10,
+                gdpr_text: data.gdpr_text || '',
+                informed_consent_text: data.informed_consent_text || '',
+                privacy_policy_url: data.privacy_policy_url || '',
+                terms_url: data.terms_url || '',
+                opening_hour: data.opening_hour?.substring(0, 5) || '07:00',
+                closing_hour: data.closing_hour?.substring(0, 5) || '20:00',
+            });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error(`Error al cargar la configuracion: ${message}`);
+        } finally {
             setLoading(false);
-            return;
         }
-
-        setSettings(data as BookingSettings);
-        setForm({
-            clinic_name: data.clinic_name || '',
-            phone: data.phone || '',
-            email: data.email || '',
-            address: data.address || '',
-            booking_advance_days: data.booking_advance_days || 30,
-            min_booking_notice_hours: data.min_booking_notice_hours || 2,
-            cancellation_hours: data.cancellation_hours || 24,
-            slot_interval_minutes: data.slot_interval_minutes || 30,
-            buffer_minutes: data.buffer_minutes || 10,
-            gdpr_text: data.gdpr_text || '',
-            informed_consent_text: data.informed_consent_text || '',
-            privacy_policy_url: data.privacy_policy_url || '',
-            terms_url: data.terms_url || '',
-            opening_hour: data.opening_hour?.substring(0, 5) || '07:00',
-            closing_hour: data.closing_hour?.substring(0, 5) || '20:00',
-        });
-
-        setLoading(false);
-    }, [supabase]);
+    }, []);
 
     useEffect(() => {
-        loadSettings();
+        void loadSettings();
     }, [loadSettings]);
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: FormEvent) => {
+        event.preventDefault();
         if (!settings) return;
 
         setSaving(true);
-        const { error } = await supabase
-            .from('booking_settings')
-            .update({
-                clinic_name: form.clinic_name,
-                phone: form.phone || null,
-                email: form.email || null,
-                address: form.address || null,
-                booking_advance_days: form.booking_advance_days,
-                min_booking_notice_hours: form.min_booking_notice_hours,
-                cancellation_hours: form.cancellation_hours,
-                slot_interval_minutes: form.slot_interval_minutes,
-                buffer_minutes: form.buffer_minutes,
-                gdpr_text: form.gdpr_text || null,
-                informed_consent_text: form.informed_consent_text || null,
-                privacy_policy_url: form.privacy_policy_url || null,
-                terms_url: form.terms_url || null,
-                opening_hour: form.opening_hour,
-                closing_hour: form.closing_hour,
-            })
-            .eq('id', settings.id);
+        try {
+            const response = await fetch('/api/admin/booking-settings', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    clinic_name: form.clinic_name,
+                    phone: form.phone || null,
+                    email: form.email || null,
+                    address: form.address || null,
+                    booking_advance_days: form.booking_advance_days,
+                    min_booking_notice_hours: form.min_booking_notice_hours,
+                    cancellation_hours: form.cancellation_hours,
+                    slot_interval_minutes: form.slot_interval_minutes,
+                    buffer_minutes: form.buffer_minutes,
+                    gdpr_text: form.gdpr_text || null,
+                    informed_consent_text: form.informed_consent_text || null,
+                    privacy_policy_url: form.privacy_policy_url || null,
+                    terms_url: form.terms_url || null,
+                    opening_hour: form.opening_hour,
+                    closing_hour: form.closing_hour,
+                }),
+            });
 
-        setSaving(false);
-        if (error) {
-            toast.error('Error al guardar: ' + error.message);
-        } else {
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            const updated = (await response.json()) as BookingSettings;
+            setSettings(updated);
             toast.success('Configuracion guardada correctamente');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error(`Error al guardar: ${message}`);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -116,27 +135,28 @@ export default function ConfiguracionPage() {
         Number(Boolean(form.privacy_policy_url.trim())) + Number(Boolean(form.terms_url.trim()));
 
     return (
-        <div className="content-shell settings-shell">
-            <header className="module-header module-header--settings">
-                <div>
+        <div className="content-shell settings-shell ops-screen">
+            <header className="module-header module-header--settings ops-module-head">
+                <div className="ops-module-head__intro">
                     <span className="module-header__kicker">Ajustes</span>
                     <h1 className="module-header__title">Configuracion</h1>
                     <p className="module-header__desc">
-                        Parametros generales de agenda, reservas y textos legales para la operacion diaria.
+                        Ajustes de reservas, contacto y textos legales.
                     </p>
                     <p className="module-header__meta">
-                        Ventana de reserva: {form.booking_advance_days} dias | Intervalo: {form.slot_interval_minutes} min
+                        Agenda {form.opening_hour} - {form.closing_hour} | Ventana: {form.booking_advance_days} dias
                     </p>
                 </div>
-                <div className="module-header__actions settings-header__chips">
-                    <div className="settings-header-chip">
-                        <span>Horario</span>
-                        <strong>{form.opening_hour} - {form.closing_hour}</strong>
-                    </div>
-                    <div className="settings-header-chip">
-                        <span>Aviso minimo</span>
-                        <strong>{form.min_booking_notice_hours} h</strong>
-                    </div>
+
+                <div className="ops-module-head__stats">
+                    <article className="ops-module-metric">
+                        <span className="ops-module-metric__label">Horario</span>
+                        <strong className="ops-module-metric__value">{form.opening_hour} - {form.closing_hour}</strong>
+                    </article>
+                    <article className="ops-module-metric">
+                        <span className="ops-module-metric__label">Aviso minimo</span>
+                        <strong className="ops-module-metric__value">{form.min_booking_notice_hours} h</strong>
+                    </article>
                 </div>
             </header>
 
@@ -149,7 +169,7 @@ export default function ConfiguracionPage() {
                             </span>
                             <div>
                                 <h2 className="settings-panel__title">Datos de la clinica</h2>
-                                <p className="settings-panel__desc">Informacion visible para pacientes y comunicaciones.</p>
+                                <p className="settings-panel__desc">Datos visibles en panel y reservas.</p>
                             </div>
                         </div>
 
@@ -201,11 +221,11 @@ export default function ConfiguracionPage() {
                             </span>
                             <div>
                                 <h2 className="settings-panel__title">Reservas online</h2>
-                                <p className="settings-panel__desc">Controla reglas de agenda para mantener disponibilidad realista.</p>
+                                <p className="settings-panel__desc">Reglas base de agenda y antelacion.</p>
                             </div>
                         </div>
 
-                        <div className="settings-fields settings-fields--3">
+                        <div className="settings-fields settings-fields--2">
                             <label className="settings-field">
                                 <span className="form-label">Apertura</span>
                                 <input
@@ -214,7 +234,6 @@ export default function ConfiguracionPage() {
                                     value={form.opening_hour}
                                     onChange={e => setForm({ ...form, opening_hour: e.target.value })}
                                 />
-                                <span className="settings-help">Hora de inicio de agenda</span>
                             </label>
 
                             <label className="settings-field">
@@ -225,7 +244,6 @@ export default function ConfiguracionPage() {
                                     value={form.closing_hour}
                                     onChange={e => setForm({ ...form, closing_hour: e.target.value })}
                                 />
-                                <span className="settings-help">Hora final de agenda</span>
                             </label>
 
                             <label className="settings-field">
@@ -238,7 +256,6 @@ export default function ConfiguracionPage() {
                                     value={form.booking_advance_days}
                                     onChange={e => setForm({ ...form, booking_advance_days: +e.target.value })}
                                 />
-                                <span className="settings-help">Maximo de dias en el futuro</span>
                             </label>
 
                             <label className="settings-field">
@@ -251,7 +268,6 @@ export default function ConfiguracionPage() {
                                     value={form.min_booking_notice_hours}
                                     onChange={e => setForm({ ...form, min_booking_notice_hours: +e.target.value })}
                                 />
-                                <span className="settings-help">Horas minimas antes de la cita</span>
                             </label>
 
                             <label className="settings-field">
@@ -264,7 +280,6 @@ export default function ConfiguracionPage() {
                                     value={form.cancellation_hours}
                                     onChange={e => setForm({ ...form, cancellation_hours: +e.target.value })}
                                 />
-                                <span className="settings-help">Limite para cancelar sin penalizacion</span>
                             </label>
 
                             <label className="settings-field">
@@ -278,7 +293,6 @@ export default function ConfiguracionPage() {
                                     value={form.slot_interval_minutes}
                                     onChange={e => setForm({ ...form, slot_interval_minutes: +e.target.value })}
                                 />
-                                <span className="settings-help">Frecuencia para generar huecos</span>
                             </label>
 
                             <label className="settings-field">
@@ -292,7 +306,6 @@ export default function ConfiguracionPage() {
                                     value={form.buffer_minutes}
                                     onChange={e => setForm({ ...form, buffer_minutes: +e.target.value })}
                                 />
-                                <span className="settings-help">Margen entre citas consecutivas</span>
                             </label>
                         </div>
                     </section>
@@ -304,7 +317,7 @@ export default function ConfiguracionPage() {
                             </span>
                             <div>
                                 <h2 className="settings-panel__title">Legal y consentimientos</h2>
-                                <p className="settings-panel__desc">Textos y enlaces que se muestran en el flujo de reserva.</p>
+                                <p className="settings-panel__desc">Textos y enlaces que ve el paciente al reservar.</p>
                             </div>
                         </div>
 
@@ -355,8 +368,8 @@ export default function ConfiguracionPage() {
 
                 <aside className="settings-aside">
                     <div className="bento-card settings-summary-card">
-                        <h3>Resumen operativo</h3>
-                        <p>Revision rapida de parametros clave antes de guardar.</p>
+                        <h3>Revision rapida</h3>
+                        <p>Solo lo esencial antes de guardar.</p>
                         <div className="settings-summary-list">
                             <div className="settings-summary-item">
                                 <span>Horario visible</span>
@@ -367,16 +380,8 @@ export default function ConfiguracionPage() {
                                 <strong>{form.booking_advance_days} dias</strong>
                             </div>
                             <div className="settings-summary-item">
-                                <span>Aviso minimo</span>
-                                <strong>{form.min_booking_notice_hours} h</strong>
-                            </div>
-                            <div className="settings-summary-item">
-                                <span>Duracion de hueco</span>
-                                <strong>{form.slot_interval_minutes} min</strong>
-                            </div>
-                            <div className="settings-summary-item">
-                                <span>Buffer</span>
-                                <strong>{form.buffer_minutes} min</strong>
+                                <span>Ritmo de agenda</span>
+                                <strong>{form.slot_interval_minutes} min + {form.buffer_minutes} min buffer</strong>
                             </div>
                             <div className="settings-summary-item">
                                 <span>Enlaces legales</span>
@@ -386,7 +391,7 @@ export default function ConfiguracionPage() {
                     </div>
 
                     <div className="bento-card settings-save-card">
-                        <p>Cuando guardes, los cambios se aplicaran en todo el panel y en reservas online.</p>
+                        <p>Los cambios se aplican al panel y a las reservas online.</p>
                         <button
                             type="submit"
                             disabled={saving}

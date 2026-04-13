@@ -15,6 +15,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     const [loadingStuck, setLoadingStuck] = useState(false);
 
     const sectionTitle = getPanelSectionTitle(pathname);
+    const isSummaryRoute = pathname === '/';
 
     useEffect(() => {
         if (loading) return;
@@ -74,7 +75,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     </p>
                     <div style={{ display: 'flex', gap: 10 }}>
                         <button
-                            onClick={() => window.location.reload()}
+                            onClick={() => {
+                                setLoadingStuck(false);
+                                router.refresh();
+                            }}
                             className="btn btn--secondary btn--sm"
                         >
                             Reintentar
@@ -198,28 +202,35 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <>
+        <div className={`admin-shell admin-shell--modern${isSummaryRoute ? ' admin-shell--summary' : ''}`}>
             <Sidebar />
             <main className="main-content">
-                <div className="panel-topbar">
-                    <div className="panel-topbar__left">
-                        <span className="panel-topbar__section">{sectionTitle}</span>
-                        <span className="panel-topbar__dot" />
-                        <span className="panel-topbar__date">
-                            {new Date().toLocaleDateString('es-ES', {
-                                weekday: 'long',
-                                day: '2-digit',
-                                month: 'long',
-                            })}
-                        </span>
+                {!isSummaryRoute && (
+                    <div className="panel-topbar panel-topbar--modern">
+                        <div className="panel-topbar__primary">
+                            <span className="panel-topbar__kicker">Panel Zeus</span>
+                            <strong className="panel-topbar__title">{sectionTitle}</strong>
+                        </div>
+                        <div className="panel-topbar__meta">
+                            <div className="panel-topbar__date-block">
+                                <span className="panel-topbar__date-label">Hoy</span>
+                                <span className="panel-topbar__date">
+                                    {new Date().toLocaleDateString('es-ES', {
+                                        weekday: 'long',
+                                        day: '2-digit',
+                                        month: 'long',
+                                    })}
+                                </span>
+                            </div>
+                            <div className="panel-topbar__user-block">
+                                <span className="panel-topbar__role">
+                                    {profile.role === 'owner' ? 'Direccion' : 'Profesional'}
+                                </span>
+                                <strong className="panel-topbar__name">{profile.full_name || 'Usuario'}</strong>
+                            </div>
+                        </div>
                     </div>
-                    <div className="panel-topbar__right">
-                        <span className="panel-topbar__role">
-                            {profile.role === 'owner' ? 'Direccion' : 'Profesional'}
-                        </span>
-                        <strong className="panel-topbar__name">{profile.full_name || 'Usuario'}</strong>
-                    </div>
-                </div>
+                )}
                 {children}
             </main>
             <Toaster
@@ -234,7 +245,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     className: 'font-sans',
                 }}
             />
-        </>
+        </div>
     );
 }
 

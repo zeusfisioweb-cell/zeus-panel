@@ -27,7 +27,7 @@ export function CitasFilters({
     const dateId = 'citas-filter-date';
 
     return (
-        <div className="citas-filters">
+        <div className="citas-filters ops-filter-panel">
             <div className="citas-filters__row">
                 <div className="citas-filters__search">
                     <label htmlFor={searchId} className="sr-only">
@@ -40,7 +40,7 @@ export function CitasFilters({
                         id={searchId}
                         type="text"
                         className="form-input citas-filters__search-input"
-                        placeholder="Buscar paciente o DNI..."
+                        placeholder="Buscar paciente o documento..."
                         value={searchTerm}
                         onChange={(e) => onSearchChange(e.target.value)}
                     />
@@ -92,8 +92,8 @@ export function CitasFilters({
                 </div>
             </div>
 
-            <div className="citas-filters__total">
-                Mostrando <strong>{totalCount}</strong> citas
+            <div className="citas-filters__total ops-filter-panel__meta">
+                <strong>{totalCount}</strong> resultados
             </div>
         </div>
     );

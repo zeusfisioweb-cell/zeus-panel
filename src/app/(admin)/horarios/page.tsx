@@ -1,70 +1,69 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import Icon from '@/components/Icon';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
-import type { ScheduleSlot, ScheduleException } from '@/lib/types';
-import { DAY_NAMES, toDbDayOfWeek, toUiDayOfWeek } from '@/lib/types';
+import Icon from '@/components/Icon';
 import ConfirmModal from '@/components/ConfirmModal';
 
-interface ProfessionalOption {
-    id: string;
-    profile: { full_name: string } | null;
-}
+import { DAY_NAMES, toDbDayOfWeek, toUiDayOfWeek } from '@/lib/types';
+import { useProfesionales } from '@/hooks/useProfesionales';
+import {
+    useHorario,
+    useCreateSlot,
+    useDeleteSlot,
+    useCreateException,
+    useDeleteException,
+    useApplyDefaultSchedule,
+} from '@/hooks/useHorarios';
 
 export default function HorariosPage() {
-    const [supabase] = useState(() => createClient());
-    const [professionals, setProfessionals] = useState<ProfessionalOption[]>([]);
-    const [selectedPro, setSelectedPro] = useState<string>('');
-    const [slots, setSlots] = useState<ScheduleSlot[]>([]);
-    const [exceptions, setExceptions] = useState<ScheduleException[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: professionalsData, isLoading: isLoadingProfs } = useProfesionales();
+    const [selectedPro, setSelectedPro] = useState('');
 
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
     const [newSlot, setNewSlot] = useState({ day_of_week: 0, start_time: '09:30', end_time: '14:00' });
     const [newException, setNewException] = useState({ start_date: '', end_date: '', reason: '', is_available: false });
 
-    const loadProfessionals = useCallback(async () => {
-        const { data } = await supabase
-            .from('professionals')
-            .select('id, profile:profiles(full_name)')
-            .eq('is_active', true);
-
-        setProfessionals((data as unknown as ProfessionalOption[]) || []);
-        if (data && data.length > 0) setSelectedPro(data[0].id);
-        setLoading(false);
-    }, [supabase]);
-
-    const loadSchedule = useCallback(async () => {
-        if (!selectedPro) return;
-
-        const [slotsRes, excRes] = await Promise.all([
-            supabase.from('schedule_slots')
-                .select('*')
-                .eq('professional_id', selectedPro)
-                .order('day_of_week')
-                .order('start_time'),
-            supabase.from('schedule_exceptions')
-                .select('*')
-                .eq('professional_id', selectedPro)
-                .gte('exception_date', new Date().toISOString().split('T')[0])
-                .order('exception_date'),
-        ]);
-
-        setSlots((slotsRes.data as ScheduleSlot[]) || []);
-        setExceptions((excRes.data as ScheduleException[]) || []);
-    }, [selectedPro, supabase]);
+    const professionals = (professionalsData || [])
+        .filter((pro) => pro.is_active)
+        .map((pro) => ({
+            id: pro.id,
+            profile: pro.profile,
+        }));
 
     useEffect(() => {
-        loadProfessionals();
-    }, [loadProfessionals]);
+        if (!selectedPro && professionals.length > 0) {
+            setSelectedPro(professionals[0].id);
+        }
+    }, [professionals, selectedPro]);
 
-    useEffect(() => {
-        if (selectedPro) loadSchedule();
-    }, [selectedPro, loadSchedule]);
+    const { data: horarioData, isLoading: isLoadingHorario } = useHorario(selectedPro || null);
+    const slots = horarioData?.slots || [];
+    const exceptions = horarioData?.exceptions || [];
+
+    const createSlotM = useCreateSlot();
+    const deleteSlotM = useDeleteSlot();
+    const createExceptionM = useCreateException();
+    const deleteExceptionM = useDeleteException();
+    const applyDefaultM = useApplyDefaultSchedule();
+
+    const isLoading = isLoadingProfs || isLoadingHorario;
+
+    const getErrorMessage = (error: unknown): string => {
+        if (typeof error === 'object' && error !== null) {
+            const withIssues = error as { issues?: Array<{ message?: string }> };
+            if (Array.isArray(withIssues.issues) && withIssues.issues[0]?.message) {
+                return withIssues.issues[0].message || 'Error desconocido';
+            }
+        }
+
+        if (error instanceof Error) {
+            return error.message;
+        }
+
+        return 'Error desconocido';
+    };
 
     async function addSlot() {
         if (!selectedPro) {
@@ -72,35 +71,26 @@ export default function HorariosPage() {
             return;
         }
 
-        if (newSlot.start_time >= newSlot.end_time) {
-            toast.warning('La hora de inicio debe ser anterior a la hora de fin');
-            return;
+        try {
+            await createSlotM.mutateAsync({
+                professional_id: selectedPro,
+                day_of_week: toDbDayOfWeek(newSlot.day_of_week),
+                start_time: newSlot.start_time,
+                end_time: newSlot.end_time,
+            });
+            toast.success('Franja anadida');
+        } catch (error: unknown) {
+             toast.error(`Error al anadir franja: ${getErrorMessage(error)}`);
         }
-
-        const { error } = await supabase.from('schedule_slots').insert({
-            professional_id: selectedPro,
-            day_of_week: toDbDayOfWeek(newSlot.day_of_week),
-            start_time: newSlot.start_time,
-            end_time: newSlot.end_time,
-        });
-
-        if (error) {
-            toast.error('Error al anadir franja: ' + error.message);
-            return;
-        }
-
-        toast.success('Franja anadida');
-        loadSchedule();
     }
 
     async function deleteSlot(id: string) {
-        const { error } = await supabase.from('schedule_slots').delete().eq('id', id);
-        if (error) {
-            toast.error('Error al eliminar franja: ' + error.message);
-            return;
+        try {
+            await deleteSlotM.mutateAsync({ id, professional_id: selectedPro });
+            toast.success('Franja eliminada');
+        } catch (error: unknown) {
+            toast.error(`Error al eliminar franja: ${getErrorMessage(error)}`);
         }
-        toast.success('Franja eliminada');
-        loadSchedule();
     }
 
     async function addException() {
@@ -109,52 +99,29 @@ export default function HorariosPage() {
             return;
         }
 
-        if (!newException.start_date) {
-            toast.warning('Selecciona una fecha de inicio');
-            return;
-        }
-
-        const start = new Date(newException.start_date);
-        const end = newException.end_date ? new Date(newException.end_date) : new Date(start);
-
-        if (end < start) {
-            toast.warning('La fecha de fin debe ser igual o posterior a la fecha de inicio');
-            return;
-        }
-
-        const payload = [];
-        const current = new Date(start);
-
-        while (current <= end) {
-            payload.push({
+        try {
+            await createExceptionM.mutateAsync({
                 professional_id: selectedPro,
-                exception_date: current.toISOString().split('T')[0],
-                reason: newException.reason,
+                start_date: newException.start_date,
+                end_date: newException.end_date || undefined,
+                reason: newException.reason || undefined,
                 is_available: newException.is_available,
             });
-            current.setDate(current.getDate() + 1);
+
+            toast.success('Excepcion anadida');
+            setNewException({ start_date: '', end_date: '', reason: '', is_available: false });
+        } catch (error: unknown) {
+             toast.error(`Error al anadir excepcion: ${getErrorMessage(error)}`);
         }
-
-        const { error } = await supabase.from('schedule_exceptions').insert(payload);
-
-        if (error) {
-            toast.error('Error al anadir excepcion: ' + error.message);
-            return;
-        }
-
-        toast.success(payload.length > 1 ? `${payload.length} excepciones anadidas` : 'Excepcion anadida');
-        setNewException({ start_date: '', end_date: '', reason: '', is_available: false });
-        loadSchedule();
     }
 
     async function deleteException(id: string) {
-        const { error } = await supabase.from('schedule_exceptions').delete().eq('id', id);
-        if (error) {
-            toast.error('Error al eliminar excepcion: ' + error.message);
-            return;
+        try {
+            await deleteExceptionM.mutateAsync({ id, professional_id: selectedPro });
+            toast.success('Excepcion eliminada');
+        } catch (error: unknown) {
+            toast.error(`Error al eliminar excepcion: ${getErrorMessage(error)}`);
         }
-        toast.success('Excepcion eliminada');
-        loadSchedule();
     }
 
     async function addPresetForDay(dayIndex: number) {
@@ -163,29 +130,23 @@ export default function HorariosPage() {
             return;
         }
 
-        const payload = [
-            {
+        try {
+            await createSlotM.mutateAsync({
                 professional_id: selectedPro,
                 day_of_week: toDbDayOfWeek(dayIndex),
                 start_time: '09:30',
                 end_time: '14:00',
-            },
-            {
+            });
+            await createSlotM.mutateAsync({
                 professional_id: selectedPro,
                 day_of_week: toDbDayOfWeek(dayIndex),
                 start_time: '15:00',
                 end_time: '20:00',
-            },
-        ];
-
-        const { error } = await supabase.from('schedule_slots').insert(payload);
-        if (error) {
-            toast.error('Error al crear horario del dia: ' + error.message);
-            return;
+            });
+            toast.success(`Horario base anadido para ${DAY_NAMES[dayIndex]}`);
+        } catch (error: unknown) {
+             toast.error(`Error al crear horario: ${getErrorMessage(error)}`);
         }
-
-        toast.success(`Horario base anadido para ${DAY_NAMES[dayIndex]}`);
-        loadSchedule();
     }
 
     function applyDefaultSchedule() {
@@ -195,37 +156,29 @@ export default function HorariosPage() {
             onConfirm: async () => {
                 setConfirmAction(null);
 
-                const { error: delError } = await supabase
-                    .from('schedule_slots')
-                    .delete()
-                    .eq('professional_id', selectedPro);
+                try {
+                    const defaultSlots = [];
+                    for (let day = 0; day <= 4; day += 1) {
+                        defaultSlots.push(
+                            { day_of_week: toDbDayOfWeek(day), start_time: '09:30', end_time: '14:00' },
+                            { day_of_week: toDbDayOfWeek(day), start_time: '15:00', end_time: '20:00' }
+                        );
+                    }
 
-                if (delError) {
-                    toast.error('Error al limpiar horarios anteriores: ' + delError.message);
-                    return;
+                    await applyDefaultM.mutateAsync({
+                        professional_id: selectedPro,
+                        slots: defaultSlots
+                    });
+
+                    toast.success('Horario base aplicado correctamente');
+                } catch (error: unknown) {
+                    toast.error(`Error al aplicar horario base: ${getErrorMessage(error)}`);
                 }
-
-                const defaultSlots = [];
-                for (let day = 0; day <= 4; day++) {
-                    defaultSlots.push(
-                        { professional_id: selectedPro, day_of_week: toDbDayOfWeek(day), start_time: '09:30', end_time: '14:00' },
-                        { professional_id: selectedPro, day_of_week: toDbDayOfWeek(day), start_time: '15:00', end_time: '20:00' },
-                    );
-                }
-
-                const { error: insError } = await supabase.from('schedule_slots').insert(defaultSlots);
-                if (insError) {
-                    toast.error('Error al crear franjas base: ' + insError.message);
-                    return;
-                }
-
-                toast.success('Horario base aplicado correctamente');
-                loadSchedule();
             },
         });
     }
 
-    if (loading) {
+    if (isLoading && professionals.length === 0) {
         return (
             <div className="flex justify-center p-15">
                 <div className="spinner" />
@@ -233,42 +186,64 @@ export default function HorariosPage() {
         );
     }
 
-    const slotsByDay = DAY_NAMES.map((name, i) => ({
+    const slotsByDay = DAY_NAMES.map((name, index) => ({
         name,
-        dayIndex: i,
-        slots: slots.filter((slot) => toUiDayOfWeek(slot.day_of_week) === i),
+        dayIndex: index,
+        slots: slots.filter((slot) => toUiDayOfWeek(slot.day_of_week) === index),
     }));
     const weeklySlotCount = slots.length;
     const activeDays = slotsByDay.filter((day) => day.slots.length > 0).length;
 
     return (
-        <div className="content-shell schedule-shell">
-            <header className="module-header module-header--schedule">
-                <div>
+        <div className="content-shell schedule-shell ops-screen">
+            <header className="module-header module-header--schedule ops-module-head">
+                <div className="ops-module-head__intro">
                     <span className="module-header__kicker">Agenda</span>
                     <h1 className="module-header__title">Horarios</h1>
                     <p className="module-header__desc">
-                        Define disponibilidad semanal y bloqueos puntuales por profesional.
+                        Disponibilidad semanal y excepciones por profesional.
                     </p>
                     <p className="module-header__meta">
-                        {weeklySlotCount} franjas activas | {activeDays}/7 dias con agenda | {exceptions.length} excepciones futuras
+                        {weeklySlotCount} franjas | {activeDays}/7 dias activos | {exceptions.length} excepciones
                     </p>
                 </div>
-                <div className="module-header__actions schedule-header__actions">
+
+                <div className="ops-module-head__stats">
+                    <article className="ops-module-metric">
+                        <span className="ops-module-metric__label">Franjas</span>
+                        <strong className="ops-module-metric__value">
+                            {isLoadingHorario ? <div className="spinner" style={{width: 16, height: 16}}/> : weeklySlotCount}
+                        </strong>
+                    </article>
+                    <article className="ops-module-metric">
+                        <span className="ops-module-metric__label">Dias activos</span>
+                        <strong className="ops-module-metric__value">
+                            {isLoadingHorario ? <div className="spinner" style={{width: 16, height: 16}}/> : activeDays}
+                        </strong>
+                    </article>
+                </div>
+
+                <div className="module-header__actions schedule-header__actions ops-module-head__actions">
                     <label className="schedule-picker">
                         <span className="schedule-picker__label">Profesional</span>
                         <select
                             className="form-input form-select schedule-picker__control"
                             value={selectedPro}
-                            onChange={(e) => setSelectedPro(e.target.value)}
+                            onChange={(event) => setSelectedPro(event.target.value)}
                         >
-                            {professionals.map((p) => (
-                                <option key={p.id} value={p.id}>{p.profile?.full_name || 'Profesional'}</option>
+                            {professionals.map((professional) => (
+                                <option key={professional.id} value={professional.id}>
+                                    {professional.profile?.full_name || 'Profesional'}
+                                </option>
                             ))}
                         </select>
                     </label>
-                    <button className="btn btn--secondary schedule-header__button" onClick={applyDefaultSchedule}>
-                        <Icon name="refresh-cw" size={14} />
+                    <button
+                        className="btn btn--secondary schedule-header__button"
+                        onClick={applyDefaultSchedule}
+                        disabled={applyDefaultM.isPending}
+                    >
+                        {applyDefaultM.isPending ? <div className="spinner" style={{width: 14, height: 14}}/> : <Icon name="refresh-cw" size={14} />}
                         Aplicar horario base
                     </button>
                 </div>
@@ -278,7 +253,7 @@ export default function HorariosPage() {
                 <section className="card schedule-card">
                     <div className="card__header schedule-card__header">
                         <h2 className="card__title">Disponibilidad semanal</h2>
-                        <p className="schedule-card__hint">Gestiona franjas por dia para construir el calendario base del profesional.</p>
+                        <p className="schedule-card__hint">Franjas base por dia.</p>
                     </div>
 
                     <div className="card__body schedule-day-list">
@@ -313,6 +288,7 @@ export default function HorariosPage() {
                                                     onClick={() => deleteSlot(slot.id)}
                                                     className="schedule-slot-chip__remove"
                                                     aria-label="Eliminar franja"
+                                                    disabled={deleteSlotM.isPending}
                                                 >
                                                     <Icon name="close" size={12} />
                                                 </button>
@@ -332,9 +308,9 @@ export default function HorariosPage() {
                                 <select
                                     className="form-input form-select"
                                     value={newSlot.day_of_week}
-                                    onChange={(e) => setNewSlot({ ...newSlot, day_of_week: +e.target.value })}
+                                    onChange={(event) => setNewSlot({ ...newSlot, day_of_week: Number(event.target.value) })}
                                 >
-                                    {DAY_NAMES.map((name, i) => <option key={i} value={i}>{name}</option>)}
+                                    {DAY_NAMES.map((name, index) => <option key={index} value={index}>{name}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
@@ -343,7 +319,7 @@ export default function HorariosPage() {
                                     type="time"
                                     className="form-input"
                                     value={newSlot.start_time}
-                                    onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
+                                    onChange={(event) => setNewSlot({ ...newSlot, start_time: event.target.value })}
                                 />
                             </div>
                             <div className="form-group">
@@ -352,11 +328,15 @@ export default function HorariosPage() {
                                     type="time"
                                     className="form-input"
                                     value={newSlot.end_time}
-                                    onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                                    onChange={(event) => setNewSlot({ ...newSlot, end_time: event.target.value })}
                                 />
                             </div>
-                            <button className="btn btn--primary schedule-slot-builder__submit" onClick={addSlot}>
-                                <Icon name="plus" size={14} />
+                            <button
+                                className="btn btn--primary schedule-slot-builder__submit"
+                                onClick={addSlot}
+                                disabled={createSlotM.isPending}
+                            >
+                                {createSlotM.isPending ? <div className="spinner" style={{width: 14, height: 14, borderColor:'white', borderBottomColor: 'transparent'}}/> : <Icon name="plus" size={14} />}
                                 Anadir franja
                             </button>
                         </div>
@@ -366,32 +346,33 @@ export default function HorariosPage() {
                 <section className="card schedule-card schedule-card--exceptions">
                     <div className="card__header schedule-card__header">
                         <h2 className="card__title">Bloqueos y excepciones</h2>
-                        <p className="schedule-card__hint">Registra dias libres o aperturas extra sin tocar el horario semanal.</p>
+                        <p className="schedule-card__hint">Dias libres o aperturas extra.</p>
                     </div>
                     <div className="card__body schedule-exception-list">
                         {exceptions.length === 0 ? (
                             <div className="schedule-empty">
                                 <Icon name="calendar" size={18} />
-                                <p>No hay excepciones programadas</p>
+                                <p>Sin excepciones programadas</p>
                             </div>
                         ) : (
                             <div className="schedule-exception-items">
-                                {exceptions.map((ex) => (
-                                    <article key={ex.id} className={`schedule-exception-item ${ex.is_available ? 'is-available' : 'is-blocked'}`}>
+                                {exceptions.map((exception) => (
+                                    <article key={exception.id} className={`schedule-exception-item ${exception.is_available ? 'is-available' : 'is-blocked'}`}>
                                         <div className="schedule-exception-item__content">
                                             <div className="schedule-exception-item__date">
-                                                {new Date(ex.exception_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {new Date(`${exception.exception_date}T12:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
                                             </div>
-                                            {ex.reason && <div className="schedule-exception-item__reason">{ex.reason}</div>}
+                                            {exception.reason && <div className="schedule-exception-item__reason">{exception.reason}</div>}
                                         </div>
                                         <div className="schedule-exception-item__actions">
-                                            <span className={`badge ${ex.is_available ? 'badge--confirmed' : 'badge--warning'}`}>
-                                                {ex.is_available ? 'Disponible' : 'No disponible'}
+                                            <span className={`badge ${exception.is_available ? 'badge--confirmed' : 'badge--warning'}`}>
+                                                {exception.is_available ? 'Disponible' : 'No disponible'}
                                             </span>
                                             <button
-                                                onClick={() => deleteException(ex.id)}
+                                                onClick={() => deleteException(exception.id)}
                                                 className="schedule-exception-item__remove"
                                                 aria-label="Eliminar excepcion"
+                                                disabled={deleteExceptionM.isPending}
                                             >
                                                 <Icon name="close" size={12} />
                                             </button>
@@ -406,28 +387,32 @@ export default function HorariosPage() {
                             <div className="form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Desde</label>
-                                    <input type="date" className="form-input" value={newException.start_date} onChange={(e) => setNewException({ ...newException, start_date: e.target.value })} />
+                                    <input type="date" className="form-input" value={newException.start_date} onChange={(event) => setNewException({ ...newException, start_date: event.target.value })} />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Hasta (opcional)</label>
-                                    <input type="date" className="form-input" value={newException.end_date} onChange={(e) => setNewException({ ...newException, end_date: e.target.value })} min={newException.start_date} />
+                                    <input type="date" className="form-input" value={newException.end_date} onChange={(event) => setNewException({ ...newException, end_date: event.target.value })} min={newException.start_date} />
                                 </div>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Motivo</label>
-                                <input className="form-input" placeholder="Ej: Vacaciones" value={newException.reason} onChange={(e) => setNewException({ ...newException, reason: e.target.value })} />
+                                <input className="form-input" placeholder="Ej: Vacaciones" value={newException.reason} onChange={(event) => setNewException({ ...newException, reason: event.target.value })} />
                             </div>
 
                             <div className="form-group schedule-exception-builder__checkbox">
                                 <label className="form-checkbox-label">
-                                    <input type="checkbox" checked={newException.is_available} onChange={(e) => setNewException({ ...newException, is_available: e.target.checked })} />
+                                    <input type="checkbox" checked={newException.is_available} onChange={(event) => setNewException({ ...newException, is_available: event.target.checked })} />
                                     <span>Disponibilidad extra (no dia libre)</span>
                                 </label>
                             </div>
 
-                            <button className="btn btn--primary schedule-exception-builder__submit" onClick={addException}>
-                                <Icon name="plus" size={14} />
+                            <button
+                                className="btn btn--primary schedule-exception-builder__submit"
+                                onClick={addException}
+                                disabled={createExceptionM.isPending}
+                            >
+                                {createExceptionM.isPending ? <div className="spinner" style={{width: 14, height: 14, borderColor:'white', borderBottomColor: 'transparent'}}/> : <Icon name="plus" size={14} />}
                                 Anadir excepcion
                             </button>
                         </div>

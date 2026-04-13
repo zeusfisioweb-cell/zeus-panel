@@ -2,29 +2,34 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
 import type { Professional } from '@/lib/types';
 import { toDbDayOfWeek, toUiDayOfWeek } from '@/lib/types';
-import { useProfesionales, useCreateProfesional, useUpdateProfesional, useDeleteProfesional } from '@/hooks/useProfesionales';
-import { useServicios, useCategorias } from '@/hooks/useServicios';
+import { useCreateProfesional, useDeleteProfesional, useProfesionales, useUpdateProfesional } from '@/hooks/useProfesionales';
+import { useCategorias, useServicios } from '@/hooks/useServicios';
 
 import ConfirmModal from '@/components/ConfirmModal';
 import { ProfesionalesHeader } from './components/ProfesionalesHeader';
+import { ProfessionalFormData, ProfessionalFormModal, ScheduleMap } from './components/ProfessionalFormModal';
 import { ProfesionalesTable } from './components/ProfesionalesTable';
-import { ProfessionalFormModal, ScheduleMap, ProfessionalFormData } from './components/ProfessionalFormModal';
+
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
 
 export default function ProfesionalesPage() {
-    // Queries
     const { data: professionals = [], isLoading: isLoadingPros, refetch: refetchPros } = useProfesionales();
     const { data: services = [], isLoading: isLoadingServices } = useServicios();
     const { data: categories = [], isLoading: isLoadingCategories } = useCategorias();
 
-    // Mutations
     const createProfesional = useCreateProfesional();
     const updateProfesional = useUpdateProfesional();
     const deleteProfesional = useDeleteProfesional();
 
-    // Local State
     const [showModal, setShowModal] = useState(false);
     const [editingProf, setEditingProf] = useState<Professional | null>(null);
     const [initialSchedule, setInitialSchedule] = useState<ScheduleMap | null>(null);
@@ -35,14 +40,13 @@ export default function ProfesionalesPage() {
     const handleOpenNew = () => {
         setEditingProf(null);
 
-        // Define default schedule (0=Lunes..6=Domingo)
         const defaultMap: ScheduleMap = {};
-        [0, 1, 2, 3, 4, 5, 6].forEach(day => {
+        [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
             defaultMap[day] = {
                 active: day >= 0 && day <= 4,
                 slots: day >= 0 && day <= 4
                     ? [{ start: '09:00', end: '14:00' }, { start: '16:00', end: '19:00' }]
-                    : []
+                    : [],
             };
         });
 
@@ -50,43 +54,50 @@ export default function ProfesionalesPage() {
         setShowModal(true);
     };
 
-    const handleOpenEdit = async (prof: Professional) => {
-        setEditingProf(prof);
+    const handleOpenEdit = async (professional: Professional) => {
+        setEditingProf(professional);
 
-        const supabase = createClient();
-
-        // Load existing schedule
         try {
-            const { data: slots } = await supabase
-                .from('schedule_slots')
-                .select('*')
-                .eq('professional_id', prof.id);
+            const response = await fetch(`/api/admin/professionals/${encodeURIComponent(professional.id)}/schedule`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            const slots = (await response.json()) as Array<{
+                day_of_week: number;
+                start_time: string;
+                end_time: string;
+            }>;
 
             const newMap: ScheduleMap = {};
-            [0, 1, 2, 3, 4, 5, 6].forEach(key => {
+            [0, 1, 2, 3, 4, 5, 6].forEach((key) => {
                 newMap[key] = { active: false, slots: [] };
             });
 
-            if (slots && slots.length > 0) {
-                slots.forEach((slot: { day_of_week: number; start_time: string; end_time: string }) => {
+            if (slots.length > 0) {
+                slots.forEach((slot) => {
                     const day = toUiDayOfWeek(slot.day_of_week);
                     if (day === null) return;
+
                     newMap[day].active = true;
                     newMap[day].slots.push({
                         start: slot.start_time.substring(0, 5),
-                        end: slot.end_time.substring(0, 5)
+                        end: slot.end_time.substring(0, 5),
                     });
                 });
 
-                // Sort slots
-                Object.keys(newMap).forEach(k => {
-                    newMap[Number(k)].slots.sort((a, b) => a.start.localeCompare(b.start));
+                Object.keys(newMap).forEach((key) => {
+                    newMap[Number(key)].slots.sort((a, b) => a.start.localeCompare(b.start));
                 });
             } else {
-                [0, 1, 2, 3, 4, 5, 6].forEach(key => {
+                [0, 1, 2, 3, 4, 5, 6].forEach((key) => {
                     newMap[key] = {
                         active: false,
-                        slots: [{ start: '09:00', end: '14:00' }, { start: '16:00', end: '19:00' }]
+                        slots: [{ start: '09:00', end: '14:00' }, { start: '16:00', end: '19:00' }],
                     };
                 });
             }
@@ -98,75 +109,36 @@ export default function ProfesionalesPage() {
         }
     };
 
-    const handleDeleteRequest = async (id: string) => {
-        const supabase = createClient();
-
-        try {
-            const { count } = await supabase
-                .from('appointments')
-                .select('id', { count: 'exact', head: true })
-                .eq('professional_id', id)
-                .in('status', ['pending', 'confirmed'])
-                .gte('start_time', new Date().toISOString());
-
-            const msg = count && count > 0
-                ? `Este profesional tiene ${count} cita(s) futuras que quedarán sin asignar. ¿Continuar eliminación?`
-                : '¿Seguro que deseas eliminar este profesional permanentemente?';
-
-            setConfirmAction({
-                title: 'Eliminar Profesional',
-                message: msg,
-                onConfirm: async () => {
-                    setConfirmAction(null);
-                    try {
-                        if (count && count > 0) {
-                            await supabase.from('appointments')
-                                .update({ professional_id: null })
-                                .eq('professional_id', id)
-                                .in('status', ['pending', 'confirmed'])
-                                .gte('start_time', new Date().toISOString());
-                        }
-
-                        await supabase.from('schedule_slots').delete().eq('professional_id', id);
-                        await deleteProfesional.mutateAsync(id);
-
+    const handleDeleteRequest = (id: string) => {
+        setConfirmAction({
+            title: 'Eliminar profesional',
+            message: 'Seguro que deseas eliminar este profesional? Si tiene citas futuras, se desasignaran automaticamente.',
+            onConfirm: async () => {
+                setConfirmAction(null);
+                try {
+                    const result = await deleteProfesional.mutateAsync(id);
+                    if (result.reassignedAppointments > 0) {
+                        toast.success(`Profesional eliminado. Citas desasignadas: ${result.reassignedAppointments}`);
+                    } else {
                         toast.success('Profesional eliminado correctamente');
-                    } catch (error: unknown) {
-                        const msg = error instanceof Error ? error.message : 'Error desconocido';
-                        toast.error('No se pudo eliminar: ' + msg);
                     }
+                } catch (error: unknown) {
+                    const message = error instanceof Error ? error.message : 'Error desconocido';
+                    toast.error(`No se pudo eliminar: ${message}`);
                 }
-            });
-        } catch (error: unknown) {
-            const errMsg = error instanceof Error ? error.message : 'Error desconocido';
-            toast.error('Error al verificar citas: ' + errMsg);
-        }
+            },
+        });
     };
 
     const handleCreateProfesional = async (data: ProfessionalFormData, scheduleMap: ScheduleMap) => {
         try {
-            // Create auth user + profile + professional + services via hook (uses API route)
-            const result = await createProfesional.mutateAsync({
-                email: data.email,
-                full_name: data.full_name,
-                specialty: data.specialty || '',
-                bio: data.bio || '',
-                color_code: data.color_code,
-                is_active: data.is_active,
-                serviceIds: data.selectedServices,
-            });
+            const scheduleSlots: Array<{ day_of_week: number; start_time: string; end_time: string }> = [];
 
-            const userId = result.user_id;
-
-            // Save schedule slots
-            const supabase = createClient();
-            const createSlots: { professional_id: string; day_of_week: number; start_time: string; end_time: string }[] = [];
-            Object.entries(scheduleMap).forEach(([dayStr, d]) => {
+            Object.entries(scheduleMap).forEach(([dayStr, dayData]) => {
                 const day = toDbDayOfWeek(Number(dayStr));
-                if (d.active) {
-                    d.slots.forEach(slot => {
-                        createSlots.push({
-                            professional_id: userId,
+                if (dayData.active) {
+                    dayData.slots.forEach((slot) => {
+                        scheduleSlots.push({
                             day_of_week: day,
                             start_time: `${slot.start}:00`,
                             end_time: `${slot.end}:00`,
@@ -174,23 +146,30 @@ export default function ProfesionalesPage() {
                     });
                 }
             });
-            if (createSlots.length > 0) {
-                await supabase.from('schedule_slots').insert(createSlots);
-            }
+
+            await createProfesional.mutateAsync({
+                email: data.email,
+                full_name: data.full_name,
+                specialty: data.specialty || '',
+                bio: data.bio || '',
+                color_code: data.color_code,
+                is_active: data.is_active,
+                serviceIds: data.selectedServices,
+                scheduleSlots,
+            });
 
             toast.success(`Profesional ${data.full_name} creado`);
             refetchPros();
             setShowModal(false);
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'Error desconocido';
-            toast.error('Error al guardar: ' + msg);
+            const message = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error(`Error al guardar: ${message}`);
             throw error;
         }
     };
 
     const handleUpdateProfesional = async (id: string, data: Partial<ProfessionalFormData>, scheduleMap: ScheduleMap) => {
         try {
-            // Update professional + profile + services via hook
             await updateProfesional.mutateAsync({
                 id,
                 full_name: data.full_name,
@@ -201,17 +180,12 @@ export default function ProfesionalesPage() {
                 serviceIds: data.selectedServices,
             });
 
-            // Save Schedule Slots
-            const supabase = createClient();
-            await supabase.from('schedule_slots').delete().eq('professional_id', id);
-
-            const newSlots: { professional_id: string; day_of_week: number; start_time: string; end_time: string }[] = [];
-            Object.entries(scheduleMap).forEach(([dayStr, d]) => {
+            const slots: Array<{ day_of_week: number; start_time: string; end_time: string }> = [];
+            Object.entries(scheduleMap).forEach(([dayStr, dayData]) => {
                 const day = toDbDayOfWeek(Number(dayStr));
-                if (d.active) {
-                    d.slots.forEach(slot => {
-                        newSlots.push({
-                            professional_id: id,
+                if (dayData.active) {
+                    dayData.slots.forEach((slot) => {
+                        slots.push({
                             day_of_week: day,
                             start_time: `${slot.start}:00`,
                             end_time: `${slot.end}:00`,
@@ -220,16 +194,23 @@ export default function ProfesionalesPage() {
                 }
             });
 
-            if (newSlots.length > 0) {
-                await supabase.from('schedule_slots').insert(newSlots);
+            const scheduleResponse = await fetch(`/api/admin/professionals/${encodeURIComponent(id)}/schedule`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ slots }),
+            });
+
+            if (!scheduleResponse.ok) {
+                throw new Error(await readApiError(scheduleResponse));
             }
 
             toast.success('Profesional actualizado');
             refetchPros();
             setShowModal(false);
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'Error desconocido';
-            toast.error('Error al actualizar: ' + msg);
+            const message = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error(`Error al actualizar: ${message}`);
             throw error;
         }
     };
@@ -243,13 +224,16 @@ export default function ProfesionalesPage() {
     }
 
     const activeCount = professionals.filter((professional) => professional.is_active).length;
+    const specialtiesCount = new Set(professionals.filter((p) => p.specialty).map((p) => p.specialty?.trim().toLowerCase())).size;
+    const totalServicesLinked = professionals.reduce((acc, p) => acc + (p.services?.length || 0), 0);
 
     return (
-        <div className="content-shell section-shell section-shell--profesionales animate-in fade-in duration-500">
+        <div className="content-shell section-shell flex flex-col gap-8 animate-in fade-in duration-500">
             <ProfesionalesHeader
                 total={professionals.length}
                 active={activeCount}
-                services={services.length}
+                specialties={specialtiesCount}
+                assignedServices={totalServicesLinked}
                 onNewProfesional={handleOpenNew}
             />
 

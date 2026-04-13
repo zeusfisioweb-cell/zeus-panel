@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ModalProps {
@@ -9,10 +9,21 @@ interface ModalProps {
     title: string;
     children: React.ReactNode;
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full';
+    bodyClassName?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: ModalProps) {
+export function Modal({
+    isOpen,
+    onClose,
+    title,
+    children,
+    maxWidth = 'md',
+    bodyClassName = '',
+}: ModalProps) {
     const [mounted, setMounted] = useState(false);
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+    const titleId = React.useId();
 
     useEffect(() => {
         setMounted(true);
@@ -20,6 +31,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: Mod
 
     useEffect(() => {
         if (isOpen) {
+            previousFocusRef.current = document.activeElement as HTMLElement | null;
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -29,19 +41,66 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: Mod
         };
     }, [isOpen]);
 
-    if (!mounted || !isOpen) return null;
+    useEffect(() => {
+        if (!isOpen) return;
 
-    const maxWidthClasses = {
-        sm: 'max-w-sm',
-        md: 'max-w-md',
-        lg: 'max-w-lg',
-        xl: 'max-w-xl',
-        '2xl': 'max-w-2xl',
-        '3xl': 'max-w-3xl',
-        '4xl': 'max-w-4xl',
-        '5xl': 'max-w-5xl',
-        full: 'max-w-full m-4'
-    };
+        const dialogNode = dialogRef.current;
+        if (!dialogNode) return;
+
+        const selector =
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+        const focusables = Array.from(dialogNode.querySelectorAll<HTMLElement>(selector)).filter(
+            (node) => !node.hasAttribute('disabled') && node.getAttribute('aria-hidden') !== 'true'
+        );
+
+        if (focusables.length > 0) {
+            focusables[0].focus();
+        } else {
+            dialogNode.focus();
+        }
+
+        const handleKeydown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const currentFocusables = Array.from(dialogNode.querySelectorAll<HTMLElement>(selector)).filter(
+                (node) => !node.hasAttribute('disabled') && node.getAttribute('aria-hidden') !== 'true'
+            );
+
+            if (currentFocusables.length === 0) {
+                event.preventDefault();
+                dialogNode.focus();
+                return;
+            }
+
+            const first = currentFocusables[0];
+            const last = currentFocusables[currentFocusables.length - 1];
+            const activeElement = document.activeElement as HTMLElement | null;
+
+            if (event.shiftKey && activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeydown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeydown);
+            previousFocusRef.current?.focus();
+        };
+    }, [isOpen, onClose]);
+
+    if (!mounted || !isOpen) return null;
 
     return createPortal(
         <div className="modal-overlay">
@@ -53,14 +112,16 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: Mod
 
             {/* Modal Content */}
             <div
+                ref={dialogRef}
                 className={`modal modal--${maxWidth}`}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="modal-title"
+                aria-labelledby={titleId}
+                tabIndex={-1}
             >
                 {/* Header */}
                 <div className="modal__header">
-                    <h2 id="modal-title" className="modal__title">
+                    <h2 id={titleId} className="modal__title">
                         {title}
                     </h2>
                     <button
@@ -75,7 +136,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'md' }: Mod
                 </div>
 
                 {/* Body (scrollable) */}
-                <div className="modal__body">
+                <div className={`modal__body ${bodyClassName}`.trim()}>
                     {children}
                 </div>
             </div>

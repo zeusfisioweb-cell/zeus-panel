@@ -1,8 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { PieChart, Pie, Cell, Tooltip } from 'recharts';
-import Icon from '@/components/Icon';
+import React from 'react';
 import Link from 'next/link';
 
 interface SessionBreakdownItem {
@@ -11,132 +9,129 @@ interface SessionBreakdownItem {
     color: string;
 }
 
-interface DashboardChartsProps {
-    sessionBreakdown: SessionBreakdownItem[];
-    pendingCount: number;
+interface StatusBreakdownItem {
+    key: string;
+    name: string;
+    value: number;
+    color: string;
 }
 
-export function DashboardCharts({ sessionBreakdown, pendingCount }: DashboardChartsProps) {
-    const totalSessions = sessionBreakdown.reduce((acc, curr) => acc + curr.value, 0);
-    const pieShellRef = useRef<HTMLDivElement | null>(null);
-    const [pieWidth, setPieWidth] = useState(0);
-    const chartWidth = Math.max(220, Math.min(420, pieWidth));
+interface DashboardChartsProps {
+    sessionBreakdown: SessionBreakdownItem[];
+    statusBreakdown: StatusBreakdownItem[];
+    pendingCount: number;
+    totalActionableCount: number;
+    globalTotalSessions: number;
+}
 
-    useEffect(() => {
-        const node = pieShellRef.current;
-        if (!node) return;
+export function DashboardCharts({
+    sessionBreakdown,
+    statusBreakdown,
+    pendingCount,
+    totalActionableCount,
+    globalTotalSessions,
+}: DashboardChartsProps) {
+    const topServices = [...sessionBreakdown]
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 4);
+    const rankedStatuses = [...statusBreakdown].sort((a, b) => b.value - a.value);
+    const visibleStatuses = rankedStatuses.some((status) => status.value > 0)
+        ? rankedStatuses.filter((status) => status.value > 0)
+        : rankedStatuses;
 
-        const updateWidth = () => {
-            const measured = Math.floor(node.clientWidth || 0);
-            setPieWidth(measured);
-        };
-
-        updateWidth();
-
-        if (typeof ResizeObserver === 'undefined') return;
-        const observer = new ResizeObserver(() => updateWidth());
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, []);
+    const formatPercent = (value: number) => {
+        if (globalTotalSessions <= 0) return '0%';
+        return `${Math.round((value / globalTotalSessions) * 100)}%`;
+    };
 
     return (
-        <div className="chart-grid">
-            <div className="card chart-card chart-card--distribution animate-in fade-in zoom-in-95 duration-500">
-                <div className="card__header">
-                    <h2 className="card__title">Distribucion de sesiones</h2>
+        <section className="summary-v5-panel summary-v5-panel--insight">
+            <div className="summary-v5-panel__header">
+                <div>
+                    <h2 className="summary-v5-panel__title">Resumen operativo</h2>
+                    <p className="summary-v5-panel__hint">Datos clave sin ruido visual</p>
                 </div>
-                <div className="card__body">
-                    <div className="chart-pie-shell" ref={pieShellRef}>
-                        {sessionBreakdown.length > 0 ? (
-                            <>
-                                {pieWidth > 0 ? (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center' }}>
-                                        <PieChart width={chartWidth} height={236}>
-                                            <Pie
-                                                data={sessionBreakdown}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={82}
-                                                paddingAngle={4}
-                                                dataKey="value"
-                                                stroke="none"
-                                            >
-                                                {sessionBreakdown.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                contentStyle={{ borderRadius: 10, border: 'none', boxShadow: 'var(--shadow-md)' }}
-                                                itemStyle={{ color: 'var(--text-main)', fontWeight: 600 }}
-                                            />
-                                        </PieChart>
-                                    </div>
-                                ) : (
-                                    <div className="chart-empty-state">Cargando grafico...</div>
-                                )}
+            </div>
 
-                                <div className="chart-center">
-                                    <div className="chart-center__value">{totalSessions}</div>
-                                    <div className="chart-center__label">Sesiones</div>
+            <div className="summary-v5-insight">
+                <div className="summary-v5-insight__mini-grid">
+                    <article className="summary-v5-mini-chart">
+                        <p className="summary-v5-mini-chart__title">Actividad acumulada</p>
+                        <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--sum-text)' }}>
+                            {globalTotalSessions}
+                        </p>
+                        <p className="summary-v5-note">sesiones historicas registradas</p>
+                    </article>
+
+                    <article className="summary-v5-mini-chart">
+                        <p className="summary-v5-mini-chart__title">Prioridad del dia</p>
+                        <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--sum-text)' }}>
+                            {pendingCount}
+                        </p>
+                        <p className="summary-v5-note">
+                            {pendingCount > 0 ? 'pendientes por confirmar' : 'sin pendientes'}
+                        </p>
+                    </article>
+                </div>
+
+                <div>
+                    <p className="summary-v5-mini-chart__title">Top servicios</p>
+                    <div className="summary-v5-legend">
+                        {topServices.length > 0 ? (
+                            topServices.map((item) => (
+                                <div key={item.name} className="summary-v5-legend__item">
+                                    <span className="summary-v5-legend__dot" style={{ backgroundColor: item.color }} />
+                                    <span className="summary-v5-legend__name">{item.name}</span>
+                                    <span className="summary-v5-legend__value">{formatPercent(item.value)}</span>
                                 </div>
-                            </>
+                            ))
                         ) : (
-                            <div className="chart-empty-state">
-                                Sin sesiones en este periodo
+                            <div className="summary-v5-legend__item">
+                                <span className="summary-v5-legend__dot" style={{ backgroundColor: '#c0c4cc' }} />
+                                <span className="summary-v5-legend__name">Sin datos historicos</span>
+                                <span className="summary-v5-legend__value">0%</span>
                             </div>
                         )}
                     </div>
+                </div>
 
-                    {sessionBreakdown.length > 0 && (
-                        <div className="chart-mini-list">
-                            {sessionBreakdown.slice(0, 3).map((item, i) => (
-                                <div
-                                    key={i}
-                                    className="chart-mini-item"
-                                    style={{ '--chart-accent': item.color } as React.CSSProperties}
-                                >
-                                    <div className="chart-mini-item__name">{item.name.substring(0, 14)}</div>
-                                    <div className="chart-mini-item__percent">
-                                        {Math.round((item.value / totalSessions) * 100)}%
-                                    </div>
-                                </div>
-                            ))}
+                <div>
+                    <p className="summary-v5-mini-chart__title">Estados de cita</p>
+                    <div className="summary-v5-legend">
+                        {visibleStatuses.map((status) => (
+                            <div key={status.key} className="summary-v5-legend__item">
+                                <span className="summary-v5-legend__dot" style={{ backgroundColor: status.color }} />
+                                <span className="summary-v5-legend__name">{status.name}</span>
+                                <span className="summary-v5-legend__value">{status.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {pendingCount > 0 ? (
+                    <Link href="/citas?status=pending" style={{ textDecoration: 'none' }}>
+                        <div className="summary-v5-alert summary-v5-alert--warning summary-v5-alert--interactive">
+                            {pendingCount} pendientes por confirmar <span style={{ fontSize: '10px' }}>(ver)</span>
                         </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="card chart-card chart-card--attention">
-                <div className="card__header">
-                    <h2 className="card__title">Requiere atencion</h2>
-                </div>
-                <div className="card__body">
-                    <div className="attention-list">
-                        {pendingCount > 0 && (
-                            <div className="attention-item">
-                                <div className="attention-item__icon attention-item__icon--alert">
-                                    <Icon name="calendar" size={18} />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <p className="attention-item__title">{pendingCount} citas pendientes</p>
-                                    <p className="attention-item__text">Requieren confirmacion manual</p>
-                                </div>
-                                <Link href="/citas" className="btn btn--sm btn--primary">Revisar</Link>
-                            </div>
-                        )}
-
-                        {pendingCount === 0 && (
-                            <div className="empty-state attention-empty-state">
-                                <div className="attention-empty-state__icon">
-                                    <Icon name="check" size={32} style={{ color: 'var(--success)' }} />
-                                </div>
-                                Todo al dia
-                            </div>
-                        )}
+                    </Link>
+                ) : (
+                    <div className="summary-v5-alert summary-v5-alert--ok">
+                        Operacion estable
                     </div>
+                )}
+
+                <p className="summary-v5-note">
+                    {pendingCount > 0
+                        ? `Confirma pendientes para proteger ${totalActionableCount} citas accionables del dia.`
+                        : `${totalActionableCount} citas accionables en seguimiento.`}
+                </p>
+
+                <div className="summary-v5-actions">
+                    <Link href="/citas" className="btn btn--primary">
+                        Abrir agenda completa
+                    </Link>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }

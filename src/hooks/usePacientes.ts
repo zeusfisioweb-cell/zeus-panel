@@ -1,107 +1,111 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Patient } from '@/lib/types';
-import { logAuditEvent } from '@/lib/audit';
-import { PatientSchema, PatientUpdateSchema } from '@/lib/schemas';
 
 export const PATIENTS_QUERY_KEY = ['pacientes'];
 
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
+
 export function usePacientes(options?: { searchTerm?: string; page?: number; pageSize?: number }) {
-    const supabase = createClient();
     const { searchTerm = '', page = 1, pageSize = 50 } = options || {};
 
     return useQuery({
-        // Incluimos opciones en el queryKey para que react-query re-ejecute y cachee por separado
         queryKey: [...PATIENTS_QUERY_KEY, { searchTerm, page, pageSize }],
         queryFn: async () => {
-            let query = supabase
-                .from('patients')
-                .select('*', { count: 'exact' });
+            const params = new URLSearchParams({
+                search: searchTerm,
+                page: String(page),
+                pageSize: String(pageSize),
+            });
 
-            if (searchTerm) {
-                // Buscamos coincidencia parcial en nombre, apellido o rut
-                query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,rut.ilike.%${searchTerm}%`);
+            const response = await fetch(`/api/admin/patients?${params.toString()}`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
             }
 
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
-
-            const { data, count, error } = await query
-                .order('first_name')
-                .range(from, to);
-
-            if (error) throw error;
-            return { data: data as Patient[], count: count || 0 };
+            const payload = (await response.json()) as { data: Patient[]; count: number };
+            return {
+                data: payload.data ?? [],
+                count: payload.count ?? 0,
+            };
         },
     });
 }
 
 export function useCreatePaciente() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (newPatient: Omit<Patient, 'id' | 'created_at' | 'updated_at'>) => {
-            PatientSchema.parse(newPatient);
+            const response = await fetch('/api/admin/patients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(newPatient),
+            });
 
-            const { data, error } = await supabase
-                .from('patients')
-                .insert([newPatient])
-                .select()
-                .single();
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
 
-            if (error) throw error;
-            return data;
+            return (await response.json()) as Patient;
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
-            logAuditEvent({ action: 'CREATE', table_name: 'patients', record_id: data.id });
         },
     });
 }
 
 export function useUpdatePaciente() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async ({ id, ...updateData }: Partial<Patient> & { id: string }) => {
-            PatientUpdateSchema.parse(updateData);
+            const response = await fetch('/api/admin/patients', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id, ...updateData }),
+            });
 
-            const { data, error } = await supabase
-                .from('patients')
-                .update(updateData)
-                .eq('id', id)
-                .select()
-                .single();
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
 
-            if (error) throw error;
-            return data;
+            return (await response.json()) as Patient;
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
-            logAuditEvent({ action: 'UPDATE', table_name: 'patients', record_id: data.id });
         },
     });
 }
 
 export function useDeletePaciente() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (id: string) => {
-            // Uses a PostgreSQL RPC function that runs as a single transaction.
-            // Cascades: clinical_records → delete, consent_records → delete,
-            // appointments → patient_id set to NULL (history preserved), patient → delete.
-            const { error } = await supabase
-                .rpc('delete_patient_cascade', { p_id: id });
+            const response = await fetch(`/api/admin/patients/${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
         },
-        onSuccess: (_, id) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
-            logAuditEvent({ action: 'DELETE', table_name: 'patients', record_id: id });
         },
     });
 }

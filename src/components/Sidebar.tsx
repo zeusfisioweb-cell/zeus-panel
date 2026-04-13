@@ -25,15 +25,29 @@ export default function Sidebar() {
         const { count } = await supabase
             .from('appointments')
             .select('id', { count: 'exact' })
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .is('deleted_at' as never, null); // future-proofing
         setPendingCount(count || 0);
     }, [supabase]);
 
     useEffect(() => {
+        // Initial load
         loadPending();
-        const interval = setInterval(loadPending, 60_000);
-        return () => clearInterval(interval);
-    }, [loadPending]);
+
+        // Real-time subscription instead of polling — updates instantly on any appointment change
+        const channel = supabase
+            .channel('sidebar-pending')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+                void loadPending();
+            })
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    // loadPending and supabase are stable (useCallback + useState)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         setMobileOpen(false);
@@ -64,6 +78,7 @@ export default function Sidebar() {
         <>
             <button
                 className="sidebar-mobile-toggle"
+                type="button"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Abrir menu"
             >
@@ -88,11 +103,20 @@ export default function Sidebar() {
                     </div>
                     <button
                         className="sidebar__close-mobile"
+                        type="button"
                         onClick={() => setMobileOpen(false)}
                         aria-label="Cerrar menu"
                     >
                         <Icon name="close" size={18} />
                     </button>
+                </div>
+
+                <div className="sidebar__overview">
+                    <span className="sidebar__overview-label">Operacion</span>
+                    <strong className="sidebar__overview-title">Control diario</strong>
+                    <span className="sidebar__overview-meta">
+                        {pendingCount > 0 ? `${pendingCount} pendientes` : 'Sin pendientes'}
+                    </span>
                 </div>
 
                 <nav className="sidebar__nav">
@@ -120,7 +144,7 @@ export default function Sidebar() {
                                     <span className="sidebar__link-icon">
                                         <Icon name={item.icon} size={18} />
                                     </span>
-                                    {item.label}
+                                    <span className="sidebar__link-label">{item.label}</span>
                                     {hasBadge && (
                                         <span className="sidebar__badge" aria-label={`${pendingCount} citas pendientes`}>
                                             {pendingCount > 9 ? '9+' : pendingCount}
@@ -148,9 +172,11 @@ export default function Sidebar() {
                             </div>
                         </div>
                         <button
+                            type="button"
                             onClick={signOut}
                             className="sidebar__logout-icon"
                             title="Cerrar sesion"
+                            aria-label="Cerrar sesion"
                         >
                             <Icon name="logout" size={16} />
                         </button>

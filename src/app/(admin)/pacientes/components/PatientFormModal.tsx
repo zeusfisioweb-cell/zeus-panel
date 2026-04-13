@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -27,6 +27,11 @@ export const patientFormSchema = z.object({
     path: ["email"],
 });
 
+export const patientCreateFormSchema = patientFormSchema.refine(data => data.gdpr_consent === true, {
+    message: "El consentimiento RGPD es obligatorio para registrar un nuevo paciente",
+    path: ["gdpr_consent"],
+});
+
 export type PatientFormData = z.infer<typeof patientFormSchema>;
 
 interface PatientFormModalProps {
@@ -39,8 +44,10 @@ interface PatientFormModalProps {
 export function PatientFormModal({ isOpen, onClose, editing, onSubmit }: PatientFormModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const schema = editing ? patientFormSchema : patientCreateFormSchema;
+
     const { register, handleSubmit: hookFormSubmit, reset, setFocus, formState: { errors } } = useForm<PatientFormData>({
-        resolver: zodResolver(patientFormSchema),
+        resolver: zodResolver(schema),
         defaultValues: {
             first_name: '',
             last_name: '',
@@ -92,7 +99,7 @@ export function PatientFormModal({ isOpen, onClose, editing, onSubmit }: Patient
         try {
             await onSubmit(data);
             onClose();
-        } catch (error) {
+        } catch {
             // Error managed by parent
         } finally {
             setIsSubmitting(false);
@@ -106,7 +113,7 @@ export function PatientFormModal({ isOpen, onClose, editing, onSubmit }: Patient
             title={editing ? 'Editar Paciente' : 'Añadir Nuevo Paciente'}
             maxWidth="2xl"
         >
-            <form onSubmit={hookFormSubmit(onValidSubmit, (err) => { toast.error('Por favor, revisa los errores en el formulario'); })} className="flex flex-col h-full max-h-[80vh]">
+            <form onSubmit={hookFormSubmit(onValidSubmit, () => { toast.error('Por favor, revisa los errores en el formulario'); })} className="flex flex-col h-full max-h-[80vh]">
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -173,14 +180,20 @@ export function PatientFormModal({ isOpen, onClose, editing, onSubmit }: Patient
                     </div>
 
                     <div className="pt-4 space-y-3">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                {...register('gdpr_consent')}
-                                className="mt-1 w-4 h-4 text-[var(--brand-main)] rounded border-gray-300 focus:ring-[var(--brand-main)]"
-                            />
-                            <span className="text-sm text-[var(--text-main)]">El paciente ha aceptado la política de privacidad (RGPD)</span>
-                        </label>
+                        <div>
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    {...register('gdpr_consent')}
+                                    className="mt-1 w-4 h-4 text-[var(--brand-main)] rounded border-gray-300 focus:ring-[var(--brand-main)]"
+                                />
+                                <span className="text-sm text-[var(--text-main)]">
+                                    El paciente ha aceptado la política de privacidad (RGPD)
+                                    {!editing && <span className="text-red-500"> *</span>}
+                                </span>
+                            </label>
+                            {errors.gdpr_consent && <span className="text-red-500 text-xs mt-1 block ml-7">{errors.gdpr_consent.message as string}</span>}
+                        </div>
                         <label className="flex items-start gap-3 cursor-pointer">
                             <input
                                 type="checkbox"

@@ -185,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         let mounted = true;
-        const SESSION_TIMEOUT_MS = 4000;
+        const SESSION_TIMEOUT_MS = 1800;
 
         // Fetch initial session manually in case onAuthStateChange misses it
         const initSession = async () => {
@@ -208,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                     const userFallback = await Promise.race([
                         supabase.auth.getUser(),
-                        new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 3000)),
+                        new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 1200)),
                     ]);
 
                     if (!mounted) return;
@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             async (event: string, session: Session | null) => {
                 if (!mounted) return;
 
-                console.log('[Auth] onAuthStateChange:', event, { hasSession: !!session });
+                // Auth state change tracked internally
 
                 // If manual bootstrap succeeded, ignore duplicated INITIAL_SESSION.
                 if (event === 'INITIAL_SESSION' && initialSessionResolvedRef.current) return;

@@ -1,68 +1,74 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Service, ServiceCategory } from '@/lib/types';
 import { ServiceSchema, ServiceUpdateSchema } from '@/lib/schemas';
 
 export const SERVICES_QUERY_KEY = ['servicios'];
 export const CATEGORIES_QUERY_KEY = ['categorias'];
 
-export function useCategorias() {
-    const supabase = createClient();
+async function readApiError(response: Response): Promise<string> {
+    try {
+        const body = (await response.json()) as { error?: string };
+        return body.error || 'Error de servidor';
+    } catch {
+        return 'Error de servidor';
+    }
+}
 
+export function useCategorias() {
     return useQuery({
         queryKey: CATEGORIES_QUERY_KEY,
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('service_categories')
-                .select('*')
-                .order('display_order');
+            const response = await fetch('/api/admin/service-categories', {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
 
-            if (error) throw error;
-            return data as ServiceCategory[];
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as ServiceCategory[];
         },
     });
 }
 
 export function useServicios() {
-    const supabase = createClient();
-
     return useQuery({
         queryKey: SERVICES_QUERY_KEY,
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('services')
-                .select(`
-                    *,
-                    category:service_categories (
-                        id,
-                        name,
-                        color
-                    )
-                `)
-                .order('name');
+            const response = await fetch('/api/admin/services', {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
 
-            if (error) throw error;
-            return data as Service[];
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Service[];
         },
     });
 }
 
 export function useCreateServicio() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (newService: Omit<Service, 'id' | 'created_at' | 'category'>) => {
             ServiceSchema.parse(newService);
 
-            const { data, error } = await supabase
-                .from('services')
-                .insert([newService])
-                .select()
-                .single();
+            const response = await fetch('/api/admin/services', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(newService),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Service;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
@@ -71,22 +77,24 @@ export function useCreateServicio() {
 }
 
 export function useUpdateServicio() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async ({ id, ...updateData }: Partial<Service> & { id: string }) => {
             ServiceUpdateSchema.parse(updateData);
 
-            const { data, error } = await supabase
-                .from('services')
-                .update(updateData)
-                .eq('id', id)
-                .select()
-                .single();
+            const response = await fetch('/api/admin/services', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id, ...updateData }),
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            return (await response.json()) as Service;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
@@ -95,17 +103,20 @@ export function useUpdateServicio() {
 }
 
 export function useDeleteServicio() {
-    const supabase = createClient();
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase
-                .from('services')
-                .delete()
-                .eq('id', id);
+            const response = await fetch('/api/admin/services', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ id }),
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
