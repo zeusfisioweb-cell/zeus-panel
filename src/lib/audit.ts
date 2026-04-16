@@ -1,8 +1,18 @@
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW';
+export type AuditTable =
+    | 'appointments'
+    | 'patients'
+    | 'clinical_records'
+    | 'professionals'
+    | 'services'
+    | 'service_categories'
+    | 'schedule_slots'
+    | 'schedule_exceptions'
+    | 'booking_settings';
 
 interface AuditEventParams {
     action: AuditAction;
-    table_name: string;
+    table_name: AuditTable;
     record_id: string;
     details?: Record<string, unknown>;
 }

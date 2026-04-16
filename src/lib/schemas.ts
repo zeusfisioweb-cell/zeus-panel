@@ -61,13 +61,12 @@ export const ProfessionalProfileSchema = z.object({
 // Hook-level schema (matches CreateProfessionalPayload)
 export const ProfessionalCreateSchema = z.object({
     email: z.string().email({ message: 'Correo electrónico inválido' }),
-    temp_password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
     full_name: z.string().min(3, { message: 'El nombre completo es requerido' }),
     specialty: z.string().optional().nullable(),
     bio: z.string().optional().nullable(),
     color_code: z.string().optional().nullable(),
     is_active: z.boolean().default(true).optional(),
-    service_ids: z.array(z.string()).optional(),
+    service_ids: z.array(z.string().min(1)).min(1, { message: 'Debe seleccionar al menos un servicio' }),
     schedule_slots: z.array(z.object({
         day_of_week: z.number().int().min(1).max(7),
         start_time: z.string().regex(timeRegex, { message: 'Formato de hora inválido' }),

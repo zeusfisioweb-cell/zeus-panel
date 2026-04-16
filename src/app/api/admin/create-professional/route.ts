@@ -1,24 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
-import { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
 import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
-
-interface CreateProfessionalBody {
-    email?: string;
-    first_name?: string;
-    last_name?: string;
-    full_name?: string;
-    specialty?: string | null;
-    bio?: string | null;
-    color_code?: string | null;
-    is_active?: boolean;
-    service_ids?: string[];
-    schedule_slots?: Array<{
-        day_of_week: number;
-        start_time: string;
-        end_time: string;
-    }>;
-}
+import { handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 
 // Initialize Supabase admin client (requires service role key)
 // This bypasses RLS and can create users in auth.users
@@ -40,23 +23,7 @@ function getAdminSupabase() {
 
 export async function POST(request: Request) {
     try {
-        // 1. Secure the endpoint: Verify the caller is authenticated and an owner
-        const supabase = await createServerSupabaseClient();
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return NextResponse.json({ error: 'Unauthorized: You must be logged in' }, { status: 401 });
-        }
-
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-        if (!profile || profile.role !== 'owner') {
-            return NextResponse.json({ error: 'Forbidden: Only owners can create professionals' }, { status: 403 });
-        }
+        const { supabase, userId: ownerUserId } = await requirePanelAccess({ ownerOnly: true });
 
         const adminAuthClient = getAdminSupabase();
 
@@ -68,13 +35,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Validación fallida', details: validation.errors }, { status: 400 });
         }
 
-        const validBody = validation.data;
-        const body: CreateProfessionalBody = { ...rawBody, ...validBody };
-
         const {
             email,
-            first_name,
-            last_name,
             full_name,
             specialty,
             bio,
@@ -82,17 +44,13 @@ export async function POST(request: Request) {
             is_active,
             service_ids,
             schedule_slots,
-        } = body;
+        } = validation.data;
 
         // Generate a secure temporary password server-side.
         // Never accept temp_password from the client to avoid exposure over the network.
         const tempPassword = `${crypto.randomUUID()}-${crypto.randomUUID()}`.slice(0, 32);
 
-        const normalizedFullName = (full_name || `${first_name || ''} ${last_name || ''}`).trim();
-
-        if (!normalizedFullName) {
-            return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
-        }
+        const normalizedFullName = full_name.trim();
 
         // 1. Create the user in auth.users
         const { data: authData, error: authError } = await adminAuthClient.auth.admin.createUser({
@@ -196,10 +154,19 @@ export async function POST(request: Request) {
             }
         }
 
+        await writeAuditLog({
+            supabase,
+            userId: ownerUserId,
+            action: 'CREATE',
+            tableName: 'professionals',
+            recordId: userId,
+            details: { email, service_count: service_ids.length },
+        });
+
         return NextResponse.json({ success: true, user_id: userId });
 
     } catch (error: unknown) {
         console.error('Error in create-professional API:', error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+        return handleApiError(error);
     }
 }

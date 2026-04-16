@@ -112,11 +112,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const doFetch = async (attempt: number): Promise<void> => {
             let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
             try {
-                const profilePromise = supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userId)
-                    .maybeSingle();
+                const profilePromise = fetch('/api/admin/profile', {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                }).then(async (response): Promise<{ data: Profile | null; error: Error | null }> => {
+                    if (!response.ok) {
+                        let message = `HTTP ${response.status}`;
+                        try {
+                            const body = (await response.json()) as { error?: string };
+                            message = body.error || message;
+                        } catch {
+                            // Keep the HTTP status as the error message.
+                        }
+
+                        return { data: null, error: new Error(message) };
+                    }
+
+                    return { data: (await response.json()) as Profile, error: null };
+                });
 
                 const timeoutPromise = new Promise<'timeout'>((resolve) => {
                     timeoutHandle = setTimeout(() => resolve('timeout'), PROFILE_TIMEOUT_MS);
@@ -181,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         fetchProfileRef.current = promise;
         await promise;
-    }, [supabase, writeCachedProfile]);
+    }, [writeCachedProfile]);
 
     useEffect(() => {
         let mounted = true;
