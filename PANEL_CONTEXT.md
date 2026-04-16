@@ -48,8 +48,10 @@ Backend interno:
 - Detalle de paciente filtra citas e historias clinicas por professional autenticado.
 - Accesibilidad inicial en modal de confirmacion, formulario de citas, panel de paciente y timeline.
 - Tests base con Vitest para schemas, helpers de fechas, errores, auditoria y RBAC.
+- Tests de route handlers anadidos para `401`, `403`, owner-only y errores de Supabase en `audit`, `booking-settings`, `profile` y `appointments/pending-count`.
 - CSP separada entre desarrollo y produccion en `next.config.ts`.
 - Dependencias no usadas eliminadas del `package.json`.
+- Migracion RLS aplicada en Supabase como `20260416212154_adapt_panel_rls_to_live_schema`.
 
 ## Verificacion Actual
 
@@ -89,14 +91,13 @@ panel/
 ## Pendiente Imprescindible
 
 1. Rotar en Supabase la `SUPABASE_SERVICE_ROLE_KEY` que estuvo versionada antes de la limpieza.
-2. Aplicar o adaptar la migracion `supabase/migrations/20260416172000_harden_panel_rls.sql` en entorno controlado.
-3. Probar en runtime con tres usuarios reales: owner, professional A y professional B.
-4. Confirmar que professional A no ve ni modifica pacientes, citas o fichas de professional B.
-5. Confirmar que `audit_logs` recibe filas reales al crear, editar, borrar y exportar.
-6. Anadir tests de route handlers para `401`, `403`, owner-only, profesional sin permisos y errores Supabase.
-7. Configurar Playwright para smoke e2e de login, dashboard, citas, pacientes, profesionales, servicios, horarios y configuracion.
-8. Corregir mojibake/copy pendiente: acentos, `clinica`, `sesion`, `contrasena`, textos largos y estados vacios.
-9. Revisar visualmente responsive en 390px, 768px, 1366px y 1920px.
+2. Probar en runtime con tres usuarios reales: owner, professional A y professional B.
+3. Confirmar que professional A no ve ni modifica pacientes, citas o fichas de professional B.
+4. Confirmar que `audit_logs` recibe filas reales al crear, editar, borrar y exportar.
+5. Extender tests de route handlers al resto de endpoints admin no cubiertos.
+6. Configurar Playwright para smoke e2e de login, dashboard, citas, pacientes, profesionales, servicios, horarios y configuracion.
+7. Corregir mojibake/copy pendiente: acentos, `clinica`, `sesion`, `contrasena`, textos largos y estados vacios.
+8. Revisar visualmente responsive en 390px, 768px, 1366px y 1920px.
 
 ## Criterio Para Reestructurar
 
