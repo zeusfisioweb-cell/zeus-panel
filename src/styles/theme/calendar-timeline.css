@@ -1,0 +1,603 @@
+/* ============================================================
+   ZEUS CLINIC CALENDAR — Day View v5
+   · Single timeline, color-coded by professional
+   · Week strip navigation
+   · Hours sticky-left, events right
+   · Warm Cream palette preserved
+   ============================================================ */
+
+/* ─── CSS Variables ─────────────────────────────────────────── */
+.zc-vcal {
+  --vc-bg:            #fffdf9;
+  --vc-bg-alt:        #f7f0e7;
+  --vc-bg-hover:      #f3ede3;
+  --vc-border:        #e8ddd0;
+  --vc-border-strong: #d5c3ae;
+  --vc-text:          #2e2317;
+  --vc-muted:         #7b6754;
+  --vc-faint:         #b5a898;
+  --vc-accent:        #b97734;
+  --vc-accent-soft:   rgba(185,119,52,0.10);
+  --vc-accent-mid:    rgba(185,119,52,0.22);
+  --vc-radius:        16px;
+
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  background: var(--vc-bg);
+  border-radius: var(--vc-radius);
+  overflow: visible;
+  border: 1px solid var(--vc-border);
+  box-shadow:
+    0 8px 32px -8px rgba(46,35,23,0.13),
+    0 1px 4px rgba(46,35,23,0.05);
+  font-family: inherit;
+}
+
+/* ─── Header ────────────────────────────────────────────────── */
+.zc-vcal__header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--vc-border);
+  background: linear-gradient(175deg, #ffffff 0%, var(--vc-bg) 100%);
+}
+
+.zc-vcal__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.zc-vcal__heading { display: flex; flex-direction: column; gap: 2px; }
+
+.zc-vcal__eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--vc-accent);
+}
+
+.zc-vcal__date-title {
+  margin: 0;
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.028em;
+  color: var(--vc-text);
+  text-transform: capitalize;
+  line-height: 1.1;
+}
+
+/* Controls row */
+.zc-vcal__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.zc-vcal__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--vc-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.zc-vcal__filter select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237b6754' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1px solid var(--vc-border);
+  border-radius: 9px;
+  color: var(--vc-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 26px 5px 10px;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.zc-vcal__filter select:hover { border-color: var(--vc-accent); }
+.zc-vcal__filter select:focus { border-color: var(--vc-accent); box-shadow: 0 0 0 3px var(--vc-accent-soft); }
+.zc-vcal__filter select option { background: #fff; color: var(--vc-text); }
+
+.zc-vcal__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--vc-border);
+  border-radius: 10px;
+  padding: 3px;
+  background: #fff;
+}
+.zc-vcal__nav button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--vc-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.zc-vcal__nav button:hover { background: var(--vc-bg-alt); color: var(--vc-text); }
+
+.zc-vcal__btn-today {
+  height: 34px;
+  padding: 0 14px;
+  border: 1.5px solid var(--vc-accent);
+  border-radius: 9px;
+  background: var(--vc-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s, transform 0.12s;
+}
+.zc-vcal__btn-today:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.zc-vcal__btn-today:active { transform: translateY(0) scale(0.98); }
+
+/* Metrics strip */
+.zc-vcal__metrics { display: flex; gap: 6px; flex-wrap: wrap; }
+.zc-vcal__metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--vc-border);
+  background: #fff;
+}
+.zc-vcal__metric span {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--vc-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.zc-vcal__metric strong { font-size: 20px; font-weight: 800; color: var(--vc-text); line-height: 1; }
+
+.zc-vcal__metric.is-confirmed { border-color: rgba(5,150,105,0.22); background: rgba(5,150,105,0.06); }
+.zc-vcal__metric.is-confirmed strong { color: #059669; }
+.zc-vcal__metric.is-pending   { border-color: rgba(217,119,6,0.24);  background: rgba(217,119,6,0.07); }
+.zc-vcal__metric.is-pending   strong { color: #d97706; }
+.zc-vcal__metric.is-muted     strong { color: var(--vc-muted); }
+.zc-vcal__metric.is-cancelled { border-color: rgba(220,38,38,0.2);   background: rgba(220,38,38,0.05); }
+.zc-vcal__metric.is-cancelled strong { color: #dc2626; }
+
+/* ─── Week strip ─────────────────────────────────────────────── */
+.zc-vcal__week-strip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--vc-border);
+  background: var(--vc-bg);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.zc-vcal__week-strip::-webkit-scrollbar { display: none; }
+
+.zc-vcal__week-day {
+  flex: 1;
+  min-width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-right: 1px solid var(--vc-border);
+  position: relative;
+  transition: background 0.14s;
+}
+.zc-vcal__week-day:last-child { border-right: none; }
+.zc-vcal__week-day:hover { background: var(--vc-bg-hover); }
+
+.zc-vcal__wday-name {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vc-faint);
+}
+.zc-vcal__wday-num {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--vc-muted);
+  letter-spacing: -0.02em;
+}
+.zc-vcal__wday-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--vc-bg-alt);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--vc-muted);
+  line-height: 1;
+  border: 1px solid var(--vc-border);
+}
+
+/* Today highlight */
+.zc-vcal__week-day.is-today .zc-vcal__wday-name { color: var(--vc-accent); }
+.zc-vcal__week-day.is-today .zc-vcal__wday-num  { color: var(--vc-accent); }
+
+/* Selected state */
+.zc-vcal__week-day.is-selected {
+  background: var(--vc-accent-soft);
+}
+.zc-vcal__week-day.is-selected::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 2.5px;
+  border-radius: 2px 2px 0 0;
+  background: var(--vc-accent);
+}
+.zc-vcal__week-day.is-selected .zc-vcal__wday-num {
+  color: var(--vc-accent);
+}
+.zc-vcal__week-day.is-selected .zc-vcal__wday-dot {
+  background: var(--vc-accent);
+  border-color: var(--vc-accent);
+  color: #fff;
+}
+
+/* ─── Professional Legend ────────────────────────────────────── */
+.zc-vcal__legend {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--vc-border);
+  background: var(--vc-bg);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-wrap: wrap;
+}
+.zc-vcal__legend::-webkit-scrollbar { display: none; }
+
+.zc-vcal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 7px;
+  border: 1.5px solid transparent;
+  border-radius: 99px;
+  background: var(--vc-bg-alt);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--vc-muted);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.zc-vcal__legend-item:hover {
+  background: rgba(var(--pc-rgb, 100,116,139), 0.10);
+  border-color: var(--lc, var(--vc-border));
+  color: var(--vc-text);
+}
+.zc-vcal__legend-item.is-active {
+  background: rgba(var(--pc-rgb, 100,116,139), 0.12);
+  border-color: var(--lc, #94a3b8);
+  color: var(--vc-text);
+}
+
+/*  We compute --pc-rgb inline only for hover — for simplicity we rely on
+    the CSS variable --lc set on each item via style prop */
+.zc-vcal__legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lc, #94a3b8);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+}
+.zc-vcal__legend-name { font-size: 11.5px; }
+
+/* ─── Calendar body (full-height, page handles scroll) ──────────── */
+.zc-vcal__body {
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  background: var(--vc-bg);
+  position: relative;
+}
+
+
+.zc-vcal__inner {
+  display: flex;
+  position: relative;
+}
+
+/* ─── Time Rail (sticky left) ───────────────────────────────── */
+.zc-vcal__time-rail {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  flex-shrink: 0;
+  background: rgba(255,253,249,0.96);
+  border-right: 1.5px solid var(--vc-border-strong);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.zc-vcal__hour {
+  position: absolute;
+  left: 0;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.zc-vcal__hour span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--vc-muted);
+  white-space: nowrap;
+}
+
+/* ─── Events area ───────────────────────────────────────────── */
+.zc-vcal__events-area {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+/* Grid lines */
+.zc-vcal__hline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(195,168,138,0.28);
+  pointer-events: none;
+  z-index: 0;
+}
+.zc-vcal__hline--half {
+  background: repeating-linear-gradient(
+    to right,
+    rgba(195,168,138,0.16) 0, rgba(195,168,138,0.16) 5px,
+    transparent 5px, transparent 10px
+  );
+}
+
+/* Slot buttons */
+.zc-vcal__slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 1;
+  transition: background 0.12s;
+}
+.zc-vcal__slot:hover { background: var(--vc-accent-soft); }
+
+/* ─── Events ────────────────────────────────────────────────── */
+.zc-vcal__event {
+  position: absolute;
+  z-index: 2;
+  overflow: hidden;
+  cursor: pointer;
+
+  /* Color from professional — CSS custom property --pc */
+  border-radius: 7px;
+  border-left: 3.5px solid var(--pc, #b97734);
+  background: rgba(var(--pc-rgb, 185,119,52), 0.085);
+  box-shadow:
+    0 1px 4px rgba(var(--pc-rgb, 185,119,52), 0.18),
+    0 0 0 1px rgba(var(--pc-rgb, 185,119,52), 0.14) inset;
+
+  padding: 4px 8px 4px 7px;
+  transition: transform 0.13s ease, box-shadow 0.13s ease, z-index 0s;
+  will-change: transform;
+}
+
+/* Subtle shimmer overlay */
+.zc-vcal__event::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, rgba(255,255,255,0.55) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.zc-vcal__event:hover {
+  transform: translateY(-1px) scale(1.012);
+  box-shadow:
+    0 6px 20px rgba(var(--pc-rgb, 185,119,52), 0.28),
+    0 0 0 1.5px rgba(var(--pc-rgb, 185,119,52), 0.30) inset;
+  z-index: 20;
+}
+.zc-vcal__event:active { transform: scale(0.98); }
+
+/* Status-specific overrides (just opacity for cancelled) */
+.zc-vcal__event.is-cancelled {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+
+/* Compact / tiny variants */
+.zc-vcal__event.is-compact { padding: 2px 6px 2px 6px; }
+.zc-vcal__event.is-tiny    { padding: 1px 5px; }
+.zc-vcal__event.is-compact .zc-vcal__evt-badge  { display: none; }
+.zc-vcal__event.is-compact .zc-vcal__evt-service { display: none; }
+.zc-vcal__event.is-compact .zc-vcal__evt-prof    { display: none; }
+.zc-vcal__event.is-tiny    .zc-vcal__evt-service { display: none; }
+.zc-vcal__event.is-tiny    .zc-vcal__evt-prof    { display: none; }
+
+/* Event content */
+.zc-vcal__evt-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 1px;
+}
+
+.zc-vcal__evt-time {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pc, var(--vc-muted));
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.zc-vcal__evt-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 13px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.zc-vcal__evt-badge.is-pending   { background: rgba(217,119,6,0.15);  color: #92400e; }
+.zc-vcal__evt-badge.is-confirmed { background: rgba(5,150,105,0.14);  color: #065f46; }
+.zc-vcal__evt-badge.is-completed { background: rgba(37,99,235,0.13);  color: #1e40af; }
+.zc-vcal__evt-badge.is-cancelled { background: rgba(220,38,38,0.12);  color: #991b1b; }
+
+.zc-vcal__evt-patient {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--vc-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.zc-vcal__evt-service,
+.zc-vcal__evt-prof {
+  margin: 1px 0 0;
+  font-size: 9.5px;
+  color: var(--vc-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.zc-vcal__evt-prof {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pc, var(--vc-muted));
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Now indicator ─────────────────────────────────────────── */
+.zc-vcal__now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.zc-vcal__now-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.22);
+  flex-shrink: 0;
+  margin-left: -4px;
+  animation: vc-pulse 2s ease-in-out infinite;
+}
+.zc-vcal__now-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(to right, #ef4444 0%, rgba(239,68,68,0.2) 100%);
+}
+
+@keyframes vc-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(239,68,68,0.20); }
+  50%       { box-shadow: 0 0 0 7px rgba(239,68,68,0.08); }
+}
+
+/* ─── Empty state ───────────────────────────────────────────── */
+.zc-vcal__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--vc-faint);
+  pointer-events: none;
+}
+.zc-vcal__empty p { font-size: 14px; font-weight: 600; margin: 0; }
+
+/* ─── Footer ────────────────────────────────────────────────── */
+.zc-vcal__footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  border-top: 1px solid var(--vc-border);
+  background: rgba(255,253,249,0.97);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vc-faint);
+}
+
+/* ─── Responsive ────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .zc-vcal__header { padding: 14px 16px 12px; }
+  .zc-vcal__date-title { font-size: 18px; }
+  .zc-vcal__legend { padding: 8px 14px; }
+}
+@media (max-width: 640px) {
+  .zc-vcal__metrics { display: none; }
+  .zc-vcal__eyebrow { display: none; }
+  .zc-vcal__legend  { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zc-vcal * { transition: none !important; animation: none !important; }
+}

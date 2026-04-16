@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { useEffect, useId, useRef } from 'react';
 import Icon from '@/components/Icon';
 
 interface ConfirmModalProps {
@@ -33,23 +34,98 @@ export default function ConfirmModal({
     onConfirm,
     onCancel,
 }: ConfirmModalProps) {
+    const titleId = useId();
+    const descriptionId = useId();
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const cancelButtonRef = useRef<HTMLButtonElement>(null);
+    const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+
+    useEffect(() => {
+        previouslyFocusedElementRef.current = document.activeElement as HTMLElement | null;
+        const dialogNode = dialogRef.current;
+        if (!dialogNode) return;
+
+        const raf = window.requestAnimationFrame(() => {
+            cancelButtonRef.current?.focus();
+            if (document.activeElement === document.body) {
+                dialogNode.focus();
+            }
+        });
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCancel();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const focusables = Array.from(
+                dialogNode.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                )
+            ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
+
+            if (focusables.length === 0) {
+                event.preventDefault();
+                dialogNode.focus();
+                return;
+            }
+
+            const firstFocusable = focusables[0];
+            const lastFocusable = focusables[focusables.length - 1];
+            const activeElement = document.activeElement as HTMLElement | null;
+
+            if (event.shiftKey && activeElement === firstFocusable) {
+                event.preventDefault();
+                lastFocusable.focus();
+            } else if (!event.shiftKey && activeElement === lastFocusable) {
+                event.preventDefault();
+                firstFocusable.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.cancelAnimationFrame(raf);
+            document.removeEventListener('keydown', handleKeyDown);
+            previouslyFocusedElementRef.current?.focus();
+        };
+    }, [onCancel]);
+
     return (
         <div className="modal-overlay" onClick={onCancel}>
-            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div
+                ref={dialogRef}
+                className="modal"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 420 }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
+                tabIndex={-1}
+            >
                 <div className="modal__header">
-                    <h3 className="modal__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 id={titleId} className="modal__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name={VARIANT_ICON[variant]} size={18} style={{ color: VARIANT_COLOR[variant] }} />
                         {title}
                     </h3>
-                    <button className="modal__close" onClick={onCancel}>
+                    <button className="modal__close" onClick={onCancel} aria-label="Cerrar dialogo">
                         <Icon name="close" size={18} />
                     </button>
                 </div>
                 <div className="modal__body">
-                    <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>{message}</p>
+                    <p id={descriptionId} style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                        {message}
+                    </p>
                 </div>
                 <div className="modal__footer">
-                    <button className="btn btn--secondary" onClick={onCancel}>{cancelLabel}</button>
+                    <button ref={cancelButtonRef} className="btn btn--secondary" onClick={onCancel}>
+                        {cancelLabel}
+                    </button>
                     <button
                         className={`btn btn--${variant}`}
                         onClick={onConfirm}

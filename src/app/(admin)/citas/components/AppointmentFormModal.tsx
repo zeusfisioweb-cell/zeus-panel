@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -87,6 +87,11 @@ export function AppointmentFormModal({
     const [showPatientDropdown, setShowPatientDropdown] = useState(false);
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const patientSearchId = useId();
+    const serviceSelectId = useId();
+    const professionalSelectId = useId();
+    const timeInputId = useId();
+    const notesInputId = useId();
 
     useEffect(() => {
         if (!isOpen) return;
@@ -190,12 +195,15 @@ export function AppointmentFormModal({
                         </header>
 
                         <div className="appointment-form__field appointment-form__field--search">
-                            <label className="appointment-form__label">Buscar paciente</label>
+                            <label className="appointment-form__label" htmlFor={patientSearchId}>
+                                Buscar paciente
+                            </label>
                             <div className="appointment-form__search-wrap">
                                 <span className="appointment-form__search-icon">
                                     <Icon name="search" size={16} />
                                 </span>
                                 <input
+                                    id={patientSearchId}
                                     ref={searchInputRef}
                                     className="form-input appointment-form__search-input"
                                     value={patientSearch}
@@ -285,8 +293,10 @@ export function AppointmentFormModal({
 
                         <div className="appointment-form__grid appointment-form__grid--2">
                             <div>
-                                <label className="appointment-form__label">Servicio *</label>
-                                <select className="form-input form-select" {...register('service_id')}>
+                                <label className="appointment-form__label" htmlFor={serviceSelectId}>
+                                    Servicio *
+                                </label>
+                                <select id={serviceSelectId} className="form-input form-select" {...register('service_id')}>
                                     <option value="" disabled>Seleccionar</option>
                                     {services.map((service) => (
                                         <option key={service.id} value={service.id}>
@@ -298,8 +308,11 @@ export function AppointmentFormModal({
                             </div>
 
                             <div>
-                                <label className="appointment-form__label">Profesional</label>
+                                <label className="appointment-form__label" htmlFor={professionalSelectId}>
+                                    Profesional
+                                </label>
                                 <select
+                                    id={professionalSelectId}
                                     className={`form-input form-select ${currentUserRole === 'professional' ? 'appointment-form__select--locked' : ''}`}
                                     {...register('professional_id')}
                                     disabled={currentUserRole === 'professional'}
@@ -326,14 +339,19 @@ export function AppointmentFormModal({
 
                         <div className="appointment-form__grid appointment-form__grid--2">
                             <div>
-                                <label className="appointment-form__label">Hora de inicio *</label>
-                                <input type="time" className="form-input" {...register('time')} />
+                                <label className="appointment-form__label" htmlFor={timeInputId}>
+                                    Hora de inicio *
+                                </label>
+                                <input id={timeInputId} type="time" className="form-input" {...register('time')} />
                                 {errors.time && <span className="appointment-form__error">{errors.time.message}</span>}
                             </div>
 
                             <div>
-                                <label className="appointment-form__label">Notas</label>
+                                <label className="appointment-form__label" htmlFor={notesInputId}>
+                                    Notas
+                                </label>
                                 <input
+                                    id={notesInputId}
                                     className="form-input"
                                     {...register('notes')}
                                     placeholder="Observaciones de la cita"

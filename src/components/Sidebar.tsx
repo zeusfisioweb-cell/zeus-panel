@@ -22,13 +22,16 @@ export default function Sidebar() {
     const [mobileOpen, setMobileOpen] = useState(false);
 
     const loadPending = useCallback(async () => {
-        const { count } = await supabase
-            .from('appointments')
-            .select('id', { count: 'exact' })
-            .eq('status', 'pending')
-            .is('deleted_at' as never, null); // future-proofing
-        setPendingCount(count || 0);
-    }, [supabase]);
+        const response = await fetch('/api/admin/appointments/pending-count', {
+            method: 'GET',
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) return;
+
+        const payload = (await response.json()) as { count?: number };
+        setPendingCount(payload.count ?? 0);
+    }, []);
 
     useEffect(() => {
         // Initial load

@@ -1,0 +1,1813 @@
+/* Global background unification for all admin routes */
+.admin-shell--modern,
+.modal-overlay {
+  --zeus-bg-top: #f6f2ea;
+  --zeus-bg-bottom: #e9decc;
+  --zeus-glow-a: rgba(181, 122, 59, 0.16);
+  --zeus-glow-b: rgba(58, 40, 28, 0.1);
+  --zeus-glow-center: rgba(255, 250, 243, 0.74);
+  --zeus-surface-unified: linear-gradient(155deg, #fffcf8 0%, #f5ecdf 100%);
+  --zeus-line-unified: #d7bf9f;
+  --zeus-accent: #b57a3b;
+  --zeus-accent-strong: #865223;
+  --zeus-accent-soft: rgba(181, 122, 59, 0.18);
+
+  --zeus-surface: #fffaf3;
+  --zeus-surface-soft: #f5ebdd;
+  --zeus-card-bg: linear-gradient(156deg, #fffdf9 0%, #f6ecdf 100%);
+  --zeus-card-bg-soft: linear-gradient(160deg, #fffaf4 0%, #f2e6d8 100%);
+
+  --zeus-text: #221a14;
+  --zeus-text-muted: #5c4d3f;
+  --zeus-text-subtle: #766350;
+  --zeus-line: #d7bf9f;
+  --zeus-line-strong: #c7a37a;
+
+  --zeus-primary-start: #c58a49;
+  --zeus-primary-end: #985f2b;
+  --zeus-primary-hover-start: #d09859;
+  --zeus-primary-hover-end: #a86d37;
+
+  --zeus-sidebar-start: #201610;
+  --zeus-sidebar-end: #130e0a;
+  --zeus-sidebar-border: rgba(204, 173, 138, 0.26);
+  --zeus-sidebar-border-soft: rgba(204, 173, 138, 0.22);
+  --zeus-sidebar-border-strong: rgba(204, 173, 138, 0.32);
+  --zeus-sidebar-glow: rgba(194, 132, 70, 0.32);
+  --zeus-sidebar-link-start: rgba(194, 132, 70, 0.18);
+  --zeus-sidebar-link-end: rgba(39, 28, 21, 0.62);
+  --zeus-sidebar-link-hover-start: rgba(194, 132, 70, 0.31);
+  --zeus-sidebar-link-hover-end: rgba(39, 28, 21, 0.94);
+  --zeus-sidebar-link-active-start: rgba(194, 132, 70, 0.6);
+  --zeus-sidebar-link-active-end: rgba(49, 35, 26, 0.98);
+  --zeus-sidebar-link-border: rgba(204, 173, 138, 0.3);
+  --zeus-sidebar-link-border-hover: rgba(227, 185, 132, 0.6);
+  --zeus-sidebar-link-border-active: rgba(244, 208, 167, 0.9);
+  --zeus-sidebar-link-strip: rgba(244, 208, 167, 1);
+  --zeus-sidebar-icon-border-active: rgba(244, 208, 167, 0.56);
+  --zeus-sidebar-badge-border: rgba(244, 208, 167, 0.5);
+  --zeus-sidebar-avatar-border: rgba(244, 208, 167, 0.45);
+  --zeus-sidebar-footer-border: rgba(204, 173, 138, 0.2);
+  --zeus-sidebar-user-border: rgba(204, 173, 138, 0.28);
+  --zeus-sidebar-logout-border: rgba(204, 173, 138, 0.34);
+  --zeus-sidebar-logout-icon: rgba(255, 230, 199, 0.92);
+  --zeus-sidebar-label: rgba(249, 231, 210, 0.62);
+  --zeus-sidebar-title: rgba(255, 240, 223, 0.94);
+  --zeus-sidebar-meta: rgba(226, 183, 129, 0.95);
+  --zeus-sidebar-section-title: rgba(249, 231, 210, 0.74);
+  --zeus-on-dark: rgba(251, 243, 233, 0.9);
+  --zeus-on-dark-strong: rgba(255, 244, 230, 0.98);
+  --zeus-on-dark-muted: rgba(255, 222, 186, 0.68);
+  --zeus-sidebar-icon-active: #f3d2ad;
+}
+
+.admin-shell--modern {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 46% 30%, var(--zeus-glow-center), transparent 42%),
+    radial-gradient(circle at 82% -8%, var(--zeus-glow-a), transparent 36%),
+    radial-gradient(circle at 10% 100%, var(--zeus-glow-b), transparent 40%),
+    linear-gradient(180deg, var(--zeus-bg-top) 0%, var(--zeus-bg-bottom) 100%) !important;
+}
+
+.admin-shell--modern .main-content {
+  background: transparent !important;
+}
+
+.admin-shell--modern.admin-shell--summary {
+  background:
+    radial-gradient(circle at 46% 30%, var(--zeus-glow-center), transparent 42%),
+    radial-gradient(circle at 82% -8%, var(--zeus-glow-a), transparent 36%),
+    radial-gradient(circle at 10% 100%, var(--zeus-glow-b), transparent 40%),
+    linear-gradient(180deg, var(--zeus-bg-top) 0%, var(--zeus-bg-bottom) 100%) !important;
+}
+
+/* Final visual system for all admin routes except summary (/) */
+.admin-shell--modern:not(.admin-shell--summary),
+.modal-overlay {
+  --ops-accent: var(--zeus-accent);
+  --ops-accent-strong: var(--zeus-accent-strong);
+  --ops-accent-soft: var(--zeus-accent-soft);
+
+  --ops-bg: #efe5d8;
+  --ops-bg-soft: #f6eee4;
+  --ops-surface: var(--zeus-surface);
+  --ops-surface-soft: var(--zeus-surface-soft);
+  --ops-card-bg: var(--zeus-card-bg);
+  --ops-card-bg-soft: var(--zeus-card-bg-soft);
+
+  --ops-text: var(--zeus-text);
+  --ops-text-muted: var(--zeus-text-muted);
+  --ops-text-subtle: var(--zeus-text-subtle);
+
+  --ops-line: var(--zeus-line);
+  --ops-line-strong: var(--zeus-line-strong);
+
+  --ops-shadow-sm: 0 2px 10px rgba(17, 24, 39, 0.05);
+  --ops-shadow-md: 0 10px 24px rgba(17, 24, 39, 0.1);
+
+  --font-sans: var(--font-zeus-sans), var(--font-body), 'Segoe UI', sans-serif;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 46% 30%, var(--zeus-glow-center), transparent 42%),
+    radial-gradient(circle at 82% -8%, var(--zeus-glow-a), transparent 36%),
+    radial-gradient(circle at 10% 100%, var(--zeus-glow-b), transparent 40%),
+    linear-gradient(180deg, var(--zeus-bg-top) 0%, var(--zeus-bg-bottom) 100%);
+}
+
+
+.admin-shell--modern:not(.admin-shell--summary),
+.admin-shell--modern:not(.admin-shell--summary) button,
+.admin-shell--modern:not(.admin-shell--summary) input,
+.admin-shell--modern:not(.admin-shell--summary) select,
+.admin-shell--modern:not(.admin-shell--summary) textarea,
+.admin-shell--modern:not(.admin-shell--summary) a {
+  font-family: var(--font-sans);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .main-content {
+  padding: 14px 18px 26px;
+  background: transparent;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .content-shell {
+  max-width: 1540px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar,
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar--modern {
+  border: 1px solid var(--ops-line);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.92);
+  box-shadow: var(--ops-shadow-sm);
+  backdrop-filter: blur(10px);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar__title,
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar__name {
+  color: var(--ops-text);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar__date,
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar__date-label {
+  color: var(--ops-text-muted);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .panel-topbar__role {
+  border-color: rgba(181, 122, 59, 0.34);
+  background: var(--ops-accent-soft);
+  color: var(--ops-accent-strong);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar {
+  background: linear-gradient(180deg, var(--zeus-sidebar-start) 0%, var(--zeus-sidebar-end) 100%);
+  border-right: 1px solid var(--zeus-sidebar-border);
+  box-shadow: 12px 0 28px rgba(18, 13, 10, 0.32);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar::before {
+  background: radial-gradient(circle at 14% -8%, var(--zeus-sidebar-glow), transparent 46%);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__brand {
+  border-bottom: 1px solid var(--zeus-sidebar-border-soft);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview {
+  border: 1px solid var(--zeus-sidebar-border-strong);
+  border-radius: 10px;
+  background: rgba(255, 236, 211, 0.06);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview-label {
+  color: var(--zeus-sidebar-label);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview-title {
+  color: var(--zeus-sidebar-title);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview-meta {
+  color: var(--zeus-sidebar-meta);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__nav {
+  padding: 12px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__section-title {
+  margin: 6px 0 2px;
+  padding: 8px 10px 4px;
+  color: var(--zeus-sidebar-section-title);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__link {
+  position: relative;
+  min-height: 46px;
+  border: 1px solid var(--zeus-sidebar-link-border);
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--zeus-sidebar-link-start), var(--zeus-sidebar-link-end));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 233, 206, 0.08),
+    0 4px 12px rgba(17, 12, 9, 0.26);
+  color: var(--zeus-on-dark);
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__link-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(227, 191, 149, 0.28);
+  background: rgba(255, 235, 210, 0.08);
+  color: rgba(246, 214, 177, 0.92);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__link-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__link:hover {
+  border-color: var(--zeus-sidebar-link-border-hover);
+  background: linear-gradient(90deg, var(--zeus-sidebar-link-hover-start), var(--zeus-sidebar-link-hover-end));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 233, 206, 0.12),
+    0 8px 18px rgba(17, 12, 9, 0.34);
+  transform: translateX(1px);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__link--active {
+  border-color: var(--zeus-sidebar-link-border-active);
+  background: linear-gradient(92deg, var(--zeus-sidebar-link-active-start), var(--zeus-sidebar-link-active-end));
+  color: var(--zeus-on-dark-strong);
+  box-shadow:
+    inset 2px 0 0 var(--zeus-sidebar-link-strip),
+    0 10px 20px rgba(17, 12, 9, 0.38);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__link--active .sidebar__link-icon {
+  border-color: var(--zeus-sidebar-icon-border-active);
+  background: rgba(255, 235, 210, 0.16);
+  color: var(--zeus-sidebar-icon-active);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__badge {
+  border: 1px solid var(--zeus-sidebar-badge-border);
+  background: var(--zeus-sidebar-glow);
+  color: var(--zeus-surface);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__footer {
+  border-top: 1px solid var(--zeus-sidebar-footer-border);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__user {
+  border: 1px solid var(--zeus-sidebar-user-border);
+  background: rgba(255, 235, 210, 0.08);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__user-name {
+  color: var(--zeus-on-dark-strong);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__user-role {
+  color: var(--zeus-on-dark-muted);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__user-avatar {
+  border: 1px solid var(--zeus-sidebar-avatar-border);
+  background: var(--zeus-sidebar-glow);
+  color: var(--zeus-on-dark);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__logout-icon {
+  border-color: var(--zeus-sidebar-logout-border);
+  background: rgba(255, 235, 210, 0.1);
+  color: var(--zeus-sidebar-logout-icon);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .sidebar__logout-icon:hover {
+  border-color: rgba(248, 113, 113, 0.48);
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header,
+.admin-shell--modern:not(.admin-shell--summary) .card,
+.admin-shell--modern:not(.admin-shell--summary) .bento-card,
+.admin-shell--modern:not(.admin-shell--summary) .settings-panel,
+.admin-shell--modern:not(.admin-shell--summary) .schedule-card,
+.admin-shell--modern:not(.admin-shell--summary) .filter-bar,
+.admin-shell--modern:not(.admin-shell--summary) .citas-filters,
+.admin-shell--modern:not(.admin-shell--summary) .table-wrapper,
+.admin-shell--modern:not(.admin-shell--summary) .citas-list-day,
+.admin-shell--modern:not(.admin-shell--summary) .citas-list-item,
+.admin-shell--modern:not(.admin-shell--summary) .patient-detail-card,
+.admin-shell--modern:not(.admin-shell--summary) .patient-clinical,
+.admin-shell--modern:not(.admin-shell--summary) .patient-record-item,
+.admin-shell--modern:not(.admin-shell--summary) .pro-card,
+.admin-shell--modern:not(.admin-shell--summary) .service-card,
+.admin-shell--modern:not(.admin-shell--summary) .zc-timeline-wrap,
+.admin-shell--modern:not(.admin-shell--summary) .zc-mini-cal,
+.admin-shell--modern:not(.admin-shell--summary) .zc-upcoming,
+.admin-shell--modern:not(.admin-shell--summary) .zc-detail-panel {
+  border: 1px solid var(--ops-line) !important;
+  border-radius: 14px !important;
+  background: var(--ops-card-bg) !important;
+  box-shadow: var(--ops-shadow-sm) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__intro {
+  min-width: 0;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header__kicker {
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--ops-text-subtle);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header__title,
+.admin-shell--modern:not(.admin-shell--summary) .dashboard-head__title {
+  margin: 0;
+  color: var(--ops-text) !important;
+  font-size: clamp(30px, 2.2vw, 40px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  font-weight: 900;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .card__title {
+  margin: 0;
+  color: var(--ops-text) !important;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header__desc,
+.admin-shell--modern:not(.admin-shell--summary) .module-header__meta,
+.admin-shell--modern:not(.admin-shell--summary) .card__subtitle,
+.admin-shell--modern:not(.admin-shell--summary) .dashboard-head__meta-item {
+  color: var(--ops-text-muted) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header__desc {
+  margin-top: 7px;
+  max-width: 48ch;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header__meta {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__stats {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 7px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric {
+  position: relative;
+  min-width: 108px;
+  border: 1px solid var(--ops-line);
+  border-radius: 10px;
+  background: var(--ops-surface);
+  box-shadow: var(--ops-shadow-sm);
+  padding: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 10px 10px 0 0;
+  background: var(--ops-accent, #0f766e);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric__label {
+  color: var(--ops-text-subtle);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric__value {
+  color: var(--ops-text);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__switches {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__stats:empty,
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__actions:empty {
+  display: none;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-screen,
+.admin-shell--modern:not(.admin-shell--summary) .section-shell {
+  gap: 12px !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-data-module {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-filter-card,
+.admin-shell--modern:not(.admin-shell--summary) .ops-data-table-card,
+.admin-shell--modern:not(.admin-shell--summary) .ops-filter-panel {
+  border: 1px solid var(--ops-line) !important;
+  border-radius: 14px !important;
+  background: var(--ops-card-bg) !important;
+  box-shadow: var(--ops-shadow-sm) !important;
+}
+
+/* Unified section background tone across all panel modules (including summary) */
+.admin-shell--modern .ops-filter-card,
+.admin-shell--modern .ops-data-table-card,
+.admin-shell--modern .ops-filter-panel,
+.admin-shell--modern.admin-shell--summary .summary-v5__header,
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric,
+.admin-shell--modern.admin-shell--summary .summary-v5-panel,
+.admin-shell--modern.admin-shell--summary .summary-v5-context-inline {
+  border-color: var(--zeus-line-unified) !important;
+  background: var(--zeus-surface-unified) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .card__header {
+  padding: 14px 16px 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .card__body {
+  padding: 14px 16px 16px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn,
+.modal .btn {
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--ops-line-strong);
+  background: var(--ops-surface);
+  color: var(--ops-text);
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease,
+    box-shadow 0.14s ease,
+    transform 0.14s ease;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn:hover,
+.modal .btn:hover {
+  border-color: var(--ops-line);
+  background: var(--ops-bg-soft);
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.07);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn:active,
+.modal .btn:active {
+  transform: translateY(1px);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn--primary,
+.modal .btn--primary {
+  border-color: transparent;
+  background: linear-gradient(160deg, var(--zeus-primary-start) 0%, var(--zeus-primary-end) 100%);
+  color: var(--zeus-on-dark-strong);
+  box-shadow: 0 8px 14px rgba(169, 104, 42, 0.24);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn--primary:hover,
+.modal .btn--primary:hover {
+  background: linear-gradient(160deg, var(--zeus-primary-hover-start) 0%, var(--zeus-primary-hover-end) 100%);
+  box-shadow: 0 10px 18px rgba(151, 93, 33, 0.3);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn--secondary,
+.admin-shell--modern:not(.admin-shell--summary) .btn--ghost,
+.modal .btn--secondary,
+.modal .btn--ghost {
+  border-color: var(--ops-line-strong);
+  background: var(--ops-surface);
+  color: var(--ops-text);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn--danger,
+.modal .btn--danger {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.08);
+  color: #b4232f;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .btn--sm,
+.modal .btn--sm {
+  min-height: 34px;
+  font-size: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .form-input,
+.admin-shell--modern:not(.admin-shell--summary) .form-select,
+.admin-shell--modern:not(.admin-shell--summary) textarea.form-input,
+.admin-shell--modern:not(.admin-shell--summary) .appointment-form__search-input,
+.admin-shell--modern:not(.admin-shell--summary) .citas-filters__field,
+.admin-shell--modern:not(.admin-shell--summary) .citas-filters__select,
+.admin-shell--modern:not(.admin-shell--summary) .citas-filters__date,
+.modal .form-input,
+.modal .form-select,
+.modal textarea.form-input,
+.modal .appointment-form__search-input {
+  min-height: 38px;
+  border: 1px solid var(--ops-line-strong) !important;
+  border-radius: 10px;
+  background: var(--ops-surface) !important;
+  color: var(--ops-text) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-filters__total {
+  color: var(--ops-text-muted);
+  font-size: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .form-input::placeholder,
+.admin-shell--modern:not(.admin-shell--summary) textarea.form-input::placeholder,
+.admin-shell--modern:not(.admin-shell--summary) .appointment-form__search-input::placeholder,
+.modal .form-input::placeholder,
+.modal textarea.form-input::placeholder,
+.modal .appointment-form__search-input::placeholder {
+  color: var(--ops-text-subtle);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .form-input:focus-visible,
+.admin-shell--modern:not(.admin-shell--summary) .form-select:focus-visible,
+.admin-shell--modern:not(.admin-shell--summary) textarea.form-input:focus-visible,
+.admin-shell--modern:not(.admin-shell--summary) .btn:focus-visible,
+.admin-shell--modern:not(.admin-shell--summary) button:focus-visible,
+.admin-shell--modern:not(.admin-shell--summary) a:focus-visible,
+.modal .form-input:focus-visible,
+.modal .form-select:focus-visible,
+.modal textarea.form-input:focus-visible,
+.modal .btn:focus-visible,
+.modal button:focus-visible {
+  outline: 3px solid rgba(183, 116, 47, 0.22);
+  outline-offset: 2px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table-wrapper {
+  border: 1px solid var(--ops-line);
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table th {
+  padding: 11px 12px;
+  background: var(--ops-surface-soft);
+  color: var(--ops-text-subtle);
+  border-bottom: 1px solid var(--ops-line);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table td {
+  padding: 12px;
+  background: var(--ops-surface);
+  color: var(--ops-text);
+  border-bottom: 1px solid var(--ops-line);
+  font-size: 13px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table tr:hover td {
+  background: var(--ops-surface-soft);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .badge,
+.admin-shell--modern:not(.admin-shell--summary) .pill,
+.admin-shell--modern:not(.admin-shell--summary) .citas-status-chip,
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip,
+.admin-shell--modern:not(.admin-shell--summary) .citas-kpi-pill {
+  border: 1px solid var(--ops-line-strong);
+  border-radius: 999px;
+  background: var(--ops-surface);
+  color: var(--ops-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip {
+  min-width: 92px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip span {
+  color: var(--ops-text-subtle);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip strong {
+  color: var(--ops-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .badge--confirmed,
+.admin-shell--modern:not(.admin-shell--summary) .badge--success {
+  border-color: rgba(22, 163, 74, 0.3) !important;
+  background: rgba(22, 163, 74, 0.1) !important;
+  color: #166534 !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .badge--pending,
+.admin-shell--modern:not(.admin-shell--summary) .badge--warning {
+  border-color: rgba(217, 119, 6, 0.34) !important;
+  background: rgba(217, 119, 6, 0.12) !important;
+  color: #92501a !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .badge--completed,
+.admin-shell--modern:not(.admin-shell--summary) .badge--info {
+  border-color: rgba(37, 99, 235, 0.3) !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: #2a57c8 !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .badge--cancelled,
+.admin-shell--modern:not(.admin-shell--summary) .badge--danger {
+  border-color: rgba(220, 38, 38, 0.26) !important;
+  background: rgba(220, 38, 38, 0.1) !important;
+  color: #b4232f !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .empty-state,
+.admin-shell--modern:not(.admin-shell--summary) .schedule-empty,
+.admin-shell--modern:not(.admin-shell--summary) .patient-empty-box,
+.admin-shell--modern:not(.admin-shell--summary) .citas-empty-state,
+.admin-shell--modern:not(.admin-shell--summary) .zc-upcoming-empty,
+.admin-shell--modern:not(.admin-shell--summary) .zc-week-empty {
+  border: 1px dashed var(--ops-line-strong);
+  border-radius: 12px;
+  background: var(--ops-bg-soft);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-toggle {
+  border: 1px solid var(--ops-line-strong);
+  border-radius: 11px;
+  background: var(--ops-surface-soft);
+  padding: 3px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-toggle__btn {
+  min-height: 33px;
+  border-radius: 8px;
+  color: var(--ops-text-muted);
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-toggle__btn.is-active {
+  border: 1px solid var(--ops-line-strong);
+  background: var(--ops-surface);
+  color: var(--ops-text);
+  box-shadow: 0 2px 6px rgba(17, 24, 39, 0.07);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+  gap: 12px !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout--detail {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px) minmax(300px, 360px);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-mini-cal,
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-upcoming,
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-timeline-wrap {
+  box-shadow: var(--ops-shadow-sm) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card {
+  border: 1px solid var(--ops-line) !important;
+  border-radius: 14px !important;
+  padding: 14px;
+  background: var(--ops-card-bg-soft) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card__meta-block {
+  border: 1px solid var(--ops-line);
+  border-radius: 10px;
+  background: var(--ops-surface);
+  padding: 8px 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card__flare {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8rem;
+  height: 8rem;
+  background: linear-gradient(220deg, rgba(173, 115, 50, 0.18) 0%, transparent 70%);
+  border-radius: 0 0 0 100px;
+  pointer-events: none;
+  opacity: 0.36;
+  transition: opacity 0.2s ease;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card:hover .pro-card__flare {
+  opacity: 0.52;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card__action-btn {
+  background: var(--ops-surface) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-btn.is-active {
+  border-color: rgba(173, 115, 50, 0.4) !important;
+  background: rgba(173, 115, 50, 0.1) !important;
+  color: var(--ops-accent-strong) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-card {
+  overflow: visible !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 18px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-toolbar {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-filter-summary__item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ops-line);
+  background: var(--ops-surface-soft);
+  color: var(--ops-text-subtle);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+@media (max-width: 1080px) {
+  .admin-shell--modern:not(.admin-shell--summary) .pro-filter-toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}
+
+/* Portal-safe modal/pro form styles */
+.modal,
+.modal * {
+  font-family: var(--font-zeus-sans), var(--font-body), 'Segoe UI', sans-serif;
+}
+
+.modal-overlay {
+  background: rgba(17, 24, 39, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.modal {
+  border: 1px solid var(--ops-line) !important;
+  border-radius: 16px !important;
+  background: var(--ops-card-bg-soft) !important;
+  box-shadow: 0 22px 46px rgba(17, 24, 39, 0.24) !important;
+}
+
+.modal__header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ops-line);
+  background: rgba(255, 253, 250, 0.92);
+}
+
+.modal__title {
+  margin: 0;
+  color: var(--ops-text);
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 900;
+}
+
+.modal__close {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  border: 1px solid var(--ops-line-strong);
+  background: var(--ops-surface-soft);
+  color: var(--ops-text-muted);
+}
+
+.modal__close:hover {
+  background: var(--ops-bg-soft);
+}
+
+.modal__body {
+  padding: 16px 18px 18px;
+  max-height: calc(88vh - 110px);
+}
+
+.modal__body.modal__body--appointment {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal__body.modal__body--appointment .appointment-form {
+  flex: 1;
+  min-height: 0;
+}
+
+.modal__body.modal__body--appointment .appointment-form__content {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.pro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pro-form__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pro-form__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  border: 1px solid var(--ops-line-strong);
+  border-radius: 10px;
+  background: var(--ops-surface);
+  color: var(--ops-text-muted);
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.pro-form__tab.is-active {
+  border-color: var(--ops-accent);
+  background: rgba(181, 122, 59, 0.14);
+  color: var(--ops-accent-strong);
+}
+
+.pro-form__content,
+.pro-form__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pro-form__block {
+  border: 1px solid var(--ops-line);
+  border-radius: 12px;
+  background: var(--ops-surface);
+  padding: 12px;
+}
+
+.pro-form__block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pro-form__block-head h4 {
+  margin: 0;
+  color: var(--ops-text);
+  font-size: 18px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+
+.pro-form__block-head h5 {
+  margin: 0 0 6px;
+  color: var(--ops-text-subtle);
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.pro-form__label {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--ops-text-subtle);
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.pro-form__textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+}
+
+.pro-form__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--ops-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pro-form__switch input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ops-accent);
+}
+
+.pro-form__services {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pro-form__service-group h5 {
+  margin: 0 0 6px;
+  color: var(--ops-text-subtle);
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.pro-form__service-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pro-form__service-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--ops-line);
+  border-radius: 999px;
+  background: var(--ops-surface);
+  color: var(--ops-text);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.pro-form__service-item input[type='checkbox'] {
+  margin: 0;
+  accent-color: var(--ops-accent);
+}
+
+.pro-form__empty {
+  color: var(--ops-text-subtle);
+  font-size: 13px;
+}
+
+.pro-form__error {
+  display: block;
+  margin-top: 5px;
+  color: #b4232f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pro-form__hint {
+  border: 1px dashed var(--ops-line-strong);
+  border-radius: 10px;
+  background: var(--ops-bg-soft);
+  color: var(--ops-text-subtle);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.pro-form__schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pro-form__day-card {
+  border: 1px solid var(--ops-line);
+  border-radius: 11px;
+  background: var(--ops-surface);
+  padding: 10px;
+}
+
+.pro-form__day-card.is-active {
+  border-color: var(--ops-line-strong);
+  background: var(--ops-bg-soft);
+}
+
+.pro-form__day-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ops-text);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.pro-form__day-head input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ops-accent);
+}
+
+.pro-form__slots {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pro-form__slot-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.pro-form__slot-row > span {
+  color: var(--ops-text-subtle);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pro-form__time {
+  min-height: 36px;
+}
+
+.pro-form__slot-add {
+  align-self: flex-start;
+}
+
+.pro-form__slot-remove {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+}
+
+.pro-form__color-input {
+  width: 100%;
+  min-height: 42px;
+  height: 42px;
+  padding: 3px;
+  cursor: pointer;
+}
+
+.pro-form__color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.pro-form__color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+
+.pro-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .pro-form__tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-form__slot-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-form__slot-remove {
+    width: 100%;
+  }
+
+  .modal__title {
+    font-size: 24px;
+  }
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .patients-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .patients-layout--with-detail {
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+  align-items: start;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-shell,
+.admin-shell--modern:not(.admin-shell--summary) .settings-shell {
+  gap: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+  gap: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--zeus-primary-start) 0%, var(--zeus-primary-end) 100%);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--ops-line);
+  background: var(--ops-card-bg-soft);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-card .card__title {
+  font-size: 18px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-card__hint {
+  margin: 0;
+  color: var(--ops-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day {
+  border: 1px solid var(--ops-line);
+  border-radius: 12px;
+  background: var(--ops-card-bg-soft);
+  padding: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day.is-empty {
+  background: var(--ops-surface-soft);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__name {
+  color: var(--ops-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__count {
+  color: var(--ops-text-subtle);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 32px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__empty-box {
+  width: 100%;
+  border: 1px dashed var(--ops-line-strong);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--ops-surface);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__empty {
+  color: var(--ops-text-subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-day__quick-add {
+  min-height: 30px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ops-line-strong);
+  background: var(--ops-surface);
+  color: var(--ops-text-muted);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-chip__remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--ops-line);
+  background: var(--ops-surface-soft);
+  color: var(--ops-text-subtle);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder {
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--ops-line);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder__title {
+  margin: 0 0 10px;
+  color: var(--ops-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder__form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder__submit {
+  width: 100%;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--ops-line);
+  border-radius: 12px;
+  background: var(--ops-card-bg-soft);
+  padding: 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item.is-blocked {
+  border-left: 3px solid #b4232f;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item.is-available {
+  border-left: 3px solid #15724f;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__date {
+  color: var(--ops-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__reason {
+  margin-top: 3px;
+  color: var(--ops-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--ops-line);
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder__title {
+  margin: 0 0 10px;
+  color: var(--ops-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder__checkbox {
+  margin-bottom: 0;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder__submit {
+  width: 100%;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-layout {
+  grid-template-columns: minmax(0, 1.42fr) minmax(340px, 0.88fr);
+  gap: 14px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-main,
+.admin-shell--modern:not(.admin-shell--summary) .settings-aside {
+  gap: 12px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-aside {
+  min-width: 0;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header--settings .ops-module-head__stats {
+  grid-auto-flow: initial;
+  grid-template-columns: repeat(2, minmax(140px, 170px));
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-card p {
+  margin: 0;
+  color: var(--ops-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-list {
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-item {
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--ops-line);
+  background: var(--ops-surface-soft);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-item span {
+  color: var(--ops-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-item strong {
+  color: var(--ops-text);
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: right;
+  justify-self: end;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-card,
+.admin-shell--modern:not(.admin-shell--summary) .settings-save-card {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: visible !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-summary-card h3 {
+  margin: 0;
+  color: var(--ops-text);
+  font-size: 18px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-save-card p {
+  margin: 0;
+  color: var(--ops-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-save-button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border-radius: 10px;
+  line-height: 1.15;
+  padding: 0 14px;
+}
+
+@media (min-width: 1180px) {
+  .admin-shell--modern:not(.admin-shell--summary) .settings-aside {
+    position: sticky;
+    top: 84px;
+  }
+}
+
+@media (max-width: 1500px) {
+  .admin-shell--modern:not(.admin-shell--summary) .module-header {
+    grid-template-columns: minmax(220px, 1fr);
+    align-items: stretch;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .ops-module-head__stats {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .ops-module-head__actions {
+    justify-content: flex-start;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1280px) {
+  .admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout,
+  .admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout--detail,
+  .admin-shell--modern:not(.admin-shell--summary) .schedule-grid,
+  .admin-shell--modern:not(.admin-shell--summary) .patients-layout--with-detail {
+    grid-template-columns: 1fr;
+    grid-template-areas: unset;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder__form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-shell--modern:not(.admin-shell--summary) .main-content {
+    padding: 10px 10px 18px;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .module-header__title {
+    font-size: clamp(28px, 7vw, 36px);
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .ops-module-head__switches {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .citas-header__group,
+  .admin-shell--modern:not(.admin-shell--summary) .citas-toggle,
+  .admin-shell--modern:not(.admin-shell--summary) .citas-actions {
+    width: 100%;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .citas-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .citas-actions .btn--primary {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-shell--modern:not(.admin-shell--summary) .table-wrapper {
+    border-radius: 10px;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .pro-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .schedule-day-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .schedule-day__empty-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder__form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sidebar consistency lock for all admin routes (including summary) */
+.admin-shell--modern .sidebar {
+  background: linear-gradient(180deg, var(--zeus-sidebar-start) 0%, var(--zeus-sidebar-end) 100%) !important;
+  border-right: 1px solid var(--zeus-sidebar-border) !important;
+  box-shadow: 12px 0 28px rgba(18, 13, 10, 0.32) !important;
+}
+
+.admin-shell--modern .sidebar::before {
+  background: radial-gradient(circle at 14% -8%, var(--zeus-sidebar-glow), transparent 46%) !important;
+}
+
+.admin-shell--modern .sidebar__brand {
+  border-bottom: 1px solid var(--zeus-sidebar-border-soft) !important;
+}
+
+.admin-shell--modern .sidebar__overview {
+  margin: 10px 10px 8px !important;
+  padding: 12px 12px 11px !important;
+  border: 1px solid var(--zeus-sidebar-border-strong) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 236, 211, 0.06) !important;
+}
+
+.admin-shell--modern .sidebar__overview-label {
+  color: var(--zeus-sidebar-label) !important;
+}
+
+.admin-shell--modern .sidebar__overview-title {
+  color: var(--zeus-sidebar-title) !important;
+}
+
+.admin-shell--modern .sidebar__overview-meta {
+  color: var(--zeus-sidebar-meta) !important;
+}
+
+.admin-shell--modern .sidebar__nav {
+  padding: 12px 10px 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.admin-shell--modern .sidebar__section-title {
+  margin: 6px 0 2px !important;
+  padding: 8px 10px 4px !important;
+  color: var(--zeus-sidebar-section-title) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+}
+
+.admin-shell--modern .sidebar__link {
+  position: relative !important;
+  min-height: 46px !important;
+  border: 1px solid var(--zeus-sidebar-link-border) !important;
+  border-radius: 12px !important;
+  background: linear-gradient(90deg, var(--zeus-sidebar-link-start), var(--zeus-sidebar-link-end)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 233, 206, 0.08),
+    0 4px 12px rgba(17, 12, 9, 0.26) !important;
+  color: var(--zeus-on-dark) !important;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease !important;
+}
+
+.admin-shell--modern .sidebar__link-icon {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(227, 191, 149, 0.28) !important;
+  background: rgba(255, 235, 210, 0.08) !important;
+  color: rgba(246, 214, 177, 0.92) !important;
+}
+
+.admin-shell--modern .sidebar__link-label {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.admin-shell--modern .sidebar__link:hover {
+  border-color: var(--zeus-sidebar-link-border-hover) !important;
+  background: linear-gradient(90deg, var(--zeus-sidebar-link-hover-start), var(--zeus-sidebar-link-hover-end)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 233, 206, 0.12),
+    0 8px 18px rgba(17, 12, 9, 0.34) !important;
+  transform: translateX(1px) !important;
+}
+
+.admin-shell--modern .sidebar__link--active {
+  border-color: var(--zeus-sidebar-link-border-active) !important;
+  background: linear-gradient(92deg, var(--zeus-sidebar-link-active-start), var(--zeus-sidebar-link-active-end)) !important;
+  color: var(--zeus-on-dark-strong) !important;
+  box-shadow:
+    inset 2px 0 0 var(--zeus-sidebar-link-strip),
+    0 10px 20px rgba(17, 12, 9, 0.38) !important;
+}
+
+.admin-shell--modern .sidebar__link--active .sidebar__link-icon {
+  border-color: var(--zeus-sidebar-icon-border-active) !important;
+  background: rgba(255, 235, 210, 0.16) !important;
+  color: var(--zeus-sidebar-icon-active) !important;
+}
+
+.admin-shell--modern .sidebar__badge {
+  border: 1px solid var(--zeus-sidebar-badge-border) !important;
+  background: var(--zeus-sidebar-glow) !important;
+  color: var(--zeus-surface) !important;
+}
+
+.admin-shell--modern .sidebar__footer {
+  border-top: 1px solid var(--zeus-sidebar-footer-border) !important;
+}
+
+.admin-shell--modern .sidebar__user {
+  border: 1px solid var(--zeus-sidebar-user-border) !important;
+  background: rgba(255, 235, 210, 0.08) !important;
+}
+
+.admin-shell--modern .sidebar__user-name {
+  color: var(--zeus-on-dark-strong) !important;
+}
+
+.admin-shell--modern .sidebar__user-role {
+  color: var(--zeus-on-dark-muted) !important;
+}
+
+.admin-shell--modern .sidebar__user-avatar {
+  border: 1px solid var(--zeus-sidebar-avatar-border) !important;
+  background: var(--zeus-sidebar-glow) !important;
+  color: var(--zeus-on-dark) !important;
+}
+
+.admin-shell--modern .sidebar__logout-icon {
+  border-color: var(--zeus-sidebar-logout-border) !important;
+  background: rgba(255, 235, 210, 0.1) !important;
+  color: var(--zeus-sidebar-logout-icon) !important;
+}
+
+.admin-shell--modern .sidebar__logout-icon:hover {
+  border-color: rgba(248, 113, 113, 0.48) !important;
+  background: rgba(248, 113, 113, 0.16) !important;
+  color: #fecaca !important;
+}
+
+
+
+

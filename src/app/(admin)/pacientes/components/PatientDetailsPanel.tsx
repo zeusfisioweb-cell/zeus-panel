@@ -220,6 +220,7 @@ export function PatientDetailsPanel({
                                     className="patient-record-delete"
                                     onClick={() => onDeleteRecord(record.id)}
                                     title="Eliminar ficha"
+                                    aria-label="Eliminar ficha"
                                 >
                                     <Icon name="trash" size={14} />
                                 </Button>
@@ -256,10 +257,23 @@ export function PatientDetailsPanel({
                 </CardTitle>
 
                 <div className="patient-detail-card__head-actions">
-                    <Button variant="ghost" size="sm" onClick={onEdit} title="Editar paciente" className="patient-detail-card__icon-btn">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onEdit}
+                        title="Editar paciente"
+                        aria-label="Editar paciente"
+                        className="patient-detail-card__icon-btn"
+                    >
                         <Icon name="edit" size={16} />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={onClose} className="patient-detail-card__icon-btn">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        aria-label="Cerrar panel de paciente"
+                        className="patient-detail-card__icon-btn"
+                    >
                         <Icon name="close" size={18} />
                     </Button>
                 </div>
