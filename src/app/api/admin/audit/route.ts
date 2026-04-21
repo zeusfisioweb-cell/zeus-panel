@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 
 const auditActionSchema = z.enum(['CREATE', 'UPDATE', 'DELETE', 'VIEW']);
 const auditTableSchema = z.enum([
@@ -24,6 +24,7 @@ const createAuditEventSchema = z.object({
 
 export async function POST(request: Request) {
     try {
+        assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = createAuditEventSchema.parse(rawBody);

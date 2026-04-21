@@ -72,7 +72,7 @@ export default function Sidebar() {
 
     const roleLabel =
         profile?.role === 'owner'
-            ? 'Direccion'
+            ? 'Admin'
             : profile?.role === 'professional'
                 ? 'Profesional'
                 : 'Cliente';

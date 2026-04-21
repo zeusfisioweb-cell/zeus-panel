@@ -224,7 +224,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                             </div>
                             <div className="panel-topbar__user-block">
                                 <span className="panel-topbar__role">
-                                    {profile.role === 'owner' ? 'Direccion' : 'Profesional'}
+                                    {profile.role === 'owner' ? 'Admin' : 'Profesional'}
                                 </span>
                                 <strong className="panel-topbar__name">{profile.full_name || 'Usuario'}</strong>
                             </div>

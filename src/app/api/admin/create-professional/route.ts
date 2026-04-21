@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
-import { handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 
 // Initialize Supabase admin client (requires service role key)
 // This bypasses RLS and can create users in auth.users
@@ -23,6 +23,7 @@ function getAdminSupabase() {
 
 export async function POST(request: Request) {
     try {
+        assertSameOriginMutation(request);
         const { supabase, userId: ownerUserId } = await requirePanelAccess({ ownerOnly: true });
 
         const adminAuthClient = getAdminSupabase();

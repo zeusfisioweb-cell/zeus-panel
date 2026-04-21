@@ -3,10 +3,15 @@ import { GET } from './route';
 
 const ensurePatientAccessMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const resolveScopedProfessionalIdMock = vi.hoisted(() =>
+    vi.fn((role: string, professionalId: string | null) => (role === 'professional' ? professionalId : null))
+);
 
 vi.mock('../../../_lib', () => ({
     ensurePatientAccess: ensurePatientAccessMock,
-    requirePanelAccess: requirePanelAccessMock,
+        requirePanelAccess: requirePanelAccessMock,
+    assertSameOriginMutation: vi.fn(),
+    resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
     handleApiError: (error: unknown) => {
         const message = error instanceof Error ? error.message : 'Internal Server Error';
         return Response.json({ error: message }, { status: 500 });
@@ -17,6 +22,7 @@ describe('admin patient details route RBAC', () => {
     beforeEach(() => {
         ensurePatientAccessMock.mockReset();
         requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockClear();
     });
 
     it('filters appointments and clinical records to the authenticated professional', async () => {
@@ -43,6 +49,7 @@ describe('admin patient details route RBAC', () => {
             supabase,
             role: 'professional',
             userId: 'professional-1',
+            professionalId: 'professional-row-1',
         });
         ensurePatientAccessMock.mockResolvedValue(undefined);
 
@@ -53,8 +60,8 @@ describe('admin patient details route RBAC', () => {
 
         expect(response.status).toBe(200);
         expect(appointmentsQuery.eq).toHaveBeenCalledWith('patient_id', 'patient-1');
-        expect(appointmentsQuery.eq).toHaveBeenCalledWith('professional_id', 'professional-1');
+        expect(appointmentsQuery.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
         expect(recordsQuery.eq).toHaveBeenCalledWith('patient_id', 'patient-1');
-        expect(recordsQuery.eq).toHaveBeenCalledWith('professional_id', 'professional-1');
+        expect(recordsQuery.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
     });
 });

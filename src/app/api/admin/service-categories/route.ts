@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, requirePanelAccess } from '../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 
 const createCategorySchema = z.object({
     name: z.string().min(2),
@@ -34,7 +34,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = createCategorySchema.parse(rawBody);
 
@@ -50,6 +51,15 @@ export async function POST(request: Request) {
             .single();
 
         if (error) throw error;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'CREATE',
+            tableName: 'service_categories',
+            recordId: data.id as string,
+            details: { name: data.name },
+        });
 
         return NextResponse.json(data);
     } catch (error: unknown) {

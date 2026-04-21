@@ -12,12 +12,17 @@ const ApiRouteErrorMock = vi.hoisted(() => class ApiRouteError extends Error {
 
 const ensurePatientAccessMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const resolveScopedProfessionalIdMock = vi.hoisted(() =>
+    vi.fn((role: string, professionalId: string | null) => (role === 'professional' ? professionalId : null))
+);
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
     ensurePatientAccess: ensurePatientAccessMock,
-    requirePanelAccess: requirePanelAccessMock,
+        requirePanelAccess: requirePanelAccessMock,
+    assertSameOriginMutation: vi.fn(),
+    resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
     writeAuditLog: writeAuditLogMock,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
@@ -32,6 +37,7 @@ describe('admin clinical record delete RBAC', () => {
     beforeEach(() => {
         ensurePatientAccessMock.mockReset();
         requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockClear();
         writeAuditLogMock.mockReset();
     });
 
@@ -59,6 +65,7 @@ describe('admin clinical record delete RBAC', () => {
             supabase,
             role: 'professional',
             userId: 'professional-1',
+            professionalId: 'professional-1',
         });
         ensurePatientAccessMock.mockResolvedValue(undefined);
 

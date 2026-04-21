@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
-import { handleApiError, requirePanelAccess } from '../../_lib';
+import { handleApiError, requirePanelAccess, resolveScopedProfessionalId } from '../../_lib';
 
 export async function GET() {
     try {
-        const { supabase, role, userId } = await requirePanelAccess();
+        const { supabase, role, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
 
         let query = supabase
             .from('appointments')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'pending');
 
-        if (role === 'professional') {
-            query = query.eq('professional_id', userId);
+        if (scopedProfessionalId) {
+            query = query.eq('professional_id', scopedProfessionalId);
         }
 
         const { count, error } = await query;

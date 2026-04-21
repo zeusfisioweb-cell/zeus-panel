@@ -14,10 +14,15 @@ const ApiRouteErrorMock = vi.hoisted(
 );
 
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const resolveScopedProfessionalIdMock = vi.hoisted(() =>
+    vi.fn((role: string, professionalId: string | null) => (role === 'professional' ? professionalId : null))
+);
 
 vi.mock('../../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
-    requirePanelAccess: requirePanelAccessMock,
+        requirePanelAccess: requirePanelAccessMock,
+    assertSameOriginMutation: vi.fn(),
+    resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
             return Response.json({ error: error.message }, { status: error.status });
@@ -30,6 +35,7 @@ vi.mock('../../_lib', () => ({
 describe('admin appointments pending-count route', () => {
     beforeEach(() => {
         requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockClear();
     });
 
     it('filters pending count by professional id when role is professional', async () => {
@@ -47,6 +53,7 @@ describe('admin appointments pending-count route', () => {
             supabase,
             role: 'professional',
             userId: 'professional-1',
+            professionalId: 'professional-row-1',
         });
 
         const response = await GET();
@@ -55,7 +62,7 @@ describe('admin appointments pending-count route', () => {
         expect(response.status).toBe(200);
         expect(body).toEqual({ count: 3 });
         expect(query.eq).toHaveBeenCalledWith('status', 'pending');
-        expect(query.eq).toHaveBeenCalledWith('professional_id', 'professional-1');
+        expect(query.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
     });
 
     it('returns 401 when access check fails', async () => {
@@ -83,6 +90,7 @@ describe('admin appointments pending-count route', () => {
             supabase,
             role: 'owner',
             userId: 'owner-1',
+            professionalId: null,
         });
 
         const response = await GET();
@@ -93,4 +101,3 @@ describe('admin appointments pending-count route', () => {
         expect(query.eq).not.toHaveBeenCalledWith('professional_id', expect.anything());
     });
 });
-

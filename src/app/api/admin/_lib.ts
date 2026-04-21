@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { UserRole } from '@/lib/types';
+import type { BookingSettings, UserRole } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
 
 type PanelSupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -21,6 +21,7 @@ interface RequirePanelAccessOptions {
 interface PanelAccessContext {
     role: UserRole;
     userId: string;
+    professionalId: string | null;
     supabase: PanelSupabaseClient;
 }
 
@@ -36,8 +37,51 @@ interface WriteAuditLogParams {
 interface PatientAccessParams {
     supabase: PanelSupabaseClient;
     role: UserRole;
-    userId: string;
+    professionalId: string | null;
     patientId: string;
+}
+
+export function assertSameOriginMutation(request: Request): void {
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    if (secFetchSite === 'cross-site') {
+        throw new ApiRouteError(403, 'Forbidden');
+    }
+
+    const origin = request.headers.get('origin');
+    if (!origin) {
+        return;
+    }
+
+    let originUrl: URL;
+    try {
+        originUrl = new URL(origin);
+    } catch {
+        throw new ApiRouteError(403, 'Forbidden');
+    }
+
+    const requestUrl = new URL(request.url);
+    const host = request.headers.get('x-forwarded-host')
+        ?? request.headers.get('host')
+        ?? requestUrl.host;
+    const protocol = request.headers.get('x-forwarded-proto')
+        ?? requestUrl.protocol.replace(':', '');
+    const expectedOrigin = `${protocol}://${host}`.toLowerCase();
+
+    if (originUrl.origin.toLowerCase() !== expectedOrigin) {
+        throw new ApiRouteError(403, 'Forbidden');
+    }
+}
+
+export function resolveScopedProfessionalId(
+    role: UserRole,
+    professionalId: string | null
+): string | null {
+    if (role !== 'professional') return null;
+    if (!professionalId) {
+        throw new ApiRouteError(403, 'Forbidden');
+    }
+
+    return professionalId;
 }
 
 export async function requirePanelAccess(
@@ -65,6 +109,22 @@ export async function requirePanelAccess(
         throw new ApiRouteError(403, 'Forbidden');
     }
 
+    let professionalId: string | null = null;
+
+    if (role === 'professional') {
+        const { data: professional, error: professionalError } = await supabase
+            .from('professionals')
+            .select('id, is_active')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (professionalError || !professional || !professional.is_active) {
+            throw new ApiRouteError(403, 'Forbidden');
+        }
+
+        professionalId = professional.id as string;
+    }
+
     if (options.ownerOnly && role !== 'owner') {
         throw new ApiRouteError(403, 'Forbidden: owner role required');
     }
@@ -72,6 +132,7 @@ export async function requirePanelAccess(
     return {
         role,
         userId: user.id,
+        professionalId,
         supabase,
     };
 }
@@ -137,12 +198,12 @@ export async function getProfessionalPatientIds(
 export async function ensurePatientAccess({
     supabase,
     role,
-    userId,
+    professionalId,
     patientId,
 }: PatientAccessParams): Promise<void> {
     if (role === 'owner') return;
 
-    if (role !== 'professional') {
+    if (role !== 'professional' || !professionalId) {
         throw new ApiRouteError(403, 'Forbidden');
     }
 
@@ -150,7 +211,7 @@ export async function ensurePatientAccess({
         .from('appointments')
         .select('id')
         .eq('patient_id', patientId)
-        .eq('professional_id', userId)
+        .eq('professional_id', professionalId)
         .limit(1)
         .maybeSingle();
 
@@ -161,7 +222,7 @@ export async function ensurePatientAccess({
         .from('clinical_records')
         .select('id')
         .eq('patient_id', patientId)
-        .eq('professional_id', userId)
+        .eq('professional_id', professionalId)
         .limit(1)
         .maybeSingle();
 
@@ -169,6 +230,20 @@ export async function ensurePatientAccess({
     if (record) return;
 
     throw new ApiRouteError(403, 'Forbidden');
+}
+
+export async function getBookingSettings(supabase: PanelSupabaseClient): Promise<BookingSettings> {
+    const { data, error } = await supabase
+        .from('booking_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+    if (error || !data) {
+        throw new ApiRouteError(500, 'Booking settings not configured');
+    }
+
+    return data as BookingSettings;
 }
 
 export async function writeAuditLog({

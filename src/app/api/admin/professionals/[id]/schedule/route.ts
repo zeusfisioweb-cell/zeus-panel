@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, requirePanelAccess } from '../../../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../../../_lib';
 
 const paramsSchema = z.object({
     id: z.string().min(1),
@@ -42,7 +42,8 @@ export async function PUT(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const { id } = paramsSchema.parse(await context.params);
         const rawBody = await request.json();
         const parsed = upsertScheduleSchema.parse(rawBody);
@@ -68,6 +69,15 @@ export async function PUT(
 
             if (insertError) throw insertError;
         }
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'UPDATE',
+            tableName: 'schedule_slots',
+            recordId: id,
+            details: { replaced_slots_count: parsed.slots.length },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error: unknown) {

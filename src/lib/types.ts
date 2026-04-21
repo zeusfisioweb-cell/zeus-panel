@@ -64,6 +64,7 @@ export interface Patient {
     address: string | null;
     gdpr_consent: boolean;
     marketing_consent: boolean;
+    created_by?: string | null;
     created_at: string;
     updated_at: string;
 }

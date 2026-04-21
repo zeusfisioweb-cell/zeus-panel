@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
+    assertSameOriginMutation,
     ensurePatientAccess,
     getProfessionalPatientIds,
     handleApiError,
     normalizeNullableText,
     requirePanelAccess,
+    resolveScopedProfessionalId,
     writeAuditLog,
 } from '../_lib';
 
@@ -45,7 +47,8 @@ function sanitizeSearchTerm(search: string): string {
 
 export async function GET(request: Request) {
     try {
-        const { supabase, role, userId } = await requirePanelAccess();
+        const { supabase, role, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const url = new URL(request.url);
         const parsed = getPatientsQuerySchema.parse({
             search: url.searchParams.get('search') ?? '',
@@ -53,8 +56,8 @@ export async function GET(request: Request) {
             pageSize: url.searchParams.get('pageSize') ?? '50',
         });
 
-        const accessiblePatientIds = role === 'professional'
-            ? await getProfessionalPatientIds(supabase, userId)
+        const accessiblePatientIds = scopedProfessionalId
+            ? await getProfessionalPatientIds(supabase, scopedProfessionalId)
             : null;
 
         if (accessiblePatientIds && accessiblePatientIds.length === 0) {
@@ -95,6 +98,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess();
         const rawBody = await request.json();
         const parsed = createPatientSchema.parse(rawBody);
@@ -133,12 +137,14 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
     try {
-        const { supabase, role, userId } = await requirePanelAccess();
+        assertSameOriginMutation(request);
+        const { supabase, role, userId, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
         const parsed = updatePatientSchema.parse(rawBody);
         const { id, ...updateData } = parsed;
 
-        await ensurePatientAccess({ supabase, role, userId, patientId: id });
+        await ensurePatientAccess({ supabase, role, professionalId: scopedProfessionalId, patientId: id });
 
         const payload = {
             ...updateData,

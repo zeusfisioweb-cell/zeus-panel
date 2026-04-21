@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, normalizeNullableText, requirePanelAccess } from '../_lib';
+import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
 
 const updateProfessionalSchema = z.object({
     id: z.string().min(1),
@@ -18,10 +18,11 @@ const deleteProfessionalSchema = z.object({
 
 export async function GET() {
     try {
-        const { supabase, role } = await requirePanelAccess();
+        const { supabase, role, userId } = await requirePanelAccess();
 
         const ownerSelect = `
                 id,
+                user_id,
                 specialty,
                 license_number,
                 bio,
@@ -40,6 +41,7 @@ export async function GET() {
 
         const professionalSelect = `
                 id,
+                user_id,
                 specialty,
                 license_number,
                 bio,
@@ -55,19 +57,39 @@ export async function GET() {
                 )
             `;
 
-        let query = supabase
-            .from('professionals')
-            .select(role === 'owner' ? ownerSelect : professionalSelect);
+        if (role === 'owner') {
+            const { data, error } = await supabase
+                .from('professionals')
+                .select(ownerSelect);
 
-        if (role === 'professional') {
-            query = query.eq('is_active', true);
+            if (error) throw error;
+
+            const filtered = (data ?? []).filter((row) => {
+                const record = row as Record<string, unknown>;
+                const profileRaw = record.profile as Record<string, unknown> | Record<string, unknown>[] | null | undefined;
+                const profile = Array.isArray(profileRaw) ? profileRaw[0] : profileRaw;
+                return profile?.role === 'professional';
+            });
+
+            return NextResponse.json(filtered);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await supabase
+            .from('professionals')
+            .select(professionalSelect)
+            .eq('user_id', userId)
+            .eq('is_active', true);
 
         if (error) throw error;
 
-        return NextResponse.json(data ?? []);
+        const filtered = (data ?? []).filter((row) => {
+            const record = row as Record<string, unknown>;
+            const profileRaw = record.profile as Record<string, unknown> | Record<string, unknown>[] | null | undefined;
+            const profile = Array.isArray(profileRaw) ? profileRaw[0] : profileRaw;
+            return profile?.role === 'professional';
+        });
+
+        return NextResponse.json(filtered);
     } catch (error: unknown) {
         return handleApiError(error);
     }
@@ -75,7 +97,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = updateProfessionalSchema.parse(rawBody);
         const { id, serviceIds, ...professionalData } = parsed;
@@ -126,6 +149,18 @@ export async function PATCH(request: Request) {
             }
         }
 
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'UPDATE',
+            tableName: 'professionals',
+            recordId: id,
+            details: {
+                service_links_updated: serviceIds !== undefined,
+                is_active: professionalData.is_active ?? null,
+            },
+        });
+
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         return handleApiError(error);
@@ -134,7 +169,8 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const { id } = deleteProfessionalSchema.parse(rawBody);
         const nowIso = new Date().toISOString();
@@ -172,6 +208,15 @@ export async function DELETE(request: Request) {
             .eq('id', id);
 
         if (disableProfessionalError) throw disableProfessionalError;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'DELETE',
+            tableName: 'professionals',
+            recordId: id,
+            details: { reassigned_appointments: count ?? 0 },
+        });
 
         return NextResponse.json({
             success: true,

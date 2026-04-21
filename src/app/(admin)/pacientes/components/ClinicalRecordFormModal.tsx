@@ -14,29 +14,29 @@ interface ClinicalRecordFormModalProps {
     onSubmit: (type: RecordType, recordFields: string[]) => Promise<void>;
 }
 
-export const RECORD_FIELDS: Record<RecordType, { label: string; placeholder: string }[]> = {
+export const RECORD_FIELDS: Record<RecordType, { key: string; label: string; placeholder: string }[]> = {
     anamnesis: [
-        { label: 'Motivo de consulta', placeholder: 'Dolor lumbar de 2 semanas de evolución...' },
-        { label: 'Antecedentes', placeholder: 'Cirugía de hernia discal en 2020...' },
-        { label: 'Medicación actual', placeholder: 'Ibuprofeno 600mg cada 8h...' },
-        { label: 'Observaciones', placeholder: 'Paciente refiere empeorar al estar sentado...' },
+        { key: 'chief_complaint', label: 'Motivo de consulta', placeholder: 'Dolor lumbar de 2 semanas de evolución...' },
+        { key: 'medical_history', label: 'Antecedentes', placeholder: 'Cirugía de hernia discal en 2020...' },
+        { key: 'medications', label: 'Medicación actual', placeholder: 'Ibuprofeno 600mg cada 8h...' },
+        { key: 'observations', label: 'Observaciones', placeholder: 'Paciente refiere empeorar al estar sentado...' },
     ],
     exploration: [
-        { label: 'Inspección visual', placeholder: 'Postura antálgica, cifosis dorsal acentuada...' },
-        { label: 'Palpación', placeholder: 'Contractura paravertebral L4-L5 bilateral...' },
-        { label: 'Movilidad', placeholder: 'Flexión lumbar limitada 50%, extensión dolorosa...' },
-        { label: 'Tests específicos', placeholder: 'Lasègue negativo bilateral, Slump positivo dcha...' },
+        { key: 'visual_inspection', label: 'Inspección visual', placeholder: 'Postura antálgica, cifosis dorsal acentuada...' },
+        { key: 'palpation', label: 'Palpación', placeholder: 'Contractura paravertebral L4-L5 bilateral...' },
+        { key: 'mobility', label: 'Movilidad', placeholder: 'Flexión lumbar limitada 50%, extensión dolorosa...' },
+        { key: 'specific_tests', label: 'Tests específicos', placeholder: 'Lasègue negativo bilateral, Slump positivo dcha...' },
     ],
     evolution: [
-        { label: 'Sesión realizada', placeholder: 'Terapia manual + electroterapia zona lumbar...' },
-        { label: 'Respuesta del paciente', placeholder: 'Mejoría subjetiva del dolor 7/10 a 4/10...' },
-        { label: 'Plan de tratamiento', placeholder: 'Continuar con 2 sesiones semanales, ejercicios...' },
+        { key: 'treatment_applied', label: 'Sesión realizada', placeholder: 'Terapia manual + electroterapia zona lumbar...' },
+        { key: 'patient_response', label: 'Respuesta del paciente', placeholder: 'Mejoría subjetiva del dolor 7/10 a 4/10...' },
+        { key: 'next_session_plan', label: 'Plan de tratamiento', placeholder: 'Continuar con 2 sesiones semanales, ejercicios...' },
     ],
     report: [
-        { label: 'Diagnóstico fisioterapéutico', placeholder: 'Lumbociatalgia mecánica con componente miofascial...' },
-        { label: 'Tratamiento realizado', placeholder: 'Se han realizado 8 sesiones de fisioterapia...' },
-        { label: 'Resultados', placeholder: 'Mejoría del 80% en la escala EVA de dolor...' },
-        { label: 'Recomendaciones', placeholder: 'Mantener ejercicios domiciliarios, revisión en 3 meses...' },
+        { key: 'diagnosis', label: 'Diagnóstico fisioterapéutico', placeholder: 'Lumbociatalgia mecánica con componente miofascial...' },
+        { key: 'treatment_applied', label: 'Tratamiento realizado', placeholder: 'Se han realizado 8 sesiones de fisioterapia...' },
+        { key: 'results', label: 'Resultados', placeholder: 'Mejoría del 80% en la escala EVA de dolor...' },
+        { key: 'recommendations', label: 'Recomendaciones', placeholder: 'Mantener ejercicios domiciliarios, revisión en 3 meses...' },
     ],
 };
 

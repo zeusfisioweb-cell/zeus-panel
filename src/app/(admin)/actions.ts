@@ -45,7 +45,43 @@ export async function getDashboardData(
     }
 
     const isOwner = profile.role === 'owner';
-    const userProfId = profile.role === 'professional' ? profile.id : null;
+    let currentProfessionalId: string | null = null;
+
+    if (profile.role === 'professional') {
+        const { data: professional, error: professionalError } = await supabase
+            .from('professionals')
+            .select('id, is_active')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (professionalError) {
+            throw professionalError;
+        }
+
+        if (professional?.is_active) {
+            currentProfessionalId = professional.id;
+        }
+    }
+
+    if (!isOwner && !currentProfessionalId) {
+        return {
+            todayAppointments: [],
+            stats: {
+                todayCount: 0,
+                weekCount: 0,
+                totalPatients: 0,
+                pendingCount: 0,
+            },
+            globalStats: {
+                estimatedRevenue: 0,
+                totalGlobalAppointments: 0,
+                sessionBreakdown: [],
+                globalStatus: { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
+            },
+            services: [],
+            professionals: [],
+        };
+    }
 
     let appointmentsQuery = supabase
         .from('appointments')
@@ -54,19 +90,34 @@ export async function getDashboardData(
         .lte('start_time', `${endStr}T23:59:59`)
         .order('start_time', { ascending: true });
 
-    if (!isOwner && userProfId) {
-        appointmentsQuery = appointmentsQuery.eq('professional_id', userProfId);
+    if (!isOwner && currentProfessionalId) {
+        appointmentsQuery = appointmentsQuery.eq('professional_id', currentProfessionalId);
     }
+
+    const servicesPromise = isOwner
+        ? supabase.from('services').select('*').eq('is_active', true).order('name')
+        : supabase
+            .from('professional_services')
+            .select('service:services(*, category:service_categories(id, name, color))')
+            .eq('professional_id', currentProfessionalId as string);
+
+    const professionalsPromise = isOwner
+        ? supabase
+            .from('professionals')
+            .select('*, profile:profiles(*)')
+            .eq('is_active', true)
+        : supabase
+            .from('professionals')
+            .select('*, profile:profiles(*)')
+            .eq('id', currentProfessionalId as string)
+            .eq('is_active', true);
 
     const [appointmentsRes, servicesRes, profRes, statsRes] = await Promise.all([
         appointmentsQuery,
-        supabase.from('services').select('*').eq('is_active', true).order('name'),
-        supabase
-            .from('professionals')
-            .select('*, profile:profiles(*)')
-            .eq('is_active', true),
+        servicesPromise,
+        professionalsPromise,
         supabase.rpc('get_dashboard_stats', {
-            p_professional_id: isOwner ? null : userProfId,
+            p_professional_id: isOwner ? null : currentProfessionalId,
             p_week_start: weekStartIso,
             p_week_end: weekEndIso
         })
@@ -89,6 +140,12 @@ export async function getDashboardData(
         globalStatus: statsData.globalStatus || { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
     };
 
+    const services = isOwner
+        ? ((servicesRes.data as Service[]) || [])
+        : ((servicesRes.data || [])
+            .map((row) => (row as Record<string, unknown>).service as Service | null | undefined)
+            .filter((service): service is Service => service != null && service.is_active === true));
+
     return {
         todayAppointments: (appointmentsRes.data as Appointment[]) || [],
         stats: {
@@ -98,7 +155,7 @@ export async function getDashboardData(
             pendingCount: statsData.pendingCount || 0,
         },
         globalStats,
-        services: (servicesRes.data as Service[]) || [],
+        services,
         professionals: (profRes.data as Professional[]) || [],
     };
 }

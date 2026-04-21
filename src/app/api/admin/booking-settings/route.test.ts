@@ -14,10 +14,13 @@ const ApiRouteErrorMock = vi.hoisted(
 );
 
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const writeAuditLogMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
-    requirePanelAccess: requirePanelAccessMock,
+        requirePanelAccess: requirePanelAccessMock,
+    assertSameOriginMutation: vi.fn(),
+    writeAuditLog: writeAuditLogMock,
     normalizeNullableText: (value: string | null | undefined) => {
         if (value == null) return null;
         const trimmed = value.trim();
@@ -60,6 +63,7 @@ function createPatchRequest(body: unknown): Request {
 describe('admin booking settings route', () => {
     beforeEach(() => {
         requirePanelAccessMock.mockReset();
+        writeAuditLogMock.mockReset();
     });
 
     it('returns booking settings for authenticated panel users', async () => {
@@ -76,7 +80,7 @@ describe('admin booking settings route', () => {
             from: vi.fn().mockReturnValue(query),
         };
 
-        requirePanelAccessMock.mockResolvedValue({ supabase });
+        requirePanelAccessMock.mockResolvedValue({ supabase, userId: 'owner-1' });
 
         const response = await GET();
         const body = await response.json();
@@ -108,7 +112,7 @@ describe('admin booking settings route', () => {
                 .mockReturnValueOnce({ update }),
         };
 
-        requirePanelAccessMock.mockResolvedValue({ supabase });
+        requirePanelAccessMock.mockResolvedValue({ supabase, userId: 'owner-1' });
 
         const response = await PATCH(createPatchRequest(validPayload));
         const body = await response.json();
@@ -121,6 +125,14 @@ describe('admin booking settings route', () => {
             phone: null,
             address: 'Main St',
         }));
+        expect(writeAuditLogMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'owner-1',
+                action: 'UPDATE',
+                tableName: 'booking_settings',
+                recordId: 'settings-1',
+            })
+        );
     });
 
     it('returns 403 when a non-owner attempts to update settings', async () => {
@@ -156,4 +168,3 @@ describe('admin booking settings route', () => {
         expect(body).toEqual({ error: 'Internal Server Error' });
     });
 });
-

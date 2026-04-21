@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ServiceSchema, ServiceUpdateSchema } from '@/lib/schemas';
-import { handleApiError, normalizeNullableText, requirePanelAccess } from '../_lib';
+import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
 
 const updateServiceSchema = ServiceUpdateSchema.extend({
     id: z.string().min(1),
@@ -13,8 +13,49 @@ const deleteServiceSchema = z.object({
 
 export async function GET() {
     try {
-        const { supabase, role } = await requirePanelAccess();
-        let query = supabase
+        const { supabase, role, userId } = await requirePanelAccess();
+
+        if (role === 'professional') {
+            const { data: professional, error: professionalError } = await supabase
+                .from('professionals')
+                .select('id, is_active')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (professionalError) throw professionalError;
+            if (!professional || !professional.is_active) {
+                return NextResponse.json([]);
+            }
+
+            const { data: links, error: linksError } = await supabase
+                .from('professional_services')
+                .select(`
+                    service:services (
+                        *,
+                        category:service_categories (
+                            id,
+                            name,
+                            color
+                        )
+                    )
+                `)
+                .eq('professional_id', professional.id);
+
+            if (linksError) throw linksError;
+
+            const services = (links ?? [])
+                .map((row) => {
+                    const record = row as Record<string, unknown>;
+                    return record.service as Record<string, unknown> | null | undefined;
+                })
+                .filter((service): service is Record<string, unknown> => Boolean(service))
+                .filter((service) => Boolean(service.is_active))
+                .sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? '')));
+
+            return NextResponse.json(services);
+        }
+
+        const { data, error } = await supabase
             .from('services')
             .select(`
                 *,
@@ -26,12 +67,6 @@ export async function GET() {
             `)
             .order('name');
 
-        if (role === 'professional') {
-            query = query.eq('is_active', true);
-        }
-
-        const { data, error } = await query;
-
         if (error) throw error;
 
         return NextResponse.json(data ?? []);
@@ -42,7 +77,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = ServiceSchema.parse(rawBody);
 
@@ -59,6 +95,15 @@ export async function POST(request: Request) {
 
         if (error) throw error;
 
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'CREATE',
+            tableName: 'services',
+            recordId: data.id as string,
+            details: { name: data.name },
+        });
+
         return NextResponse.json(data);
     } catch (error: unknown) {
         return handleApiError(error);
@@ -67,7 +112,8 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = updateServiceSchema.parse(rawBody);
         const { id, ...updateData } = parsed;
@@ -88,6 +134,15 @@ export async function PATCH(request: Request) {
 
         if (error) throw error;
 
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'UPDATE',
+            tableName: 'services',
+            recordId: data.id as string,
+            details: { name: data.name },
+        });
+
         return NextResponse.json(data);
     } catch (error: unknown) {
         return handleApiError(error);
@@ -96,7 +151,8 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const { id } = deleteServiceSchema.parse(rawBody);
 
@@ -133,6 +189,15 @@ export async function DELETE(request: Request) {
             .eq('id', id);
 
         if (deleteError) throw deleteError;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'DELETE',
+            tableName: 'services',
+            recordId: id,
+            details: null,
+        });
 
         return NextResponse.json({ success: true });
     } catch (error: unknown) {

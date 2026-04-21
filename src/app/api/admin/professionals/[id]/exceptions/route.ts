@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, normalizeNullableText, requirePanelAccess } from '../../../_lib';
+import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../../../_lib';
 
 const paramsSchema = z.object({
     id: z.string().min(1),
@@ -62,7 +62,8 @@ export async function POST(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const { id } = paramsSchema.parse(await context.params);
         const rawBody = await request.json();
         const parsed = createExceptionsSchema.parse(rawBody);
@@ -80,6 +81,16 @@ export async function POST(
             .insert(rows);
 
         if (error) throw error;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'CREATE',
+            tableName: 'schedule_exceptions',
+            recordId: id,
+            details: { inserted_days: rows.length },
+        });
+
         return NextResponse.json({ success: true, inserted: rows.length });
     } catch (error: unknown) {
         return handleApiError(error);

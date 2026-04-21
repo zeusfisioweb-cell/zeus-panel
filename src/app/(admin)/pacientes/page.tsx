@@ -172,8 +172,8 @@ export default function PacientesPage() {
             const { RECORD_FIELDS } = await import('./components/ClinicalRecordFormModal');
             const content: Record<string, string> = {};
 
-            RECORD_FIELDS[type].forEach((field: { label: string }, index: number) => {
-                content[field.label] = recordFields[index] || '';
+            RECORD_FIELDS[type].forEach((field: { key: string }, index: number) => {
+                content[field.key] = recordFields[index] || '';
             });
 
             const response = await fetch('/api/admin/clinical-records', {

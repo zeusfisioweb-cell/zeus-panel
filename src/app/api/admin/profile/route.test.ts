@@ -17,7 +17,8 @@ const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
-    requirePanelAccess: requirePanelAccessMock,
+        requirePanelAccess: requirePanelAccessMock,
+    assertSameOriginMutation: vi.fn(),
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
             return Response.json({ error: error.message }, { status: error.status });

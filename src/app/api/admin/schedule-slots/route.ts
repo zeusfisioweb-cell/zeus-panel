@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, requirePanelAccess } from '../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 
 const createScheduleSlotSchema = z.object({
     professional_id: z.string().min(1),
@@ -11,7 +11,8 @@ const createScheduleSlotSchema = z.object({
 
 export async function POST(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = createScheduleSlotSchema.parse(rawBody);
 
@@ -22,6 +23,16 @@ export async function POST(request: Request) {
             .single();
 
         if (error) throw error;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'CREATE',
+            tableName: 'schedule_slots',
+            recordId: data.id as string,
+            details: { professional_id: parsed.professional_id },
+        });
+
         return NextResponse.json(data);
     } catch (error: unknown) {
         return handleApiError(error);

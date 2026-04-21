@@ -15,11 +15,13 @@ const ApiRouteErrorMock = vi.hoisted(
 
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
+const assertSameOriginMutationMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
     requirePanelAccess: requirePanelAccessMock,
     writeAuditLog: writeAuditLogMock,
+    assertSameOriginMutation: assertSameOriginMutationMock,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
             return Response.json({ error: error.message }, { status: error.status });
@@ -40,6 +42,7 @@ describe('admin audit route', () => {
     beforeEach(() => {
         requirePanelAccessMock.mockReset();
         writeAuditLogMock.mockReset();
+        assertSameOriginMutationMock.mockReset();
     });
 
     it('writes an audit event with owner-only access', async () => {
@@ -87,4 +90,3 @@ describe('admin audit route', () => {
         expect(writeAuditLogMock).not.toHaveBeenCalled();
     });
 });
-

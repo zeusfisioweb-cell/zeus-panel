@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
     ApiRouteError,
+    assertSameOriginMutation,
     ensurePatientAccess,
     getProfessionalPatientIds,
     handleApiError,
     normalizeNullableText,
+    resolveScopedProfessionalId,
     writeAuditLog,
 } from './_lib';
 
@@ -145,7 +147,7 @@ describe('patient access helpers', () => {
         await expect(ensurePatientAccess({
             supabase: { from } as never,
             role: 'owner',
-            userId: 'owner-1',
+            professionalId: null,
             patientId: 'patient-1',
         })).resolves.toBeUndefined();
 
@@ -172,12 +174,58 @@ describe('patient access helpers', () => {
         await expect(ensurePatientAccess({
             supabase: { from } as never,
             role: 'professional',
-            userId: 'pro-1',
+            professionalId: 'professional-1',
             patientId: 'patient-1',
         })).rejects.toMatchObject({
             status: 403,
             message: 'Forbidden',
         });
+    });
+});
+
+describe('resolveScopedProfessionalId', () => {
+    it('returns null for owners', () => {
+        expect(resolveScopedProfessionalId('owner', null)).toBeNull();
+    });
+
+    it('returns professional id for professional role', () => {
+        expect(resolveScopedProfessionalId('professional', 'professional-1')).toBe('professional-1');
+    });
+
+    it('throws when professional role has no mapped professional id', () => {
+        expect(() => resolveScopedProfessionalId('professional', null)).toThrowError('Forbidden');
+    });
+});
+
+describe('assertSameOriginMutation', () => {
+    it('allows requests without origin header', () => {
+        expect(() => assertSameOriginMutation(
+            new Request('http://localhost/api/admin/services', {
+                method: 'POST',
+            })
+        )).not.toThrow();
+    });
+
+    it('rejects explicit cross-site requests', () => {
+        expect(() => assertSameOriginMutation(
+            new Request('http://localhost/api/admin/services', {
+                method: 'POST',
+                headers: {
+                    'sec-fetch-site': 'cross-site',
+                },
+            })
+        )).toThrowError('Forbidden');
+    });
+
+    it('rejects mismatched origin host', () => {
+        expect(() => assertSameOriginMutation(
+            new Request('http://localhost/api/admin/services', {
+                method: 'POST',
+                headers: {
+                    origin: 'https://evil.test',
+                },
+            })
+        )).toThrowError('Forbidden');
     });
 });
 
@@ -268,6 +316,22 @@ describe('requirePanelAccess', () => {
     });
 
     it('rejects non-owner access when ownerOnly is true', async () => {
+        const profileQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'professional' },
+                error: null,
+            }),
+        };
+        const professionalQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'professional-1', is_active: true },
+                error: null,
+            }),
+        };
         const supabase = {
             auth: {
                 getUser: vi.fn().mockResolvedValue({
@@ -275,15 +339,10 @@ describe('requirePanelAccess', () => {
                     error: null,
                 }),
             },
-            from: vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        maybeSingle: vi.fn().mockResolvedValue({
-                            data: { role: 'professional' },
-                            error: null,
-                        }),
-                    }),
-                }),
+            from: vi.fn((table: string) => {
+                if (table === 'profiles') return profileQuery;
+                if (table === 'professionals') return professionalQuery;
+                throw new Error(`Unexpected table: ${table}`);
             }),
         };
 
@@ -294,6 +353,47 @@ describe('requirePanelAccess', () => {
         await expect(requirePanelAccess({ ownerOnly: true })).rejects.toMatchObject({
             status: 403,
             message: 'Forbidden: owner role required',
+        });
+    });
+
+    it('rejects inactive professionals', async () => {
+        const profileQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'professional' },
+                error: null,
+            }),
+        };
+        const professionalQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'professional-1', is_active: false },
+                error: null,
+            }),
+        };
+        const supabase = {
+            auth: {
+                getUser: vi.fn().mockResolvedValue({
+                    data: { user: { id: 'pro-1' } },
+                    error: null,
+                }),
+            },
+            from: vi.fn((table: string) => {
+                if (table === 'profiles') return profileQuery;
+                if (table === 'professionals') return professionalQuery;
+                throw new Error(`Unexpected table: ${table}`);
+            }),
+        };
+
+        createClientMock.mockResolvedValue(supabase);
+
+        const { requirePanelAccess } = await import('./_lib');
+
+        await expect(requirePanelAccess()).rejects.toMatchObject({
+            status: 403,
+            message: 'Forbidden',
         });
     });
 });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ScheduleExceptionSchema } from '@/lib/schemas';
-import { handleApiError, requirePanelAccess } from '../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../_lib';
 
 const getScheduleExceptionsQuerySchema = z.object({
     start_date: z.string().optional(),
@@ -11,7 +11,8 @@ const getScheduleExceptionsQuerySchema = z.object({
 
 export async function GET(request: Request) {
     try {
-        const { supabase, role, userId } = await requirePanelAccess();
+        const { supabase, role, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const url = new URL(request.url);
         const parsed = getScheduleExceptionsQuerySchema.parse({
             start_date: url.searchParams.get('start_date') ?? undefined,
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
             professional_id: url.searchParams.get('professional_id') ?? undefined,
         });
 
-        const effectiveProfessionalId = role === 'professional' ? userId : parsed.professional_id;
+        const effectiveProfessionalId = scopedProfessionalId ?? parsed.professional_id;
 
         let query = supabase
             .from('schedule_exceptions')
@@ -49,13 +50,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const { supabase, role, userId } = await requirePanelAccess();
+        assertSameOriginMutation(request);
+        const { supabase, role, professionalId, userId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
         const parsed = ScheduleExceptionSchema.parse(rawBody);
 
         const payload = {
             ...parsed,
-            professional_id: role === 'professional' ? userId : parsed.professional_id,
+            professional_id: scopedProfessionalId ?? parsed.professional_id,
         };
 
         const { data, error } = await supabase
@@ -65,6 +68,15 @@ export async function POST(request: Request) {
             .single();
 
         if (error) throw error;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'CREATE',
+            tableName: 'schedule_exceptions',
+            recordId: data.id as string,
+            details: { professional_id: payload.professional_id },
+        });
 
         return NextResponse.json(data);
     } catch (error: unknown) {

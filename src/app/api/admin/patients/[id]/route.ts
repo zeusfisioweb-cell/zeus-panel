@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, requirePanelAccess, writeAuditLog } from '../../_lib';
+import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../../_lib';
 
 const paramsSchema = z.object({
     id: z.string().min(1),
@@ -11,6 +11,7 @@ export async function DELETE(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
+        assertSameOriginMutation(_request);
         // Only owners can delete (soft-delete) patients
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const { id } = paramsSchema.parse(await context.params);

@@ -11,6 +11,23 @@ import { RECORD_TYPE_LABELS, RECORD_TYPE_COLORS, STATUS_LABELS } from '@/lib/typ
 
 type DetailTab = 'datos' | 'citas' | 'clinico';
 
+const FIELD_DISPLAY_LABELS: Record<string, string> = {
+    chief_complaint: 'Motivo de consulta',
+    medical_history: 'Antecedentes',
+    medications: 'Medicación actual',
+    observations: 'Observaciones',
+    visual_inspection: 'Inspección visual',
+    palpation: 'Palpación',
+    mobility: 'Movilidad',
+    specific_tests: 'Tests específicos',
+    treatment_applied: 'Sesión realizada / Tratamiento',
+    patient_response: 'Respuesta del paciente',
+    next_session_plan: 'Plan de tratamiento',
+    diagnosis: 'Diagnóstico',
+    results: 'Resultados',
+    recommendations: 'Recomendaciones',
+};
+
 interface PatientDetailsPanelProps {
     patient: Patient;
     appointments: Appointment[];
@@ -34,6 +51,7 @@ export function PatientDetailsPanel({
 }: PatientDetailsPanelProps) {
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
     const [exporting, setExporting] = useState(false);
+    const [exportingCsv, setExportingCsv] = useState(false);
 
     const handleExportGdpr = async () => {
         setExporting(true);
@@ -62,6 +80,34 @@ export function PatientDetailsPanel({
             toast.error(error instanceof Error ? error.message : 'Error al exportar datos');
         } finally {
             setExporting(false);
+        }
+    };
+
+    const handleExportCsv = async () => {
+        setExportingCsv(true);
+        try {
+            const res = await fetch(`/api/admin/patients/${encodeURIComponent(patient.id)}/export?format=csv`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({ error: 'Error de servidor' }));
+                throw new Error((body as { error?: string }).error || 'Error de servidor');
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `paciente_${patient.first_name}_${patient.last_name}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success('CSV exportado correctamente');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al exportar CSV');
+        } finally {
+            setExportingCsv(false);
         }
     };
 
@@ -110,6 +156,16 @@ export function PatientDetailsPanel({
                     isLoading={exporting}
                 >
                     Exportar datos (RGPD)
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleExportCsv}
+                    disabled={exportingCsv}
+                    leftIcon={<Icon name="download" size={14} />}
+                    isLoading={exportingCsv}
+                >
+                    Exportar CSV
                 </Button>
                 <Button
                     variant="ghost"
@@ -236,7 +292,7 @@ export function PatientDetailsPanel({
 
                                     return (
                                         <div key={key}>
-                                            <span>{key}</span>
+                                            <span>{FIELD_DISPLAY_LABELS[key] ?? key}</span>
                                             <p>{value}</p>
                                         </div>
                                     );

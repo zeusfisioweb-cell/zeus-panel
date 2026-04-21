@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, normalizeNullableText, requirePanelAccess } from '../_lib';
+import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
 
 const updateBookingSettingsSchema = z.object({
     clinic_name: z.string().min(1),
@@ -38,7 +38,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const currentSettingsRes = await supabase
             .from('booking_settings')
             .select('id')
@@ -71,6 +72,16 @@ export async function PATCH(request: Request) {
             .single();
 
         if (error) throw error;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'UPDATE',
+            tableName: 'booking_settings',
+            recordId: data.id as string,
+            details: null,
+        });
+
         return NextResponse.json(data);
     } catch (error: unknown) {
         return handleApiError(error);

@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ApiRouteError, handleApiError, requirePanelAccess, writeAuditLog } from '../../_lib';
+import {
+    assertSameOriginMutation,
+    ApiRouteError,
+    handleApiError,
+    requirePanelAccess,
+    resolveScopedProfessionalId,
+    writeAuditLog,
+} from '../../_lib';
 
 const paramsSchema = z.object({
     id: z.string().min(1),
@@ -11,7 +18,9 @@ export async function DELETE(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { supabase, role, userId } = await requirePanelAccess();
+        assertSameOriginMutation(_request);
+        const { supabase, role, userId, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const { id } = paramsSchema.parse(await context.params);
 
         let query = supabase
@@ -19,8 +28,8 @@ export async function DELETE(
             .delete()
             .eq('id', id);
 
-        if (role === 'professional') {
-            query = query.eq('professional_id', userId);
+        if (scopedProfessionalId) {
+            query = query.eq('professional_id', scopedProfessionalId);
         }
 
         const { data, error } = await query
