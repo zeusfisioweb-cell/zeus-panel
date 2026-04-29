@@ -67,14 +67,14 @@ describe('admin booking settings route', () => {
     });
 
     it('returns booking settings for authenticated panel users', async () => {
-        const single = vi.fn().mockResolvedValue({
+        const maybeSingle = vi.fn().mockResolvedValue({
             data: { id: 'settings-1', clinic_name: 'Zeus' },
             error: null,
         });
         const query = {
             select: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
-            single,
+            maybeSingle,
         };
         const supabase = {
             from: vi.fn().mockReturnValue(query),
@@ -94,7 +94,7 @@ describe('admin booking settings route', () => {
         const currentSettingsQuery = {
             select: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({
+            maybeSingle: vi.fn().mockResolvedValue({
                 data: { id: 'settings-1' },
                 error: null,
             }),

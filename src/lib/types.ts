@@ -11,6 +11,7 @@ export interface Profile {
     email: string;
     role: UserRole;
     full_name: string | null;
+    professional_id?: string | null;
     created_at: string;
 }
 
@@ -38,6 +39,7 @@ export interface Service {
     created_at: string;
     // Joined
     category?: ServiceCategory;
+    professional_services?: Array<{ professional_id: string }>;
 }
 
 export interface Professional {
@@ -51,6 +53,7 @@ export interface Professional {
     // Joined
     profile?: Profile;
     services?: Service[];
+    professional_services?: Array<{ service_id: string }>;
 }
 
 export interface Patient {
@@ -64,9 +67,13 @@ export interface Patient {
     address: string | null;
     gdpr_consent: boolean;
     marketing_consent: boolean;
+    auth_user_id?: string | null;
+    guardian_auth_user_id?: string | null;
+    gdpr_consented_by_guardian?: boolean;
     created_by?: string | null;
     created_at: string;
     updated_at: string;
+    deleted_at?: string | null;
 }
 
 export interface Appointment {
@@ -198,8 +205,8 @@ export interface ClinicalRecord {
 }
 
 // Day names for schedule display (UI order: 0=Lunes .. 6=Domingo)
-export const DAY_NAMES = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
-export const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+export const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+export const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 // Convert database day_of_week to UI index.
 // Canonical DB mapping is 1=Lunes .. 7=Domingo.
@@ -242,5 +249,4 @@ export const STATUS_COLORS: Record<AppointmentStatus, string> = {
     cancelled: '#ef4444',
     completed: '#6366f1',
 };
-
 

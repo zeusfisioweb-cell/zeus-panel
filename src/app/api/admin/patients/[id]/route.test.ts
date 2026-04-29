@@ -47,20 +47,20 @@ describe('admin patient delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/patients/patient-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
         expect(body).toEqual({ success: true });
         expect(requirePanelAccessMock).toHaveBeenCalledWith({ ownerOnly: true });
-        expect(rpc).toHaveBeenCalledWith('soft_delete_patient', { patient_id_input: 'patient-1' });
+        expect(rpc).toHaveBeenCalledWith('soft_delete_patient', { patient_id_input: '11111111-1111-1111-1111-111111111111' });
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
                 action: 'DELETE',
                 tableName: 'patients',
-                recordId: 'patient-1',
+                recordId: '11111111-1111-1111-1111-111111111111',
             })
         );
     });
@@ -72,7 +72,7 @@ describe('admin patient delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/patients/patient-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
         const body = await response.json();
 
@@ -92,7 +92,7 @@ describe('admin patient delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/patients/patient-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
         const body = await response.json();
 

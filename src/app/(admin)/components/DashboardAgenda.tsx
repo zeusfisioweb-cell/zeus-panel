@@ -52,23 +52,19 @@ export function DashboardAgenda({
             </div>
 
             {todayAppointments.length === 0 ? (
-                <div className="summary-v5-empty">
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: '#d1c5b4' }}>
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                            <path d="M8 14h.01"></path>
-                            <path d="M12 14h.01"></path>
-                            <path d="M16 14h.01"></path>
-                            <path d="M8 18h.01"></path>
-                            <path d="M12 18h.01"></path>
-                            <path d="M16 18h.01"></path>
+                <div className="zs-agenda-empty">
+                    <div className="zs-agenda-empty__icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                            <path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/>
+                            <path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>
                         </svg>
                     </div>
-                    <p className="summary-v5-empty__title">Dia libre de citas</p>
-                    <p className="summary-v5-empty__text">Sin sesiones pendientes para hoy.</p>
+                    <p className="zs-agenda-empty__title">Día libre de citas</p>
+                    <p className="zs-agenda-empty__text">Sin sesiones pendientes para hoy.</p>
                     <button className="btn btn--primary btn--sm" type="button" onClick={onNewAppointmentClick}>
                         Crear nueva cita
                     </button>
@@ -115,7 +111,7 @@ export function DashboardAgenda({
 
                                     {apt.status === 'pending' && hasPhone && (
                                         <a
-                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, te escribimos desde la clinica para confirmar tu cita de ${apt.service?.name} hoy a las ${formatTime(apt.start_time)}.`}
+                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, te escribimos desde la clínica para confirmar tu cita de ${apt.service?.name} hoy a las ${formatTime(apt.start_time)}.`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="btn btn--secondary btn--sm summary-v5-timeline__wa"
@@ -137,7 +133,7 @@ export function DashboardAgenda({
 
                                     {apt.status === 'completed' && hasPhone && (
                                         <a
-                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, gracias por venir a tu sesion de ${apt.service?.name}. Si puedes, dejanos una resena en Google.`}
+                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, gracias por venir a tu sesión de ${apt.service?.name}. Si puedes, déjanos una reseña en Google.`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="btn btn--secondary btn--sm summary-v5-timeline__wa"

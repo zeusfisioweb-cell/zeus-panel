@@ -22,7 +22,7 @@ export default function LoginPage() {
         const { error } = await signIn(email, password);
         if (error) {
             setError(error === 'Invalid login credentials'
-                ? 'Email o contrasena incorrectos'
+                ? 'Email o contraseña incorrectos'
                 : error
             );
             setSubmitting(false);
@@ -40,15 +40,15 @@ export default function LoginPage() {
                 </div>
 
                 <div className="cover-text">
-                    <h1>Gestion clara para tu clinica.</h1>
+                    <h1>Gestión clara para tu clínica.</h1>
                     <p>
-                        Agenda, pacientes, servicios y horarios en un unico panel.
-                        Rapido, limpio y preparado para el trabajo diario.
+                        Agenda, pacientes, servicios y horarios en un único panel.
+                        Rápido, limpio y preparado para el trabajo diario.
                     </p>
                     <ul className="cover-points">
-                        <li className="cover-point">Vista dia, semana y agenda con foco clinico</li>
-                        <li className="cover-point">Interfaz visual para confirmar y mover citas rapido</li>
-                        <li className="cover-point">Diseno limpio para trabajar todo el dia sin fatiga</li>
+                        <li className="cover-point">Vista día, semana y agenda con foco clínico</li>
+                        <li className="cover-point">Interfaz visual para confirmar y mover citas rápido</li>
+                        <li className="cover-point">Diseño limpio para trabajar todo el día sin fatiga</li>
                     </ul>
                 </div>
             </div>
@@ -56,14 +56,14 @@ export default function LoginPage() {
             <div className="login-split__form-wrapper">
                 <div className="login-form-container">
                     <div className="login-heading">
-                        <h2>Iniciar sesion</h2>
+                        <h2>Iniciar sesión</h2>
                         <p>Accede con tu cuenta profesional para continuar.</p>
                     </div>
 
                     {loading && (
                         <div className="login-info" role="status" aria-live="polite">
                             <div className="spinner" style={{ width: 14, height: 14 }} />
-                            Verificando sesion...
+                            Verificando sesión...
                         </div>
                     )}
 
@@ -89,7 +89,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="form-group" style={{ marginBottom: 32 }}>
-                            <label className="form-label" htmlFor="login-password">Contrasena</label>
+                            <label className="form-label" htmlFor="login-password">Contraseña</label>
                             <input
                                 id="login-password"
                                 type="password"

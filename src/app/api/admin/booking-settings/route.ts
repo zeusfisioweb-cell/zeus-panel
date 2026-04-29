@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const updateBookingSettingsSchema = z.object({
     clinic_name: z.string().min(1),
@@ -16,8 +19,11 @@ const updateBookingSettingsSchema = z.object({
     informed_consent_text: z.string().nullable().optional(),
     privacy_policy_url: z.string().url().nullable().optional(),
     terms_url: z.string().url().nullable().optional(),
-    opening_hour: z.string().min(1),
-    closing_hour: z.string().min(1),
+    opening_hour: z.string().regex(timeRegex, { message: 'Formato inválido (HH:MM)' }),
+    closing_hour: z.string().regex(timeRegex, { message: 'Formato inválido (HH:MM)' }),
+}).refine((data) => data.closing_hour > data.opening_hour, {
+    message: 'La hora de cierre debe ser posterior a la de apertura',
+    path: ['closing_hour'],
 });
 
 export async function GET() {
@@ -27,9 +33,12 @@ export async function GET() {
             .from('booking_settings')
             .select('*')
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
+        if (!data) {
+            return NextResponse.json({ error: 'Booking settings not configured' }, { status: 404 });
+        }
         return NextResponse.json(data);
     } catch (error: unknown) {
         return handleApiError(error);
@@ -39,15 +48,24 @@ export async function GET() {
 export async function PATCH(request: Request) {
     try {
         assertSameOriginMutation(request);
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(ip, 'update-booking-settings', 10, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const currentSettingsRes = await supabase
             .from('booking_settings')
             .select('id')
             .limit(1)
-            .single();
+            .maybeSingle();
 
-        if (currentSettingsRes.error || !currentSettingsRes.data) {
-            throw currentSettingsRes.error ?? new Error('booking_settings row not found');
+        if (currentSettingsRes.error) throw currentSettingsRes.error;
+        if (!currentSettingsRes.data) {
+            return NextResponse.json({ error: 'Booking settings not configured' }, { status: 404 });
         }
 
         const rawBody = await request.json();

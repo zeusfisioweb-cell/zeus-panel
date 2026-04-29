@@ -146,7 +146,7 @@ export default function PacientesPage() {
     const handleDeletePatientConfirm = (id: string) => {
         setConfirmAction({
             title: 'Eliminar paciente',
-            message: 'Seguro que deseas eliminar este paciente y su historial? Esta accion no se puede deshacer.',
+            message: '¿Seguro que deseas eliminar este paciente y su historial? Esta acción no se puede deshacer.',
             onConfirm: async () => {
                 try {
                     await deletePaciente.mutateAsync(id);
@@ -158,6 +158,10 @@ export default function PacientesPage() {
                 }
             },
         });
+    };
+
+    const handleUnlinkPortal = (id: string) => {
+        setSelectedPatient(prev => prev?.id === id ? { ...prev, auth_user_id: null } : prev);
     };
 
     const handleOpenRecordModal = (type: RecordType) => {
@@ -191,7 +195,7 @@ export default function PacientesPage() {
                 throw new Error(await readApiError(response));
             }
 
-            toast.success('Ficha clinica guardada');
+            toast.success('Ficha clínica guardada');
             await loadPatientDetails(selectedPatient.id);
         } catch (error: unknown) {
             toast.error(`Error al guardar ficha: ${getErrorMessage(error)}`);
@@ -201,8 +205,8 @@ export default function PacientesPage() {
 
     const handleDeleteRecordConfirm = (id: string) => {
         setConfirmAction({
-            title: 'Eliminar ficha clinica',
-            message: 'Seguro que deseas eliminar esta ficha clinica?',
+            title: 'Eliminar ficha clínica',
+            message: '¿Seguro que deseas eliminar esta ficha clínica?',
             onConfirm: async () => {
                 try {
                     const response = await fetch(`/api/admin/clinical-records/${encodeURIComponent(id)}`, {
@@ -237,7 +241,11 @@ export default function PacientesPage() {
 
     return (
         <div className="content-shell section-shell section-shell--pacientes ops-screen animate-in fade-in duration-500">
-            <PacientesHeader totalCount={totalCount} onNewPaciente={() => setShowNewModal(true)} />
+            <PacientesHeader
+                totalCount={totalCount}
+                consentCount={patients.filter((p) => p.gdpr_consent).length}
+                onNewPaciente={() => setShowNewModal(true)}
+            />
 
             <div className={`patients-layout ${selectedPatient ? 'patients-layout--with-detail' : ''}`}>
                 <div className="patients-layout__main">
@@ -265,6 +273,7 @@ export default function PacientesPage() {
                             onDelete={handleDeletePatientConfirm}
                             onNewRecord={handleOpenRecordModal}
                             onDeleteRecord={handleDeleteRecordConfirm}
+                            onUnlinkPortal={handleUnlinkPortal}
                         />
                     </div>
                 )}

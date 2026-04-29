@@ -52,8 +52,8 @@ describe('admin appointments pending-count route', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             role: 'professional',
-            userId: 'professional-1',
-            professionalId: 'professional-row-1',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
 
         const response = await GET();
@@ -62,7 +62,7 @@ describe('admin appointments pending-count route', () => {
         expect(response.status).toBe(200);
         expect(body).toEqual({ count: 3 });
         expect(query.eq).toHaveBeenCalledWith('status', 'pending');
-        expect(query.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
+        expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
     });
 
     it('returns 401 when access check fails', async () => {

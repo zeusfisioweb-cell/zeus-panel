@@ -49,7 +49,7 @@ describe('admin professional exceptions route', () => {
             eq: vi.fn().mockReturnThis(),
             gte: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({
-                data: [{ id: 'exception-1' }],
+                data: [{ id: '99999999-9999-9999-9999-999999999999' }],
                 error: null,
             }),
         };
@@ -60,14 +60,14 @@ describe('admin professional exceptions route', () => {
         requirePanelAccessMock.mockResolvedValue({ supabase });
 
         const response = await GET(
-            new Request('http://localhost/api/admin/professionals/pro-1/exceptions?from=2026-04-17'),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions?from=2026-04-17'),
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual([{ id: 'exception-1' }]);
-        expect(query.eq).toHaveBeenCalledWith('professional_id', 'pro-1');
+        expect(body).toEqual([{ id: '99999999-9999-9999-9999-999999999999' }]);
+        expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
         expect(query.gte).toHaveBeenCalledWith('exception_date', '2026-04-17');
     });
 
@@ -83,7 +83,7 @@ describe('admin professional exceptions route', () => {
         });
 
         const response = await POST(
-            new Request('http://localhost/api/admin/professionals/pro-1/exceptions', {
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions', {
                 method: 'POST',
                 body: JSON.stringify({
                     start_date: '2026-04-17',
@@ -92,7 +92,7 @@ describe('admin professional exceptions route', () => {
                     is_available: false,
                 }),
             }),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
@@ -101,7 +101,7 @@ describe('admin professional exceptions route', () => {
         expect(assertSameOriginMutationMock).toHaveBeenCalled();
         expect(insert).toHaveBeenCalledWith([
             expect.objectContaining({
-                professional_id: 'pro-1',
+                professional_id: '33333333-3333-3333-3333-333333333333',
                 exception_date: '2026-04-17',
                 reason: 'vacaciones',
             }),
@@ -113,7 +113,7 @@ describe('admin professional exceptions route', () => {
                 userId: 'owner-1',
                 action: 'CREATE',
                 tableName: 'schedule_exceptions',
-                recordId: 'pro-1',
+                recordId: '33333333-3333-3333-3333-333333333333',
                 details: { inserted_days: 3 },
             })
         );
@@ -125,14 +125,14 @@ describe('admin professional exceptions route', () => {
         );
 
         const response = await POST(
-            new Request('http://localhost/api/admin/professionals/pro-1/exceptions', {
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions', {
                 method: 'POST',
                 body: JSON.stringify({
                     start_date: '2026-04-17',
                     is_available: false,
                 }),
             }),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
@@ -153,14 +153,14 @@ describe('admin professional exceptions route', () => {
         });
 
         const response = await POST(
-            new Request('http://localhost/api/admin/professionals/pro-1/exceptions', {
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions', {
                 method: 'POST',
                 body: JSON.stringify({
                     start_date: '2026-04-17',
                     is_available: false,
                 }),
             }),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 

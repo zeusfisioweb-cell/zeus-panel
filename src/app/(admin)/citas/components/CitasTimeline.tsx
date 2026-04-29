@@ -56,6 +56,13 @@ function fmtTime(iso: string) {
     return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
+function fmtDuration(min: number) {
+    if (min < 60) return `${min}min`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}min`;
+}
+
 function initials(name: string) {
     return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
 }
@@ -107,7 +114,15 @@ const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: Position
         >
             {!isTiny && (
                 <div className="zc-vcal__evt-top">
-                    <span className="zc-vcal__evt-time">{fmtTime(apt.start_time)}</span>
+                    <span className="zc-vcal__evt-time">
+                        {fmtTime(apt.start_time)}
+                        {(apt.service?.duration_minutes ?? apt.end_time) && (
+                            <span className="zc-vcal__evt-dur"> · {fmtDuration(
+                                apt.service?.duration_minutes ??
+                                Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000)
+                            )}</span>
+                        )}
+                    </span>
                     {!isCompact && (
                         <span className={`zc-vcal__evt-badge is-${apt.status}`}>
                             {STATUS_LABELS[apt.status]}
@@ -119,7 +134,7 @@ const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: Position
             {!isCompact && svcName && (
                 <p className="zc-vcal__evt-service">{svcName}</p>
             )}
-            {!isCompact && (
+            {!isCompact && heightPx >= 88 && (
                 <p className="zc-vcal__evt-prof">{profName}</p>
             )}
         </div>

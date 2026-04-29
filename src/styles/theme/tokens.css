@@ -4,46 +4,48 @@
   /* =========================================================================
      1. COLOR PALETTE (ZEUS BRAND HIGH-CONTRAST)
   ========================================================================= */
-  
+
   /* Brand Constants */
-  --brand-canela: #AD7332;
-  --brand-canela-light: #C9954D;
-  --brand-canela-dark: #8B5A26;
-  --brand-dark: #0A0A0A; /* Pure sleek black */
+  --brand-canela: #ad7332; /* UI fills, icons, rings (non-text) — 3:1 OK sobre blanco */
+  --brand-canela-light: #c9954d;
+  --brand-canela-dark: #8b5a26;
+  --brand-canela-text: #6e481e; /* WCAG AA text sobre blanco — 7.4:1 (texto canela) */
+  --brand-canela-text-strong: #5a3b18; /* Para texto pequeño o alto contraste — 9.2:1 */
+  --brand-dark: #0a0a0a;
 
   /* Semantic Colors */
   --brand-main: var(--brand-canela);
   --brand-hover: var(--brand-canela-dark);
   --brand-glow: rgba(173, 115, 50, 0.1);
   --brand-surface: rgba(173, 115, 50, 0.04);
-  
+
   /* Typography */
   --text-main: #111827; /* Very dark slate */
-  --text-muted: #6B7280;
-  --text-inverse: #FFFFFF;
+  --text-muted: #6b7280;
+  --text-inverse: #ffffff;
 
   /* Backgrounds */
-  --bg-body: #F4F4F5; /* Zync-100 pure professional gray-ish white */
-  --bg-base: #F4F4F5; 
-  --bg-surface: #FFFFFF; /* Pure white cards */
-  --bg-surface-hover: #FAFAFB;
-  --bg-sidebar: #0A0A0B; /* Deep sophisticated dark */
+  --bg-body: #f4f4f5; /* Zync-100 pure professional gray-ish white */
+  --bg-base: #f4f4f5;
+  --bg-surface: #ffffff; /* Pure white cards */
+  --bg-surface-hover: #fafafb;
+  --bg-sidebar: #0a0a0b; /* Deep sophisticated dark */
   --bg-topbar: rgba(255, 255, 255, 0.85);
-  
+
   /* Borders and Lines */
-  --border-color: #E6E8EB;
-  --line-soft: #F0F1F3;
-  --line-medium: #E6E8EB;
+  --border-color: #e6e8eb;
+  --line-soft: #f0f1f3;
+  --line-medium: #e6e8eb;
 
   /* Status Colors (Clean & Modern) */
   --success-main: #059669;
-  --success-bg: #ECFDF5;
-  --warning-main: #D97706;
-  --warning-bg: #FFFBEB;
-  --danger-main: #DC2626;
-  --danger-bg: #FEF2F2;
-  --info-main: #2563EB;
-  --info-bg: #EFF6FF;
+  --success-bg: #ecfdf5;
+  --warning-main: #d97706;
+  --warning-bg: #fffbeb;
+  --danger-main: #dc2626;
+  --danger-bg: #fef2f2;
+  --info-main: #2563eb;
+  --info-bg: #eff6ff;
 
   /* =========================================================================
      2. SHADOWS (CRISP, APPLE-LIKE BENTO)
@@ -54,16 +56,17 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 8px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover:
+    0 8px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 
   /* =========================================================================
      3. BORDER RADII (GEOMETRIC & PROFESSIONAL BENTO)
   ========================================================================= */
-  --radius-sm: 8px;   /* Inputs, Badges, internal blocks */
-  --radius-md: 12px;  /* Typical Cards, Modal inner content */
-  --radius-lg: 16px;  /* Dashboard main cards */
-  --radius-xl: 24px;  /* Modals and ultra wide elements */
-  --radius-2xl: 32px; 
+  --radius-sm: 8px; /* Inputs, Badges, internal blocks */
+  --radius-md: 12px; /* Typical Cards, Modal inner content */
+  --radius-lg: 16px; /* Dashboard main cards */
+  --radius-xl: 24px; /* Modals and ultra wide elements */
+  --radius-2xl: 32px;
   --radius-full: 9999px;
 
   /* =========================================================================
@@ -72,6 +75,47 @@
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-short: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* =========================================================================
+     5. CANELA SCALE — extended palette for charts & multi-series
+  ========================================================================= */
+  --canela-50: #fdf6ef;
+  --canela-100: #f8e9d5;
+  --canela-200: #f0d0a8;
+  --canela-300: #e5b278;
+  --canela-400: #d9934d;
+  --canela-500: #ad7332; /* base brand */
+  --canela-600: #8b5a26;
+  --canela-700: #6e481e;
+  --canela-800: #563818;
+  --canela-900: #3e2911;
+
+  /* Chart series colors (semantic, not arbitrary) */
+  --chart-1: #ad7332; /* canela */
+  --chart-2: #2563eb; /* blue */
+  --chart-3: #059669; /* green */
+  --chart-4: #d97706; /* amber */
+  --chart-5: #7c3aed; /* purple */
+  --chart-6: #0f766e; /* teal */
+  --chart-7: #c9954d; /* canela-light */
+  --chart-8: #64748b; /* slate */
+
+  /* =========================================================================
+     6. GLASS SURFACES — warm translucency
+  ========================================================================= */
+  --glass-1: rgba(255, 255, 255, 0.62);
+  --glass-2: rgba(255, 255, 255, 0.82);
+  --glass-3: rgba(255, 255, 255, 0.94);
+  --glass-canela: rgba(253, 246, 239, 0.88);
+
+  /* =========================================================================
+     7. GLOW — canela halo for interactive depth
+  ========================================================================= */
+  --canela-glow-sm: 0 0 12px rgba(173, 115, 50, 0.16);
+  --canela-glow-md: 0 0 28px rgba(173, 115, 50, 0.22);
+  --canela-glow-ring: 0 0 0 3px rgba(173, 115, 50, 0.22);
 }
 
 body {

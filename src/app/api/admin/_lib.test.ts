@@ -82,7 +82,7 @@ describe('writeAuditLog', () => {
             userId: 'user-1',
             action: 'CREATE',
             tableName: 'patients',
-            recordId: 'record-1',
+            recordId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
             details: { source: 'test' },
         });
 
@@ -91,22 +91,25 @@ describe('writeAuditLog', () => {
             user_id: 'user-1',
             action: 'CREATE',
             table_name: 'patients',
-            record_id: 'record-1',
+            record_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
             details: { source: 'test' },
         });
     });
 
-    it('logs failures without throwing', async () => {
+    it('throws when audit insert fails', async () => {
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
         const insert = vi.fn().mockResolvedValue({ error: { message: 'insert failed' } });
         const from = vi.fn().mockReturnValue({ insert });
 
-        await writeAuditLog({
+        await expect(writeAuditLog({
             supabase: { from } as never,
             userId: 'user-1',
             action: 'UPDATE',
             tableName: 'patients',
-            recordId: 'record-2',
+            recordId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        })).rejects.toMatchObject({
+            status: 500,
+            message: 'Audit log failed',
         });
 
         expect(errorSpy).toHaveBeenCalledWith('[admin-api] Failed to write audit log:', 'insert failed');
@@ -114,47 +117,112 @@ describe('writeAuditLog', () => {
 });
 
 describe('patient access helpers', () => {
-    it('collects patient ids linked through appointments and clinical records', async () => {
+    it('collects patient ids linked through assignments, appointments and clinical records', async () => {
+        const assignmentsQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({
+                data: [{ patient_id: '00000000-0000-0000-0000-000000000000' }],
+                error: null,
+            }),
+        };
         const appointmentQuery = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             not: vi.fn().mockResolvedValue({
-                data: [{ patient_id: 'patient-1' }, { patient_id: 'patient-2' }],
+                data: [{ patient_id: '11111111-1111-1111-1111-111111111111' }, { patient_id: '22222222-2222-2222-2222-222222222222' }],
                 error: null,
             }),
         };
         const recordsQuery = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockResolvedValue({
-                data: [{ patient_id: 'patient-2' }, { patient_id: 'patient-3' }],
+                data: [{ patient_id: '22222222-2222-2222-2222-222222222222' }, { patient_id: 'patient-3' }],
                 error: null,
             }),
         };
         const from = vi.fn()
+            .mockReturnValueOnce(assignmentsQuery)
             .mockReturnValueOnce(appointmentQuery)
             .mockReturnValueOnce(recordsQuery);
 
         const ids = await getProfessionalPatientIds({ from } as never, 'pro-1');
 
-        expect(ids.sort()).toEqual(['patient-1', 'patient-2', 'patient-3']);
-        expect(from).toHaveBeenNthCalledWith(1, 'appointments');
-        expect(from).toHaveBeenNthCalledWith(2, 'clinical_records');
+        expect(ids.sort()).toEqual(['00000000-0000-0000-0000-000000000000', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'patient-3']);
+        expect(from).toHaveBeenNthCalledWith(1, 'patient_professionals');
+        expect(from).toHaveBeenNthCalledWith(2, 'appointments');
+        expect(from).toHaveBeenNthCalledWith(3, 'clinical_records');
     });
 
     it('allows owner patient access without relation queries', async () => {
-        const from = vi.fn();
+        const patientQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: '11111111-1111-1111-1111-111111111111', deleted_at: null },
+                error: null,
+            }),
+        };
+        const from = vi.fn().mockReturnValueOnce(patientQuery);
 
         await expect(ensurePatientAccess({
             supabase: { from } as never,
             role: 'owner',
             professionalId: null,
-            patientId: 'patient-1',
+            patientId: '11111111-1111-1111-1111-111111111111',
         })).resolves.toBeUndefined();
 
-        expect(from).not.toHaveBeenCalled();
+        expect(from).toHaveBeenCalledTimes(1);
+        expect(from).toHaveBeenCalledWith('patients');
+        expect(patientQuery.select).toHaveBeenCalledWith('id, deleted_at');
     });
 
-    it('rejects professionals without appointment or clinical record access', async () => {
+    it('allows professionals with explicit patient assignment', async () => {
+        const patientQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: '11111111-1111-1111-1111-111111111111', deleted_at: null },
+                error: null,
+            }),
+        };
+        const assignmentQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { patient_id: '11111111-1111-1111-1111-111111111111' },
+                error: null,
+            }),
+        };
+        const from = vi.fn()
+            .mockReturnValueOnce(patientQuery)
+            .mockReturnValueOnce(assignmentQuery);
+
+        await expect(ensurePatientAccess({
+            supabase: { from } as never,
+            role: 'professional',
+            professionalId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            patientId: '11111111-1111-1111-1111-111111111111',
+        })).resolves.toBeUndefined();
+
+        expect(from).toHaveBeenNthCalledWith(2, 'patient_professionals');
+    });
+
+    it('rejects professionals without explicit, appointment or clinical record access', async () => {
+        const patientQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: '11111111-1111-1111-1111-111111111111', deleted_at: null },
+                error: null,
+            }),
+        };
+        const assignmentQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
         const appointmentQuery = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
@@ -168,18 +236,47 @@ describe('patient access helpers', () => {
             maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
         const from = vi.fn()
+            .mockReturnValueOnce(patientQuery)
+            .mockReturnValueOnce(assignmentQuery)
             .mockReturnValueOnce(appointmentQuery)
             .mockReturnValueOnce(recordsQuery);
 
         await expect(ensurePatientAccess({
             supabase: { from } as never,
             role: 'professional',
-            professionalId: 'professional-1',
-            patientId: 'patient-1',
+            professionalId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            patientId: '11111111-1111-1111-1111-111111111111',
         })).rejects.toMatchObject({
             status: 403,
             message: 'Forbidden',
         });
+    });
+
+    it('rejects soft-deleted patients before relation checks', async () => {
+        const patientQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                    id: '11111111-1111-1111-1111-111111111111',
+                    deleted_at: '2026-04-25T10:00:00.000Z',
+                },
+                error: null,
+            }),
+        };
+        const from = vi.fn().mockReturnValueOnce(patientQuery);
+
+        await expect(ensurePatientAccess({
+            supabase: { from } as never,
+            role: 'professional',
+            professionalId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            patientId: '11111111-1111-1111-1111-111111111111',
+        })).rejects.toMatchObject({
+            status: 404,
+            message: 'Patient not found',
+        });
+
+        expect(from).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -189,7 +286,7 @@ describe('resolveScopedProfessionalId', () => {
     });
 
     it('returns professional id for professional role', () => {
-        expect(resolveScopedProfessionalId('professional', 'professional-1')).toBe('professional-1');
+        expect(resolveScopedProfessionalId('professional', 'cccccccc-cccc-cccc-cccc-cccccccccccc')).toBe('cccccccc-cccc-cccc-cccc-cccccccccccc');
     });
 
     it('throws when professional role has no mapped professional id', () => {
@@ -328,7 +425,7 @@ describe('requirePanelAccess', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'professional-1', is_active: true },
+                data: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', is_active: true },
                 error: null,
             }),
         };
@@ -369,7 +466,7 @@ describe('requirePanelAccess', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'professional-1', is_active: false },
+                data: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', is_active: false },
                 error: null,
             }),
         };

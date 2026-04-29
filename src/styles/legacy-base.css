@@ -1,27 +1,26 @@
 ﻿/* Zeus Admin Panel — Minimalist Premium SaaS Styles */
 /* Ultra clean, high contrast, typography-driven design */
 
-
 :root {
   /* Premium Zeus Theme (SaaS aesthetic) */
-  --bg-base: #F5EDE0;
+  --bg-base: #f5ede0;
   /* Light cream background */
-  --bg-surface: #F2E8DC;
+  --bg-surface: #f2e8dc;
   /* Slightly lighter cream for cards/surfaces */
-  --bg-hover: #E8DCCC;
-  --bg-active: #D9CBB7;
+  --bg-hover: #e8dccc;
+  --bg-active: #d9cbb7;
 
   /* Brand Colors */
-  --canela: #AD7332;
-  --canela-light: #C9954D;
-  --canela-dark: #8B5A26;
+  --canela: #ad7332;
+  --canela-light: #c9954d;
+  --canela-dark: #8b5a26;
 
   /* Text Colors */
-  --text-main: #1A1816;
-  --text-muted: #5A5450;
-  --text-light: #7A756F;
+  --text-main: #1a1816;
+  --text-muted: #5a5450;
+  --text-light: #7a756f;
 
-  --border-color: #D9CBB7;
+  --border-color: #d9cbb7;
   --border-focus: var(--canela);
 
   --accent: var(--canela);
@@ -29,13 +28,13 @@
 
   /* Semantic Colors (Restrained) */
   --success: #059669;
-  --success-bg: #ECFDF5;
-  --warning: #D97706;
-  --warning-bg: #FFFBEB;
-  --danger: #DC2626;
-  --danger-bg: #FEF2F2;
-  --info: #2563EB;
-  --info-bg: #EFF6FF;
+  --success-bg: #ecfdf5;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --info: #2563eb;
+  --info-bg: #eff6ff;
 
   /* Layout */
   --sidebar-width: 260px;
@@ -48,8 +47,11 @@
 
   /* Premium Crisp Shadows & Glows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  --shadow-lg: 0 10px 15px -3px rgba(173, 115, 50, 0.05), 0 4px 6px -2px rgba(173, 115, 50, 0.03);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg:
+    0 10px 15px -3px rgba(173, 115, 50, 0.05),
+    0 4px 6px -2px rgba(173, 115, 50, 0.03);
   --shadow-card-hover: 0 12px 40px rgba(173, 115, 50, 0.12);
   /* Canela glow on hover */
 
@@ -66,7 +68,13 @@
 html,
 body {
   height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 14px;
   color: var(--text-main);
   background: var(--bg-base);
@@ -424,7 +432,7 @@ a:hover {
 
 .btn--primary {
   background: var(--canela);
-  color: #FFFFFF;
+  color: #ffffff;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--canela-dark);
 }
@@ -450,12 +458,12 @@ a:hover {
 .btn--danger {
   background: var(--danger-bg);
   color: var(--danger);
-  border-color: #FCA5A5;
+  border-color: #fca5a5;
 }
 
 .btn--danger:hover {
-  background: #FECACA;
-  border-color: #F87171;
+  background: #fecaca;
+  border-color: #f87171;
 }
 
 .btn--ghost {
@@ -546,25 +554,25 @@ textarea.form-input {
 .badge--pending {
   background: var(--warning-bg);
   color: var(--warning);
-  border: 1px solid #FCD34D;
+  border: 1px solid #fcd34d;
 }
 
 .badge--confirmed {
   background: var(--success-bg);
   color: var(--success);
-  border: 1px solid #6EE7B7;
+  border: 1px solid #6ee7b7;
 }
 
 .badge--cancelled {
   background: var(--danger-bg);
   color: var(--danger);
-  border: 1px solid #FCA5A5;
+  border: 1px solid #fca5a5;
 }
 
 .badge--completed {
   background: var(--info-bg);
   color: var(--info);
-  border: 1px solid #93C5FD;
+  border: 1px solid #93c5fd;
 }
 
 /* Default generic badge */
@@ -599,7 +607,9 @@ textarea.form-input {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
   animation: slideUp 0.2s ease-out forwards;
 }
 
@@ -692,7 +702,7 @@ textarea.form-input {
 }
 
 .timeline::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -5px;
   top: 12px;
@@ -708,7 +718,7 @@ textarea.form-input {
 }
 
 .timeline-item::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -26px;
   top: 4px;
@@ -790,7 +800,9 @@ textarea.form-input {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  transition: transform var(--transition), box-shadow var(--transition);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
 }
 
 .stat-card:hover {
@@ -877,7 +889,7 @@ textarea.form-input {
 
 .cover-text p {
   font-size: 15px;
-  color: #A1A1AA;
+  color: #a1a1aa;
   line-height: 1.5;
 }
 
@@ -913,7 +925,7 @@ textarea.form-input {
 
 .login-error {
   background: var(--danger-bg);
-  border: 1px solid #FCA5A5;
+  border: 1px solid #fca5a5;
   color: var(--danger);
   padding: 12px 16px;
   border-radius: var(--radius-sm);

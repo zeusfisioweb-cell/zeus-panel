@@ -64,7 +64,11 @@
 .admin-shell--modern {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 46% 30%, var(--zeus-glow-center), transparent 42%),
+    radial-gradient(
+      circle at 46% 30%,
+      var(--zeus-glow-center),
+      transparent 42%
+    ),
     radial-gradient(circle at 82% -8%, var(--zeus-glow-a), transparent 36%),
     radial-gradient(circle at 10% 100%, var(--zeus-glow-b), transparent 40%),
     linear-gradient(180deg, var(--zeus-bg-top) 0%, var(--zeus-bg-bottom) 100%) !important;
@@ -76,14 +80,18 @@
 
 .admin-shell--modern.admin-shell--summary {
   background:
-    radial-gradient(circle at 46% 30%, var(--zeus-glow-center), transparent 42%),
+    radial-gradient(
+      circle at 46% 30%,
+      var(--zeus-glow-center),
+      transparent 42%
+    ),
     radial-gradient(circle at 82% -8%, var(--zeus-glow-a), transparent 36%),
     radial-gradient(circle at 10% 100%, var(--zeus-glow-b), transparent 40%),
     linear-gradient(180deg, var(--zeus-bg-top) 0%, var(--zeus-bg-bottom) 100%) !important;
 }
 
 /* Final visual system for all admin routes except summary (/) */
-.admin-shell--modern:not(.admin-shell--summary),
+.admin-shell--modern,
 .modal-overlay {
   --ops-accent: var(--zeus-accent);
   --ops-accent-strong: var(--zeus-accent-strong);
@@ -106,25 +114,28 @@
   --ops-shadow-sm: 0 2px 10px rgba(17, 24, 39, 0.05);
   --ops-shadow-md: 0 10px 24px rgba(17, 24, 39, 0.1);
 
-  --font-sans: var(--font-zeus-sans), var(--font-body), 'Segoe UI', sans-serif;
+  --font-sans: var(--font-zeus-sans), var(--font-body), "Segoe UI", sans-serif;
 }
 
 .admin-shell--modern:not(.admin-shell--summary) {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 46% 30%, var(--zeus-glow-center), transparent 42%),
+    radial-gradient(
+      circle at 46% 30%,
+      var(--zeus-glow-center),
+      transparent 42%
+    ),
     radial-gradient(circle at 82% -8%, var(--zeus-glow-a), transparent 36%),
     radial-gradient(circle at 10% 100%, var(--zeus-glow-b), transparent 40%),
     linear-gradient(180deg, var(--zeus-bg-top) 0%, var(--zeus-bg-bottom) 100%);
 }
 
-
-.admin-shell--modern:not(.admin-shell--summary),
-.admin-shell--modern:not(.admin-shell--summary) button,
-.admin-shell--modern:not(.admin-shell--summary) input,
-.admin-shell--modern:not(.admin-shell--summary) select,
-.admin-shell--modern:not(.admin-shell--summary) textarea,
-.admin-shell--modern:not(.admin-shell--summary) a {
+.admin-shell--modern,
+.admin-shell--modern button,
+.admin-shell--modern input,
+.admin-shell--modern select,
+.admin-shell--modern textarea,
+.admin-shell--modern a {
   font-family: var(--font-sans);
 }
 
@@ -162,46 +173,54 @@
   color: var(--ops-accent-strong);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar {
-  background: linear-gradient(180deg, var(--zeus-sidebar-start) 0%, var(--zeus-sidebar-end) 100%);
+.admin-shell--modern .sidebar {
+  background: linear-gradient(
+    180deg,
+    var(--zeus-sidebar-start) 0%,
+    var(--zeus-sidebar-end) 100%
+  );
   border-right: 1px solid var(--zeus-sidebar-border);
   box-shadow: 12px 0 28px rgba(18, 13, 10, 0.32);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar::before {
-  background: radial-gradient(circle at 14% -8%, var(--zeus-sidebar-glow), transparent 46%);
+.admin-shell--modern .sidebar::before {
+  background: radial-gradient(
+    circle at 14% -8%,
+    var(--zeus-sidebar-glow),
+    transparent 46%
+  );
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__brand {
+.admin-shell--modern .sidebar__brand {
   border-bottom: 1px solid var(--zeus-sidebar-border-soft);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview {
+.admin-shell--modern .sidebar__overview {
   border: 1px solid var(--zeus-sidebar-border-strong);
   border-radius: 10px;
   background: rgba(255, 236, 211, 0.06);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview-label {
+.admin-shell--modern .sidebar__overview-label {
   color: var(--zeus-sidebar-label);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview-title {
+.admin-shell--modern .sidebar__overview-title {
   color: var(--zeus-sidebar-title);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__overview-meta {
+.admin-shell--modern .sidebar__overview-meta {
   color: var(--zeus-sidebar-meta);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__nav {
+.admin-shell--modern .sidebar__nav {
   padding: 12px 10px 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__section-title {
+.admin-shell--modern .sidebar__section-title {
   margin: 6px 0 2px;
   padding: 8px 10px 4px;
   color: var(--zeus-sidebar-section-title);
@@ -211,12 +230,16 @@
   font-weight: 800;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__link {
+.admin-shell--modern .sidebar__link {
   position: relative;
   min-height: 46px;
   border: 1px solid var(--zeus-sidebar-link-border);
   border-radius: 12px;
-  background: linear-gradient(90deg, var(--zeus-sidebar-link-start), var(--zeus-sidebar-link-end));
+  background: linear-gradient(
+    90deg,
+    var(--zeus-sidebar-link-start),
+    var(--zeus-sidebar-link-end)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 233, 206, 0.08),
     0 4px 12px rgba(17, 12, 9, 0.26);
@@ -228,7 +251,7 @@
     transform 0.16s ease;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__link-icon {
+.admin-shell--modern .sidebar__link-icon {
   width: 28px;
   height: 28px;
   border-radius: 8px;
@@ -237,72 +260,80 @@
   color: rgba(246, 214, 177, 0.92);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__link-label {
+.admin-shell--modern .sidebar__link-label {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__link:hover {
+.admin-shell--modern .sidebar__link:hover {
   border-color: var(--zeus-sidebar-link-border-hover);
-  background: linear-gradient(90deg, var(--zeus-sidebar-link-hover-start), var(--zeus-sidebar-link-hover-end));
+  background: linear-gradient(
+    90deg,
+    var(--zeus-sidebar-link-hover-start),
+    var(--zeus-sidebar-link-hover-end)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 233, 206, 0.12),
     0 8px 18px rgba(17, 12, 9, 0.34);
   transform: translateX(1px);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__link--active {
+.admin-shell--modern .sidebar__link--active {
   border-color: var(--zeus-sidebar-link-border-active);
-  background: linear-gradient(92deg, var(--zeus-sidebar-link-active-start), var(--zeus-sidebar-link-active-end));
+  background: linear-gradient(
+    92deg,
+    var(--zeus-sidebar-link-active-start),
+    var(--zeus-sidebar-link-active-end)
+  );
   color: var(--zeus-on-dark-strong);
   box-shadow:
     inset 2px 0 0 var(--zeus-sidebar-link-strip),
     0 10px 20px rgba(17, 12, 9, 0.38);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__link--active .sidebar__link-icon {
+.admin-shell--modern .sidebar__link--active .sidebar__link-icon {
   border-color: var(--zeus-sidebar-icon-border-active);
   background: rgba(255, 235, 210, 0.16);
   color: var(--zeus-sidebar-icon-active);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__badge {
+.admin-shell--modern .sidebar__badge {
   border: 1px solid var(--zeus-sidebar-badge-border);
   background: var(--zeus-sidebar-glow);
   color: var(--zeus-surface);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__footer {
+.admin-shell--modern .sidebar__footer {
   border-top: 1px solid var(--zeus-sidebar-footer-border);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__user {
+.admin-shell--modern .sidebar__user {
   border: 1px solid var(--zeus-sidebar-user-border);
   background: rgba(255, 235, 210, 0.08);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__user-name {
+.admin-shell--modern .sidebar__user-name {
   color: var(--zeus-on-dark-strong);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__user-role {
+.admin-shell--modern .sidebar__user-role {
   color: var(--zeus-on-dark-muted);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__user-avatar {
+.admin-shell--modern .sidebar__user-avatar {
   border: 1px solid var(--zeus-sidebar-avatar-border);
   background: var(--zeus-sidebar-glow);
   color: var(--zeus-on-dark);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__logout-icon {
+.admin-shell--modern .sidebar__logout-icon {
   border-color: var(--zeus-sidebar-logout-border);
   background: rgba(255, 235, 210, 0.1);
   color: var(--zeus-sidebar-logout-icon);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .sidebar__logout-icon:hover {
+.admin-shell--modern .sidebar__logout-icon:hover {
   border-color: rgba(248, 113, 113, 0.48);
   background: rgba(248, 113, 113, 0.16);
   color: #fecaca;
@@ -415,7 +446,7 @@
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .ops-module-metric::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -457,7 +488,8 @@
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .ops-module-head__stats:empty,
-.admin-shell--modern:not(.admin-shell--summary) .ops-module-head__actions:empty {
+.admin-shell--modern:not(.admin-shell--summary)
+  .ops-module-head__actions:empty {
   display: none;
 }
 
@@ -532,14 +564,22 @@
 .admin-shell--modern:not(.admin-shell--summary) .btn--primary,
 .modal .btn--primary {
   border-color: transparent;
-  background: linear-gradient(160deg, var(--zeus-primary-start) 0%, var(--zeus-primary-end) 100%);
+  background: linear-gradient(
+    160deg,
+    var(--zeus-primary-start) 0%,
+    var(--zeus-primary-end) 100%
+  );
   color: var(--zeus-on-dark-strong);
   box-shadow: 0 8px 14px rgba(169, 104, 42, 0.24);
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .btn--primary:hover,
 .modal .btn--primary:hover {
-  background: linear-gradient(160deg, var(--zeus-primary-hover-start) 0%, var(--zeus-primary-hover-end) 100%);
+  background: linear-gradient(
+    160deg,
+    var(--zeus-primary-hover-start) 0%,
+    var(--zeus-primary-hover-end) 100%
+  );
   box-shadow: 0 10px 18px rgba(151, 93, 33, 0.3);
 }
 
@@ -567,7 +607,7 @@
 
 .admin-shell--modern:not(.admin-shell--summary) .form-input,
 .admin-shell--modern:not(.admin-shell--summary) .form-select,
-.admin-shell--modern:not(.admin-shell--summary) textarea.form-input,
+.admin-shell--modern textarea.form-input,
 .admin-shell--modern:not(.admin-shell--summary) .appointment-form__search-input,
 .admin-shell--modern:not(.admin-shell--summary) .citas-filters__field,
 .admin-shell--modern:not(.admin-shell--summary) .citas-filters__select,
@@ -589,8 +629,9 @@
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .form-input::placeholder,
-.admin-shell--modern:not(.admin-shell--summary) textarea.form-input::placeholder,
-.admin-shell--modern:not(.admin-shell--summary) .appointment-form__search-input::placeholder,
+.admin-shell--modern textarea.form-input::placeholder,
+.admin-shell--modern:not(.admin-shell--summary)
+  .appointment-form__search-input::placeholder,
 .modal .form-input::placeholder,
 .modal textarea.form-input::placeholder,
 .modal .appointment-form__search-input::placeholder {
@@ -599,7 +640,7 @@
 
 .admin-shell--modern:not(.admin-shell--summary) .form-input:focus-visible,
 .admin-shell--modern:not(.admin-shell--summary) .form-select:focus-visible,
-.admin-shell--modern:not(.admin-shell--summary) textarea.form-input:focus-visible,
+.admin-shell--modern textarea.form-input:focus-visible,
 .admin-shell--modern:not(.admin-shell--summary) .btn:focus-visible,
 .admin-shell--modern:not(.admin-shell--summary) button:focus-visible,
 .admin-shell--modern:not(.admin-shell--summary) a:focus-visible,
@@ -754,13 +795,24 @@
   gap: 12px !important;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout--detail {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px) minmax(300px, 360px);
+.admin-shell--modern:not(.admin-shell--summary)
+  .citas-shell--clean
+  .zc-layout--detail {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px) minmax(
+      300px,
+      360px
+    );
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-mini-cal,
-.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-upcoming,
-.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-timeline-wrap {
+.admin-shell--modern:not(.admin-shell--summary)
+  .citas-shell--clean
+  .zc-mini-cal,
+.admin-shell--modern:not(.admin-shell--summary)
+  .citas-shell--clean
+  .zc-upcoming,
+.admin-shell--modern:not(.admin-shell--summary)
+  .citas-shell--clean
+  .zc-timeline-wrap {
   box-shadow: var(--ops-shadow-sm) !important;
 }
 
@@ -790,14 +842,20 @@
   right: 0;
   width: 8rem;
   height: 8rem;
-  background: linear-gradient(220deg, rgba(173, 115, 50, 0.18) 0%, transparent 70%);
+  background: linear-gradient(
+    220deg,
+    rgba(173, 115, 50, 0.18) 0%,
+    transparent 70%
+  );
   border-radius: 0 0 0 100px;
   pointer-events: none;
   opacity: 0.36;
   transition: opacity 0.2s ease;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .pro-card:hover .pro-card__flare {
+.admin-shell--modern:not(.admin-shell--summary)
+  .pro-card:hover
+  .pro-card__flare {
   opacity: 0.52;
 }
 
@@ -868,7 +926,7 @@
 /* Portal-safe modal/pro form styles */
 .modal,
 .modal * {
-  font-family: var(--font-zeus-sans), var(--font-body), 'Segoe UI', sans-serif;
+  font-family: var(--font-zeus-sans), var(--font-body), "Segoe UI", sans-serif;
 }
 
 .modal-overlay {
@@ -1037,7 +1095,7 @@
   font-weight: 600;
 }
 
-.pro-form__switch input[type='checkbox'] {
+.pro-form__switch input[type="checkbox"] {
   width: 16px;
   height: 16px;
   margin: 0;
@@ -1080,7 +1138,7 @@
   font-weight: 600;
 }
 
-.pro-form__service-item input[type='checkbox'] {
+.pro-form__service-item input[type="checkbox"] {
   margin: 0;
   accent-color: var(--ops-accent);
 }
@@ -1137,7 +1195,7 @@
   font-weight: 700;
 }
 
-.pro-form__day-head input[type='checkbox'] {
+.pro-form__day-head input[type="checkbox"] {
   width: 16px;
   height: 16px;
   margin: 0;
@@ -1248,13 +1306,17 @@
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .schedule-card::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--zeus-primary-start) 0%, var(--zeus-primary-end) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--zeus-primary-start) 0%,
+    var(--zeus-primary-end) 100%
+  );
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .schedule-card__header {
@@ -1413,11 +1475,13 @@
   padding: 10px;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item.is-blocked {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-item.is-blocked {
   border-left: 3px solid #b4232f;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item.is-available {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-item.is-available {
   border-left: 3px solid #15724f;
 }
 
@@ -1427,20 +1491,23 @@
   font-weight: 800;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__reason {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-item__reason {
   margin-top: 3px;
   color: var(--ops-text-muted);
   font-size: 12px;
   line-height: 1.4;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__actions {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-item__actions {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-item__remove {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-item__remove {
   width: 24px;
   height: 24px;
   border-radius: 999px;
@@ -1452,18 +1519,21 @@
   border-top: 1px dashed var(--ops-line);
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder__title {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-builder__title {
   margin: 0 0 10px;
   color: var(--ops-text);
   font-size: 14px;
   font-weight: 800;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder__checkbox {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-builder__checkbox {
   margin-bottom: 0;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .schedule-exception-builder__submit {
+.admin-shell--modern:not(.admin-shell--summary)
+  .schedule-exception-builder__submit {
   width: 100%;
 }
 
@@ -1481,7 +1551,9 @@
   min-width: 0;
 }
 
-.admin-shell--modern:not(.admin-shell--summary) .module-header--settings .ops-module-head__stats {
+.admin-shell--modern:not(.admin-shell--summary)
+  .module-header--settings
+  .ops-module-head__stats {
   grid-auto-flow: initial;
   grid-template-columns: repeat(2, minmax(140px, 170px));
 }
@@ -1591,10 +1663,15 @@
 }
 
 @media (max-width: 1280px) {
-  .admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout,
-  .admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout--detail,
+  .admin-shell--modern:not(.admin-shell--summary)
+    .citas-shell--clean
+    .zc-layout,
+  .admin-shell--modern:not(.admin-shell--summary)
+    .citas-shell--clean
+    .zc-layout--detail,
   .admin-shell--modern:not(.admin-shell--summary) .schedule-grid,
-  .admin-shell--modern:not(.admin-shell--summary) .patients-layout--with-detail {
+  .admin-shell--modern:not(.admin-shell--summary)
+    .patients-layout--with-detail {
     grid-template-columns: 1fr;
     grid-template-areas: unset;
   }
@@ -1661,13 +1738,21 @@
 
 /* Sidebar consistency lock for all admin routes (including summary) */
 .admin-shell--modern .sidebar {
-  background: linear-gradient(180deg, var(--zeus-sidebar-start) 0%, var(--zeus-sidebar-end) 100%) !important;
+  background: linear-gradient(
+    180deg,
+    var(--zeus-sidebar-start) 0%,
+    var(--zeus-sidebar-end) 100%
+  ) !important;
   border-right: 1px solid var(--zeus-sidebar-border) !important;
   box-shadow: 12px 0 28px rgba(18, 13, 10, 0.32) !important;
 }
 
 .admin-shell--modern .sidebar::before {
-  background: radial-gradient(circle at 14% -8%, var(--zeus-sidebar-glow), transparent 46%) !important;
+  background: radial-gradient(
+    circle at 14% -8%,
+    var(--zeus-sidebar-glow),
+    transparent 46%
+  ) !important;
 }
 
 .admin-shell--modern .sidebar__brand {
@@ -1716,7 +1801,11 @@
   min-height: 46px !important;
   border: 1px solid var(--zeus-sidebar-link-border) !important;
   border-radius: 12px !important;
-  background: linear-gradient(90deg, var(--zeus-sidebar-link-start), var(--zeus-sidebar-link-end)) !important;
+  background: linear-gradient(
+    90deg,
+    var(--zeus-sidebar-link-start),
+    var(--zeus-sidebar-link-end)
+  ) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 233, 206, 0.08),
     0 4px 12px rgba(17, 12, 9, 0.26) !important;
@@ -1745,7 +1834,11 @@
 
 .admin-shell--modern .sidebar__link:hover {
   border-color: var(--zeus-sidebar-link-border-hover) !important;
-  background: linear-gradient(90deg, var(--zeus-sidebar-link-hover-start), var(--zeus-sidebar-link-hover-end)) !important;
+  background: linear-gradient(
+    90deg,
+    var(--zeus-sidebar-link-hover-start),
+    var(--zeus-sidebar-link-hover-end)
+  ) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 233, 206, 0.12),
     0 8px 18px rgba(17, 12, 9, 0.34) !important;
@@ -1754,10 +1847,14 @@
 
 .admin-shell--modern .sidebar__link--active {
   border-color: var(--zeus-sidebar-link-border-active) !important;
-  background: linear-gradient(92deg, var(--zeus-sidebar-link-active-start), var(--zeus-sidebar-link-active-end)) !important;
+  background: linear-gradient(
+    92deg,
+    var(--zeus-sidebar-link-active-start),
+    var(--zeus-sidebar-link-active-end)
+  ) !important;
   color: var(--zeus-on-dark-strong) !important;
   box-shadow:
-    inset 2px 0 0 var(--zeus-sidebar-link-strip),
+    inset 4px 0 0 var(--zeus-sidebar-link-strip),
     0 10px 20px rgba(17, 12, 9, 0.38) !important;
 }
 
@@ -1808,6 +1905,295 @@
   color: #fecaca !important;
 }
 
+/* ================================================================
+   PANEL MODERNIZE — visual refinement layer (appended)
+   ================================================================ */
 
+/* ── 1. KPI RIBBON — tonal color backgrounds ───────────────────── */
 
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric {
+  border-radius: 18px !important;
+  padding: 18px 16px 14px !important;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease !important;
+}
 
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--primary {
+  background: linear-gradient(148deg, #fffcf5 0%, #f3e4cc 100%) !important;
+  border-color: rgba(173, 115, 50, 0.38) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--primary::before {
+  background: linear-gradient(90deg, #ad7332 0%, #c9954d 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--warning {
+  background: linear-gradient(148deg, #fffdf0 0%, #fceabd 100%) !important;
+  border-color: rgba(217, 119, 6, 0.32) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--warning::before {
+  background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--success {
+  background: linear-gradient(148deg, #f2fef7 0%, #c8f0dc 100%) !important;
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--success::before {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--info,
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--neutral {
+  background: linear-gradient(148deg, #f4f7ff 0%, #d8e4ff 100%) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--info::before,
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--neutral::before {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__value {
+  font-size: clamp(36px, 3.6vw, 48px) !important;
+  letter-spacing: -0.045em !important;
+  margin: 10px 0 6px !important;
+  line-height: 0.92 !important;
+}
+
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon-link:hover
+  .summary-v5-ribbon__metric--interactive {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ── 2. MODULE METRIC BOXES ─────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric {
+  border-radius: 14px !important;
+  padding: 13px 15px 12px !important;
+  background: linear-gradient(
+    148deg,
+    var(--zeus-surface) 0%,
+    var(--zeus-surface-soft) 100%
+  ) !important;
+  border: 1.5px solid var(--zeus-line-unified) !important;
+  box-shadow:
+    0 2px 10px rgba(17, 12, 9, 0.07),
+    inset 0 1px 0 rgba(255, 252, 245, 0.9) !important;
+  min-width: 120px !important;
+  overflow: hidden !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric::before {
+  height: 4px !important;
+  background: linear-gradient(
+    90deg,
+    var(--zeus-primary-start) 0%,
+    var(--zeus-primary-end) 100%
+  ) !important;
+  border-radius: 14px 14px 0 0 !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric__value {
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1 !important;
+  color: var(--zeus-text) !important;
+  margin-top: 7px !important;
+  display: block !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric__label {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--zeus-text-subtle) !important;
+  margin-bottom: 0 !important;
+}
+
+/* ── 3. MODULE HEADER CARD ──────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header {
+  background: linear-gradient(152deg, #fffdf8 0%, #f5ead8 100%) !important;
+  border-color: var(--zeus-line-unified) !important;
+  box-shadow:
+    0 4px 18px rgba(17, 12, 9, 0.08),
+    inset 0 1px 0 rgba(255, 253, 250, 0.95) !important;
+}
+
+/* ── 4. TOPBAR ───────────────────────────────────────────────────── */
+
+.admin-shell--modern .panel-topbar,
+.admin-shell--modern .panel-topbar--modern {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 253, 249, 0.97) 0%,
+    rgba(246, 238, 226, 0.95) 100%
+  ) !important;
+  border-color: var(--zeus-line-unified) !important;
+  box-shadow: 0 4px 18px rgba(17, 12, 9, 0.09) !important;
+}
+
+/* ── 5. TABLE ROWS ───────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .table th {
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 800 !important;
+  background: rgba(245, 234, 216, 0.6) !important;
+  border-bottom-color: var(--zeus-line-unified) !important;
+  text-transform: uppercase !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table td {
+  border-bottom-color: rgba(215, 191, 159, 0.35) !important;
+  transition: background 0.12s ease !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table tr:hover td {
+  background: rgba(181, 122, 59, 0.055) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--zeus-accent) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table td:first-child {
+  font-weight: 700 !important;
+  color: var(--zeus-text) !important;
+}
+
+/* ── 6. STATUS BADGES ────────────────────────────────────────────── */
+
+.admin-shell--modern .badge,
+.admin-shell--modern .pill,
+.admin-shell--modern .citas-status-chip {
+  font-weight: 800 !important;
+  letter-spacing: 0.025em !important;
+  padding: 4px 11px !important;
+}
+
+/* ── 7. PROFESSIONAL CARDS ───────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease !important;
+  box-shadow:
+    0 2px 10px rgba(17, 12, 9, 0.07),
+    inset 0 1px 0 rgba(255, 252, 245, 0.8) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow:
+    0 18px 36px rgba(17, 12, 9, 0.15),
+    inset 0 1px 0 rgba(255, 252, 245, 0.9) !important;
+}
+
+/* ── 8. SCHEDULE SLOT CHIPS ──────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-chip {
+  background: linear-gradient(135deg, #fffdf8 0%, #f3e6d2 100%) !important;
+  border-color: var(--zeus-line-strong) !important;
+  color: var(--zeus-text) !important;
+  font-weight: 800 !important;
+  padding: 6px 13px !important;
+  font-size: 12px !important;
+  box-shadow: 0 1px 4px rgba(17, 12, 9, 0.07) !important;
+}
+
+/* ── 9. FILTER & DATA CARDS ──────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-filter-card,
+.admin-shell--modern:not(.admin-shell--summary) .ops-filter-panel {
+  background: linear-gradient(152deg, #fffdf8 0%, #f5ead8 100%) !important;
+  border-color: var(--zeus-line-unified) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-data-table-card {
+  box-shadow: 0 4px 18px rgba(17, 12, 9, 0.07) !important;
+}
+
+/* ── 10. SETTINGS CHIPS ──────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip {
+  background: linear-gradient(
+    148deg,
+    var(--zeus-surface) 0%,
+    var(--zeus-surface-soft) 100%
+  ) !important;
+  border: 1.5px solid var(--zeus-line-unified) !important;
+  box-shadow: 0 2px 8px rgba(17, 12, 9, 0.06) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip strong {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ── 11. DASHBOARD ASIDE PANELS ──────────────────────────────────── */
+
+.admin-shell--modern.admin-shell--summary .summary-v5-panel {
+  box-shadow:
+    0 4px 18px rgba(17, 12, 9, 0.07),
+    inset 0 1px 0 rgba(255, 253, 250, 0.9) !important;
+  transition: box-shadow 0.2s ease !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-panel:hover {
+  box-shadow:
+    0 8px 24px rgba(17, 12, 9, 0.1),
+    inset 0 1px 0 rgba(255, 253, 250, 0.9) !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-legend__item {
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-legend__item:hover {
+  border-color: var(--zeus-line-strong) !important;
+  background: var(--zeus-surface-soft) !important;
+}
+
+/* ── 12. TIMELINE ITEMS ──────────────────────────────────────────── */
+
+.admin-shell--modern.admin-shell--summary .summary-v5-timeline__item {
+  box-shadow: 0 2px 8px rgba(17, 12, 9, 0.06) !important;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-timeline__item:hover {
+  transform: translateX(2px) !important;
+  box-shadow: 0 6px 18px rgba(17, 12, 9, 0.09) !important;
+}
+
+/* ── 13. DASHBOARD HEADER ────────────────────────────────────────── */
+
+.admin-shell--modern.admin-shell--summary .summary-v5__header {
+  box-shadow:
+    0 6px 24px rgba(17, 12, 9, 0.08),
+    inset 0 1px 0 rgba(255, 253, 250, 0.9) !important;
+}

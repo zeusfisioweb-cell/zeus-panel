@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { Modal } from '@/components/ui/Modal';
@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Icon from '@/components/Icon';
 import { getAvatarColor, getInitials } from '@/lib/utils';
-import type { Professional, Service } from '@/lib/types';
-import type { AppointmentStatus } from '@/lib/types';
+import type { Professional, Service, AppointmentStatus } from '@/lib/types';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,9 +15,10 @@ export const appointmentSchema = z.object({
     patient_name: z.string().min(2, 'El nombre completo es requerido'),
     patient_phone: z.string().optional(),
     patient_email: z.string().email('Email invalido').or(z.literal('')),
-    patient_dni: z.string().min(5, 'DNI/NIE es requerido'),
+    patient_dni: z.string().optional(),
     service_id: z.string().min(1, 'Debe seleccionar un servicio'),
     professional_id: z.string().optional(),
+    date: z.string().min(10, 'La fecha es requerida'),
     time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Hora invalida'),
     notes: z.string().optional(),
     status: z.custom<AppointmentStatus>().optional(),
@@ -34,7 +34,7 @@ interface AppointmentFormModalProps {
     initialProfessionalId?: string | null;
     services: Service[];
     professionals: Professional[];
-    currentUserId?: string;
+    currentProfessionalId?: string | null;
     currentUserRole?: string;
     onSubmit: (form: AppointmentFormData, selectedPatientId: string | null) => Promise<void>;
 }
@@ -56,11 +56,18 @@ export function AppointmentFormModal({
     initialProfessionalId,
     services,
     professionals,
-    currentUserId,
+    currentProfessionalId,
     currentUserRole,
     onSubmit,
 }: AppointmentFormModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        };
+    }, []);
 
     const {
         register,
@@ -77,6 +84,7 @@ export function AppointmentFormModal({
             patient_dni: '',
             service_id: '',
             professional_id: '',
+            date: '',
             time: '09:00',
             notes: '',
         },
@@ -90,17 +98,23 @@ export function AppointmentFormModal({
     const patientSearchId = useId();
     const serviceSelectId = useId();
     const professionalSelectId = useId();
+    const dateInputId = useId();
     const timeInputId = useId();
     const notesInputId = useId();
 
     useEffect(() => {
         if (!isOpen) return;
 
+        const tzOffset = selectedDate.getTimezoneOffset() * 60000; // offset in milliseconds
+        const localISOTime = (new Date(selectedDate.getTime() - tzOffset)).toISOString().slice(0, -1);
+        const yyyyMmDd = localISOTime.split('T')[0];
+
         reset({
+            date: yyyyMmDd,
             time: initialTime,
             service_id: services[0]?.id || '',
             professional_id: currentUserRole === 'professional'
-                ? currentUserId || ''
+                ? currentProfessionalId || ''
                 : initialProfessionalId || '',
             patient_name: '',
             patient_phone: '',
@@ -118,10 +132,12 @@ export function AppointmentFormModal({
         }, 60);
 
         return () => clearTimeout(timer);
-    }, [isOpen, initialTime, services, currentUserId, currentUserRole, initialProfessionalId, reset]);
+    }, [isOpen, selectedDate, initialTime, services, currentProfessionalId, currentUserRole, initialProfessionalId, reset]);
 
-    const handleSearchPatients = async (query: string) => {
+    const handleSearchPatients = (query: string) => {
         setPatientSearch(query);
+
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
         if (query.length < 2) {
             setPatientResults([]);
@@ -129,30 +145,23 @@ export function AppointmentFormModal({
             return;
         }
 
-        try {
-            const params = new URLSearchParams({
-                search: query,
-                page: '1',
-                pageSize: '5',
-            });
-
-            const response = await fetch(`/api/admin/patients?${params.toString()}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error('Error cargando pacientes');
+        searchTimerRef.current = setTimeout(async () => {
+            try {
+                const params = new URLSearchParams({ search: query, page: '1', pageSize: '5' });
+                const response = await fetch(`/api/admin/patients?${params.toString()}`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) throw new Error();
+                const payload = (await response.json()) as { data: PatientSearchResult[] };
+                const results = payload.data ?? [];
+                setPatientResults(results);
+                setShowPatientDropdown(results.length > 0);
+            } catch {
+                setPatientResults([]);
+                setShowPatientDropdown(false);
             }
-
-            const payload = (await response.json()) as { data: PatientSearchResult[] };
-            const results = payload.data ?? [];
-            setPatientResults(results);
-            setShowPatientDropdown(results.length > 0);
-        } catch {
-            setPatientResults([]);
-            setShowPatientDropdown(false);
-        }
+        }, 300);
     };
 
     const handleSelectPatient = (patient: PatientSearchResult) => {
@@ -187,14 +196,18 @@ export function AppointmentFormModal({
             bodyClassName="modal__body--appointment"
         >
             <form onSubmit={hookFormSubmit(onValidSubmit)} className="appointment-form">
-                <div className="appointment-form__content">
-                    <section className="appointment-form__section">
-                        <header className="appointment-form__section-head">
-                            <h4>Paciente</h4>
-                            <p>Busca uno existente o completa los datos basicos.</p>
+                <div className="appointment-form__content" style={{ padding: '24px 32px' }}>
+                    <section className="appointment-form__section" style={{ border: 'none', background: 'transparent', padding: 0, marginBottom: 32 }}>
+                        <header className="appointment-form__section-head" style={{ marginBottom: 16 }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--brand-main)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                                Paciente
+                            </h4>
+                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+                                Busca uno existente o completa los datos básicos.
+                            </p>
                         </header>
 
-                        <div className="appointment-form__field appointment-form__field--search">
+                        <div className="appointment-form__field appointment-form__field--search" style={{ marginBottom: 20 }}>
                             <label className="appointment-form__label" htmlFor={patientSearchId}>
                                 Buscar paciente
                             </label>
@@ -208,7 +221,7 @@ export function AppointmentFormModal({
                                     className="form-input appointment-form__search-input"
                                     value={patientSearch}
                                     onChange={(e) => handleSearchPatients(e.target.value)}
-                                    placeholder="DNI o nombre"
+                                    placeholder="Escribe DNI o nombre..."
                                     autoComplete="off"
                                 />
                             </div>
@@ -245,7 +258,7 @@ export function AppointmentFormModal({
                             )}
                         </div>
 
-                        <div className="appointment-form__grid appointment-form__grid--2">
+                        <div className="appointment-form__grid appointment-form__grid--2" style={{ gap: '16px' }}>
                             <div>
                                 <Input
                                     label="DNI/NIE *"
@@ -266,7 +279,7 @@ export function AppointmentFormModal({
 
                             <div>
                                 <Input
-                                    label="Telefono"
+                                    label="Teléfono"
                                     type="tel"
                                     {...register('patient_phone')}
                                     placeholder="+34 600 000 000"
@@ -285,13 +298,14 @@ export function AppointmentFormModal({
                         </div>
                     </section>
 
-                    <section className="appointment-form__section">
-                        <header className="appointment-form__section-head">
-                            <h4>Servicio</h4>
-                            <p>Selecciona servicio y profesional.</p>
+                    <section className="appointment-form__section" style={{ border: 'none', background: 'transparent', padding: 0, marginBottom: 32 }}>
+                        <header className="appointment-form__section-head" style={{ marginBottom: 16 }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--brand-main)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                                Servicio y Profesional
+                            </h4>
                         </header>
 
-                        <div className="appointment-form__grid appointment-form__grid--2">
+                        <div className="appointment-form__grid appointment-form__grid--2" style={{ gap: '16px' }}>
                             <div>
                                 <label className="appointment-form__label" htmlFor={serviceSelectId}>
                                     Servicio *
@@ -329,15 +343,25 @@ export function AppointmentFormModal({
                         </div>
                     </section>
 
-                    <section className="appointment-form__section">
-                        <header className="appointment-form__section-head">
-                            <h4>Horario y notas</h4>
-                            <p>
+                    <section className="appointment-form__section" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+                        <header className="appointment-form__section-head" style={{ marginBottom: 16 }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--brand-main)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                                Horario y Notas
+                            </h4>
+                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
                                 {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'short' })} | ajusta hora y notas.
                             </p>
                         </header>
 
-                        <div className="appointment-form__grid appointment-form__grid--2">
+                        <div className="appointment-form__grid appointment-form__grid--2" style={{ gap: '16px' }}>
+                            <div>
+                                <label className="appointment-form__label" htmlFor={dateInputId}>
+                                    Fecha *
+                                </label>
+                                <input id={dateInputId} type="date" className="form-input" {...register('date')} />
+                                {errors.date && <span className="appointment-form__error">{errors.date.message}</span>}
+                            </div>
+                            
                             <div>
                                 <label className="appointment-form__label" htmlFor={timeInputId}>
                                     Hora de inicio *
@@ -346,7 +370,7 @@ export function AppointmentFormModal({
                                 {errors.time && <span className="appointment-form__error">{errors.time.message}</span>}
                             </div>
 
-                            <div>
+                            <div style={{ gridColumn: '1 / -1' }}>
                                 <label className="appointment-form__label" htmlFor={notesInputId}>
                                     Notas
                                 </label>
@@ -354,14 +378,14 @@ export function AppointmentFormModal({
                                     id={notesInputId}
                                     className="form-input"
                                     {...register('notes')}
-                                    placeholder="Observaciones de la cita"
+                                    placeholder="Observaciones internas de la cita"
                                 />
                             </div>
                         </div>
                     </section>
                 </div>
 
-                <div className="appointment-form__footer">
+                <div className="modal__footer" style={{ padding: '16px 32px' }}>
                     <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
                         Cancelar
                     </Button>

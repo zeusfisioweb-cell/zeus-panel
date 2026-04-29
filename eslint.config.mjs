@@ -22,6 +22,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "coverage/**",
     "next-env.d.ts",
+    // External/vendor workspace copied under panel for tooling experiments.
+    // Not part of the panel product surface or quality gate.
+    "chrome-devtools-mcp/**",
   ]),
 ]);
 

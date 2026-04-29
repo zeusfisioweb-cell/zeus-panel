@@ -226,6 +226,7 @@ export default function ProfesionalesPage() {
     const activeCount = professionals.filter((professional) => professional.is_active).length;
     const specialtiesCount = new Set(professionals.filter((p) => p.specialty).map((p) => p.specialty?.trim().toLowerCase())).size;
     const totalServicesLinked = professionals.reduce((acc, p) => acc + (p.services?.length || 0), 0);
+    const avgServicesPerPro = professionals.length > 0 ? totalServicesLinked / professionals.length : 0;
 
     return (
         <div className="content-shell section-shell flex flex-col gap-8 animate-in fade-in duration-500">
@@ -234,6 +235,7 @@ export default function ProfesionalesPage() {
                 active={activeCount}
                 specialties={specialtiesCount}
                 assignedServices={totalServicesLinked}
+                avgServicesPerPro={avgServicesPerPro}
                 onNewProfesional={handleOpenNew}
             />
 

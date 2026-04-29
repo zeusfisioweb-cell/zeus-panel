@@ -7,9 +7,9 @@ test('redirects unauthenticated users from dashboard to login', async ({ page })
 
 test('renders login form controls', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('heading', { name: 'Iniciar sesion' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Iniciar sesi[oó]n/i })).toBeVisible();
     await expect(page.getByLabel('Correo de acceso')).toBeVisible();
-    await expect(page.getByLabel('Contrasena')).toBeVisible();
+    await expect(page.getByLabel(/Contrase[nñ]a/i)).toBeVisible();
     await expect(page.getByRole('button')).toContainText(/Entrar al panel|Preparando|Verificando/i);
 });
 
@@ -21,9 +21,9 @@ test('logs in with configured e2e credentials when provided', async ({ page }) =
 
     await page.goto('/login');
     await page.getByLabel('Correo de acceso').fill(email as string);
-    await page.getByLabel('Contrasena').fill(password as string);
+    await page.getByLabel(/Contrase[nñ]a/i).fill(password as string);
     await page.getByRole('button', { name: 'Entrar al panel' }).click();
 
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByText(/Resumen operativo|Panel Zeus/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /Resumen del centro/i })).toBeVisible();
 });

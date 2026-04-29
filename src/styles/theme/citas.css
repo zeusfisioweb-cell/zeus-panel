@@ -15,7 +15,6 @@
   overflow: visible;
 }
 
-
 .module-header--citas {
   align-items: flex-start;
   border-color: var(--border-color);
@@ -245,6 +244,89 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ─── Bulk action bar ──────────────────────────────────────── */
+.citas-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+
+.citas-bulk-bar__check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.citas-bulk-bar__confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  background: #065f46;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+}
+.citas-bulk-bar__confirm:hover {
+  background: #047857;
+}
+.citas-bulk-bar__confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Row wrapper (checkbox + item) ────────────────────────── */
+.citas-list-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.citas-list-item__checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.citas-list-item__checkbox input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #065f46;
+}
+
+.citas-list-item__checkbox-spacer {
+  width: 23px;
+  flex-shrink: 0;
+}
+
+.citas-list-item-row .citas-list-item {
+  flex: 1;
+  min-width: 0;
+}
+
+li.citas-list-item--selected .citas-list-item {
+  border-color: rgba(5, 150, 105, 0.35);
+  background: rgba(5, 150, 105, 0.04);
 }
 
 .citas-list-day {
@@ -931,7 +1013,11 @@
 
 .citas-shell .zc-timeline {
   background:
-    linear-gradient(to bottom, color-mix(in srgb, var(--brand-main) 3%, transparent), transparent 130px),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--brand-main) 3%, transparent),
+      transparent 130px
+    ),
     var(--bg-surface);
   padding: 14px 16px 18px;
 }
@@ -960,7 +1046,12 @@
 .citas-shell .zc-day-event,
 .citas-shell .zc-week-event {
   border-radius: 12px !important;
-  border: 1px solid color-mix(in srgb, var(--event-color, var(--line-soft)) 20%, var(--line-soft)) !important;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--event-color, var(--line-soft)) 20%,
+      var(--line-soft)
+    ) !important;
   border-left-width: 3px !important;
   padding: 8px 10px;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
@@ -1059,7 +1150,12 @@
   height: 16px;
   padding: 0 6px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--event-color, var(--border-color)) 20%, var(--border-color));
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--event-color, var(--border-color)) 20%,
+      var(--border-color)
+    );
   background: var(--bg-surface);
   color: var(--text-muted);
   font-size: 9px;
@@ -1513,11 +1609,24 @@
   align-items: stretch;
   padding: 8px 12px;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--brand-main) 18%, var(--border-color));
+  border: 1px solid
+    color-mix(in srgb, var(--brand-main) 18%, var(--border-color));
   background:
-    radial-gradient(circle at 10% 16%, color-mix(in srgb, var(--brand-main) 14%, transparent), transparent 45%),
-    radial-gradient(circle at 84% 12%, rgba(255, 255, 255, 0.7), transparent 40%),
-    linear-gradient(140deg, color-mix(in srgb, var(--bg-surface) 92%, #fff), color-mix(in srgb, var(--bg-surface) 96%, var(--bg-secondary)));
+    radial-gradient(
+      circle at 10% 16%,
+      color-mix(in srgb, var(--brand-main) 14%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 84% 12%,
+      rgba(255, 255, 255, 0.7),
+      transparent 40%
+    ),
+    linear-gradient(
+      140deg,
+      color-mix(in srgb, var(--bg-surface) 92%, #fff),
+      color-mix(in srgb, var(--bg-surface) 96%, var(--bg-secondary))
+    );
   box-shadow: 0 6px 18px rgba(17, 23, 34, 0.06);
 }
 
@@ -1814,4 +1923,191 @@
     justify-content: flex-start;
   }
 }
+/* ============================================================
+   Citas — simplified page header (.zs-ch-*)
+   ============================================================ */
+.zs-ch-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 4px 12px;
+  flex-wrap: wrap;
+}
+
+.zs-ch-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.zs-ch-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-canela-text);
+}
+
+.zs-ch-title {
+  margin: 0;
+  font-family: var(--font-zeus-display);
+  font-size: clamp(24px, 2.2vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  line-height: 1.05;
+}
+
+.zs-ch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .zs-ch-wrap {
+    padding: 14px 4px 8px;
+  }
+  .zs-ch-title {
+    font-size: 24px;
+  }
+}
+
 /* turbopack-bust */
+
+/* ============================================================
+   ZS Citas — Sprint 2 visual upgrade
+   ============================================================ */
+
+/* ---- KPI strip in header ---- */
+.zs-citas-kpi-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.zs-citas-kpi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.zs-citas-kpi:hover {
+  border-color: rgba(173, 115, 50, 0.22);
+  box-shadow: var(--shadow-md);
+}
+
+.zs-citas-kpi--ring {
+  gap: 10px;
+}
+
+.zs-citas-kpi__label {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.zs-citas-kpi__value {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.zs-citas-kpi--warning .zs-citas-kpi__value {
+  color: var(--warning-main);
+}
+.zs-citas-kpi--success .zs-citas-kpi__value {
+  color: var(--success-main);
+}
+.zs-citas-kpi--info .zs-citas-kpi__value {
+  color: var(--info-main);
+}
+
+/* ---- Heat bar on week-day buttons ---- */
+.zc-vcal__week-day.has-heat::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 0;
+  background: var(--brand-canela);
+  opacity: calc(var(--day-heat, 0) * 0.22 + 0.1);
+  transition: opacity 0.2s ease;
+}
+
+.zc-vcal__week-day.has-heat.is-selected::before {
+  opacity: 0.6;
+}
+
+/* ---- Empty state dot-grid ---- */
+.zc-vcal__empty--dot {
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(173, 115, 50, 0.08) 0%,
+    transparent 65%
+  );
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.zc-vcal__empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: 1px solid rgba(173, 115, 50, 0.2);
+  background: rgba(173, 115, 50, 0.08);
+  color: var(--brand-canela);
+  margin-bottom: 4px;
+}
+
+.zc-vcal__empty-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.zc-vcal__empty-sub {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+@media (max-width: 640px) {
+  .zs-citas-kpi-strip {
+    gap: 6px;
+  }
+  .zs-citas-kpi {
+    padding: 6px 10px;
+  }
+  .zs-citas-kpi__value {
+    font-size: 18px;
+  }
+}

@@ -121,9 +121,9 @@ export function Modal({
             >
                 {/* Header */}
                 <div className="modal__header">
-                    <h2 id={titleId} className="modal__title">
+                    <h3 id={titleId} className="modal__title" style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>
                         {title}
-                    </h2>
+                    </h3>
                     <button
                         onClick={onClose}
                         className="modal__close"

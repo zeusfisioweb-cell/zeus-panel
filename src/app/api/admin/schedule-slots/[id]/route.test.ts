@@ -53,20 +53,20 @@ describe('admin schedule slot delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-slots/slot-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'slot-1' }) }
+            { params: Promise.resolve({ id: '88888888-8888-8888-8888-888888888888' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
         expect(body).toEqual({ success: true });
         expect(assertSameOriginMutationMock).toHaveBeenCalled();
-        expect(deleteQuery.eq).toHaveBeenCalledWith('id', 'slot-1');
+        expect(deleteQuery.eq).toHaveBeenCalledWith('id', '88888888-8888-8888-8888-888888888888');
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
                 action: 'DELETE',
                 tableName: 'schedule_slots',
-                recordId: 'slot-1',
+                recordId: '88888888-8888-8888-8888-888888888888',
             })
         );
     });
@@ -78,7 +78,7 @@ describe('admin schedule slot delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-slots/slot-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'slot-1' }) }
+            { params: Promise.resolve({ id: '88888888-8888-8888-8888-888888888888' }) }
         );
         const body = await response.json();
 
@@ -102,7 +102,7 @@ describe('admin schedule slot delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-slots/slot-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'slot-1' }) }
+            { params: Promise.resolve({ id: '88888888-8888-8888-8888-888888888888' }) }
         );
         const body = await response.json();
 

@@ -42,7 +42,7 @@ describe('admin professional schedule route', () => {
         const query = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockResolvedValue({
-                data: [{ id: 'slot-1' }],
+                data: [{ id: '88888888-8888-8888-8888-888888888888' }],
                 error: null,
             }),
         };
@@ -53,34 +53,21 @@ describe('admin professional schedule route', () => {
         requirePanelAccessMock.mockResolvedValue({ supabase });
 
         const response = await GET(
-            new Request('http://localhost/api/admin/professionals/pro-1/schedule'),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule'),
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual([{ id: 'slot-1' }]);
-        expect(query.eq).toHaveBeenCalledWith('professional_id', 'pro-1');
+        expect(body).toEqual([{ id: '88888888-8888-8888-8888-888888888888' }]);
+        expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
     });
 
     it('replaces schedule and writes audit log', async () => {
-        const deleteQuery = {
-            delete: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: null }),
-        };
-        const insertQuery = {
-            insert: vi.fn().mockResolvedValue({ error: null }),
-        };
+        const rpc = vi.fn().mockResolvedValue({ error: null });
         const supabase = {
-            from: vi.fn((table: string) => {
-                if (table === 'schedule_slots') {
-                    return {
-                        ...deleteQuery,
-                        insert: insertQuery.insert,
-                    };
-                }
-                throw new Error(`Unexpected table ${table}`);
-            }),
+            from: vi.fn(),
+            rpc,
         };
 
         requirePanelAccessMock.mockResolvedValue({
@@ -89,34 +76,29 @@ describe('admin professional schedule route', () => {
         });
 
         const response = await PUT(
-            new Request('http://localhost/api/admin/professionals/pro-1/schedule', {
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule', {
                 method: 'PUT',
                 body: JSON.stringify({
                     slots: [{ day_of_week: 1, start_time: '09:00', end_time: '14:00' }],
                 }),
             }),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
         expect(body).toEqual({ success: true });
         expect(assertSameOriginMutationMock).toHaveBeenCalled();
-        expect(deleteQuery.eq).toHaveBeenCalledWith('professional_id', 'pro-1');
-        expect(insertQuery.insert).toHaveBeenCalledWith([
-            {
-                professional_id: 'pro-1',
-                day_of_week: 1,
-                start_time: '09:00',
-                end_time: '14:00',
-            },
-        ]);
+        expect(rpc).toHaveBeenCalledWith('replace_professional_schedule_slots', {
+            p_professional_id: '33333333-3333-3333-3333-333333333333',
+            p_slots: [{ day_of_week: 1, start_time: '09:00', end_time: '14:00' }],
+        });
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
                 action: 'UPDATE',
                 tableName: 'schedule_slots',
-                recordId: 'pro-1',
+                recordId: '33333333-3333-3333-3333-333333333333',
                 details: { replaced_slots_count: 1 },
             })
         );
@@ -128,11 +110,11 @@ describe('admin professional schedule route', () => {
         );
 
         const response = await PUT(
-            new Request('http://localhost/api/admin/professionals/pro-1/schedule', {
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule', {
                 method: 'PUT',
                 body: JSON.stringify({ slots: [] }),
             }),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
@@ -142,12 +124,10 @@ describe('admin professional schedule route', () => {
     });
 
     it('returns 500 when delete fails', async () => {
-        const deleteQuery = {
-            delete: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: { message: 'delete failed' } }),
-        };
+        const rpc = vi.fn().mockResolvedValue({ error: { message: 'replace failed' } });
         const supabase = {
-            from: vi.fn(() => deleteQuery),
+            from: vi.fn(),
+            rpc,
         };
 
         requirePanelAccessMock.mockResolvedValue({
@@ -156,11 +136,11 @@ describe('admin professional schedule route', () => {
         });
 
         const response = await PUT(
-            new Request('http://localhost/api/admin/professionals/pro-1/schedule', {
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule', {
                 method: 'PUT',
                 body: JSON.stringify({ slots: [] }),
             }),
-            { params: Promise.resolve({ id: 'pro-1' }) }
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 

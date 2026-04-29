@@ -1,0 +1,1052 @@
+/* =========================================================================
+   ZEUS — Portal del Paciente
+   Visual system: warm cream background, canela accents, patient-facing.
+   Fondo base: #fffcf8 (crema) en lugar del gris admin.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   1. SHELL & ROOT
+------------------------------------------------------------------------- */
+.portal-shell {
+  min-height: 100dvh;
+  background: #fffcf8;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------------------------------------------------------------------------
+   2. LOGIN — Split Layout
+------------------------------------------------------------------------- */
+.portal-login-split {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: 100dvh;
+}
+
+@media (max-width: 767px) {
+  .portal-login-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+/* Left panel — dark cover */
+.portal-login-cover {
+  background: var(--brand-canela-dark);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 44px;
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-login-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 0% 100%,
+      rgba(173, 115, 50, 0.35) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 100% 0%,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 50%
+    );
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .portal-login-cover {
+    padding: 28px 24px;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.portal-cover-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: -0.02em;
+  font-family: var(--font-zeus-display, Georgia, serif);
+  position: relative;
+  z-index: 1;
+}
+
+.portal-cover-logo__mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  font-family: var(--font-zeus-display, Georgia, serif);
+  backdrop-filter: blur(8px);
+}
+
+.portal-cover-text {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  .portal-cover-text {
+    display: none;
+  }
+}
+
+.portal-cover-text h1 {
+  margin: 0 0 12px;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  font-family: var(--font-zeus-display, Georgia, serif);
+}
+
+.portal-cover-text p {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  max-width: 300px;
+}
+
+/* Right panel — form */
+.portal-login-form-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: #fffcf8;
+}
+
+.portal-login-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.portal-login-heading {
+  margin-bottom: 28px;
+}
+
+.portal-login-heading h2 {
+  margin: 0 0 8px;
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-main);
+  font-family: var(--font-zeus-display, Georgia, serif);
+}
+
+.portal-login-heading p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.portal-login-btn {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.portal-login-forgot {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--brand-canela-text);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+}
+.portal-login-forgot:hover {
+  color: var(--brand-canela-dark);
+}
+.portal-login-forgot:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.portal-login-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-main);
+  border-radius: var(--radius-sm);
+  color: var(--success-main);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.portal-login-help {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------------------------------
+   ONBOARDING / COMPLETAR PERFIL
+------------------------------------------------------------------------- */
+.portal-onboarding {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: #fffcf8;
+}
+
+.portal-onboarding__card {
+  width: 100%;
+  max-width: 540px;
+  background: #fff;
+  border: 1px solid #ede8e0;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.portal-onboarding__header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.portal-onboarding__header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  margin: 12px 0 8px;
+}
+
+.portal-onboarding__header p {
+  font-size: 14px;
+  color: var(--text-muted, #888);
+  line-height: 1.5;
+}
+
+.portal-onboarding__email-hint {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  background: #f5f3ef;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.portal-onboarding__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .portal-onboarding__row {
+    grid-template-columns: 1fr;
+  }
+  .portal-onboarding__card {
+    padding: 24px 20px;
+  }
+}
+
+.portal-onboarding__form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portal-onboarding__gdpr {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  line-height: 1.5;
+  margin: 8px 0 16px;
+  cursor: pointer;
+}
+
+.portal-onboarding__gdpr input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--brand-canela, #8b6f47);
+}
+
+.portal-onboarding__gdpr a {
+  color: var(--brand-canela, #8b6f47);
+  text-decoration: underline;
+}
+
+.form-label__hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted, #aaa);
+}
+
+.portal-onboarding__form .portal-login-btn {
+  margin-top: 4px;
+}
+
+.portal-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.portal-login-divider::before,
+.portal-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-color, #e5e0d8);
+}
+
+.portal-login-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  margin-top: 12px;
+  background: #fff;
+  border: 1.5px solid #dadce0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3c4043;
+  cursor: pointer;
+  transition:
+    background 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.portal-login-google:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #c6c9cd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.portal-login-google:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Sent state */
+.portal-sent-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.portal-sent-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--canela-50, #fdf6ef);
+  border: 1.5px solid var(--canela-200, #f0d0a8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--brand-canela-text);
+}
+
+.portal-sent-state h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-family: var(--font-zeus-display, Georgia, serif);
+}
+
+.portal-sent-state p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 340px;
+}
+
+.portal-sent-hint {
+  font-size: 13px !important;
+  color: var(--text-muted) !important;
+}
+
+.portal-sent-retry {
+  margin-top: 20px;
+}
+
+/* -------------------------------------------------------------------------
+   3. HEADER (mis-citas)
+------------------------------------------------------------------------- */
+.portal-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: #fffcf8;
+}
+
+.portal-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 60px;
+  background: rgba(255, 252, 248, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.portal-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-header__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--brand-canela-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  font-family: var(--font-zeus-display, Georgia, serif);
+  flex-shrink: 0;
+}
+
+.portal-header__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.portal-header__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portal-header__name {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sign-out button — used by PortalSignOutButton */
+.portal-signout-btn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.portal-signout-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border-color: #d0d3d8;
+}
+
+/* -------------------------------------------------------------------------
+   4. MAIN CONTENT & SECTIONS
+------------------------------------------------------------------------- */
+.portal-main {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+@media (max-width: 767px) {
+  .portal-main {
+    padding: 20px 16px 32px;
+    gap: 28px;
+  }
+}
+
+.portal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.portal-section__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-section__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.portal-section__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--canela-100, #f8e9d5);
+  color: var(--brand-canela-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.portal-section--past .portal-section__title {
+  color: #9ca3af;
+}
+
+.portal-section--past .portal-section__count {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* Empty state */
+.portal-empty {
+  padding: 40px 24px;
+  text-align: center;
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 252, 248, 0.6);
+}
+
+.portal-empty p {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.portal-empty__hint {
+  font-size: 13px !important;
+  color: var(--text-muted) !important;
+  margin: 0 !important;
+}
+
+/* -------------------------------------------------------------------------
+   5. APPOINTMENT CARD
+------------------------------------------------------------------------- */
+.portal-apt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.portal-apt-list--past .portal-apt-card {
+  opacity: 0.75;
+}
+
+.portal-apt-card {
+  position: relative;
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.portal-apt-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.portal-apt-card--muted {
+  background: #faf9f7;
+  box-shadow: var(--shadow-sm);
+}
+
+.portal-apt-card--muted:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Accent stripe — uses --apt-color CSS variable */
+.portal-apt-card__accent {
+  width: 4px;
+  flex-shrink: 0;
+  background: var(--apt-color, var(--brand-canela));
+  border-radius: 0;
+}
+
+.portal-apt-card__body {
+  flex: 1;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 4px 16px;
+  align-items: start;
+}
+
+@media (max-width: 480px) {
+  .portal-apt-card__body {
+    grid-template-columns: 1fr;
+    padding: 14px 16px;
+    gap: 8px;
+  }
+}
+
+.portal-apt-card__datetime {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.portal-apt-card__date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+
+.portal-apt-card__time {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.portal-apt-card__info {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.portal-apt-card__service {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.015em;
+}
+
+.portal-apt-card__pro {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.portal-apt-card__specialty {
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.portal-apt-card__status {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .portal-apt-card__status {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   6. BADGES
+------------------------------------------------------------------------- */
+.portal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.portal-badge--warning {
+  background: var(--warning-bg);
+  color: var(--warning-main);
+}
+
+.portal-badge--success {
+  background: var(--success-bg);
+  color: var(--success-main);
+}
+
+.portal-badge--muted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.portal-badge--info {
+  background: var(--info-bg);
+  color: var(--info-main);
+}
+
+/* -------------------------------------------------------------------------
+   7. PORTAL FOOTER
+------------------------------------------------------------------------- */
+.portal-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 24px;
+  text-align: center;
+}
+
+.portal-footer p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------------------------------
+   8. CANCEL BUTTON
+------------------------------------------------------------------------- */
+.portal-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger-main);
+  background: transparent;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  letter-spacing: 0.01em;
+}
+
+.portal-cancel-btn:hover {
+  background: var(--danger-bg);
+  border-color: rgba(220, 38, 38, 0.45);
+}
+
+.portal-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Inline sent / error states beneath the button */
+.portal-cancel-inline {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.portal-cancel-inline--success {
+  color: var(--success-main);
+  font-weight: 600;
+}
+
+.portal-cancel-inline--error {
+  color: var(--danger-main);
+  font-weight: 500;
+}
+
+.portal-cancel-retry-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger-main);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------------------
+   9. CANCEL MODAL
+------------------------------------------------------------------------- */
+.portal-cancel-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.portal-cancel-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 11, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.portal-cancel-modal__box {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  animation: portal-modal-in 0.2s var(--ease-out-expo) both;
+}
+
+@keyframes portal-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.portal-cancel-modal__header {
+  padding: 20px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.portal-cancel-modal__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  font-family: var(--font-zeus-display, Georgia, serif);
+}
+
+.portal-cancel-modal__body {
+  padding: 16px 24px;
+}
+
+.portal-cancel-modal__apt-info {
+  background: #faf9f7;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.portal-cancel-modal__apt-info strong {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.portal-cancel-modal__apt-info span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.portal-cancel-modal__deadline {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.portal-cancel-modal__deadline strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.portal-cancel-modal__actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 20px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 400px) {
+  .portal-cancel-modal__actions {
+    flex-direction: column-reverse;
+  }
+}
+
+/* Sent state inside modal */
+.portal-cancel-sent {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.portal-cancel-sent__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--success-bg);
+  border: 1.5px solid rgba(5, 150, 105, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--success-main);
+  margin-bottom: 4px;
+}
+
+.portal-cancel-sent__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.015em;
+}
+
+.portal-cancel-sent__desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+/* -------------------------------------------------------------------------
+   10. CANCEL CONFIRM RESULT PAGE
+------------------------------------------------------------------------- */
+.portal-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 12px;
+  background: #fffcf8;
+}
+
+.portal-result__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.portal-result__icon--success {
+  background: var(--success-bg);
+  border: 2px solid rgba(5, 150, 105, 0.2);
+  color: var(--success-main);
+}
+
+.portal-result__icon--error {
+  background: var(--danger-bg);
+  border: 2px solid rgba(220, 38, 38, 0.2);
+  color: var(--danger-main);
+}
+
+.portal-result__icon--already-cancelled {
+  background: #f3f4f6;
+  border: 2px solid #d1d5db;
+  color: #6b7280;
+}
+
+.portal-result__title {
+  margin: 0;
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+  font-family: var(--font-zeus-display, Georgia, serif);
+}
+
+.portal-result__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 380px;
+}
+
+.portal-result a.btn {
+  margin-top: 12px;
+}

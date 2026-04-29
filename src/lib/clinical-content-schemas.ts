@@ -58,6 +58,6 @@ const contentSchemas = {
 export function validateClinicalContent(
     type: RecordType,
     content: unknown
-): z.SafeParseReturnType<ClinicalRecordContent> {
-    return contentSchemas[type].safeParse(content) as z.SafeParseReturnType<ClinicalRecordContent>;
+): z.SafeParseReturnType<ClinicalRecordContent, ClinicalRecordContent> {
+    return contentSchemas[type].safeParse(content) as z.SafeParseReturnType<ClinicalRecordContent, ClinicalRecordContent>;
 }

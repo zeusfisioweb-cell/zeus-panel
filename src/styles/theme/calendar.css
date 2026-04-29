@@ -38,7 +38,11 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
 }
 
 .citas-toggle__btn.is-active {
@@ -108,7 +112,10 @@
   cursor: pointer;
   font-weight: 500;
   font-size: 13px;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition);
 }
 
 .zc-mini-cal__day:hover {
@@ -161,7 +168,11 @@
   flex-direction: column;
   gap: 12px;
   border-color: var(--border-color) !important;
-  background: linear-gradient(170deg, var(--bg-surface) 0%, color-mix(in srgb, var(--brand-main) 5%, var(--bg-surface)) 100%);
+  background: linear-gradient(
+    170deg,
+    var(--bg-surface) 0%,
+    color-mix(in srgb, var(--brand-main) 5%, var(--bg-surface)) 100%
+  );
 }
 
 .zc-ops-summary__head {
@@ -189,7 +200,10 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition);
 }
 
 .zc-ops-summary__today:hover {
@@ -254,18 +268,18 @@
 }
 
 .zc-ops-kpi.is-pending strong {
-  color: #D97706;
+  color: #d97706;
 }
 
 .zc-ops-kpi.is-warning strong {
-  color: #B45309;
+  color: #b45309;
 }
 
 .zc-ops-next {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, #D97706 30%, transparent);
-  background: color-mix(in srgb, #D97706 10%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, #d97706 30%, transparent);
+  background: color-mix(in srgb, #d97706 10%, var(--bg-surface));
   color: var(--text-main);
   padding: 10px 12px;
   text-align: left;
@@ -277,24 +291,27 @@
   row-gap: 2px;
   column-gap: 8px;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), transform var(--transition-fast);
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    transform var(--transition-fast);
 }
 
 .zc-ops-next:hover {
-  border-color: color-mix(in srgb, #D97706 44%, transparent);
-  background: color-mix(in srgb, #D97706 16%, var(--bg-surface));
+  border-color: color-mix(in srgb, #d97706 44%, transparent);
+  background: color-mix(in srgb, #d97706 16%, var(--bg-surface));
   transform: translateY(-1px);
 }
 
 .zc-ops-next svg {
   grid-area: icon;
   align-self: center;
-  color: #B45309;
+  color: #b45309;
 }
 
 .zc-ops-next__label {
   grid-area: label;
-  color: #B45309;
+  color: #b45309;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -331,7 +348,9 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: filter var(--transition), transform var(--transition-fast);
+  transition:
+    filter var(--transition),
+    transform var(--transition-fast);
 }
 
 .zc-ops-new:hover {
@@ -418,7 +437,10 @@
   gap: 3px;
   text-align: left;
   cursor: pointer;
-  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition-fast);
+  transition:
+    box-shadow var(--transition),
+    border-color var(--transition),
+    transform var(--transition-fast);
 }
 
 .zc-ops-item:hover {
@@ -427,7 +449,7 @@
 }
 
 .zc-ops-item.is-pending {
-  border-left-color: #D97706;
+  border-left-color: #d97706;
 }
 
 .zc-ops-item.is-confirmed {
@@ -435,11 +457,11 @@
 }
 
 .zc-ops-item.is-completed {
-  border-left-color: #2563EB;
+  border-left-color: #2563eb;
 }
 
 .zc-ops-item.is-cancelled {
-  border-left-color: #DC2626;
+  border-left-color: #dc2626;
   opacity: 0.75;
 }
 
@@ -513,7 +535,9 @@
   cursor: pointer;
   background: var(--bg-surface);
   border-color: var(--border-color);
-  transition: background var(--transition), box-shadow var(--transition);
+  transition:
+    background var(--transition),
+    box-shadow var(--transition);
 }
 
 .zc-upcoming-item:hover {
@@ -617,7 +641,7 @@
 }
 
 .zc-cal-legend__item::before {
-  content: '';
+  content: "";
   width: 7px;
   height: 7px;
   border-radius: 999px;
@@ -722,13 +746,20 @@
 .zc-day-event,
 .zc-week-event {
   border-radius: 6px 10px 10px 6px !important;
-  border: 1px solid color-mix(in srgb, var(--event-color, var(--line-soft)) 30%, transparent) !important;
+  border: 1px solid
+    color-mix(in srgb, var(--event-color, var(--line-soft)) 30%, transparent) !important;
   border-left: 4px solid var(--event-color, var(--brand-main)) !important;
   padding: 10px 12px;
   cursor: pointer;
   color: var(--text-main);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0,0,0,0.02) !important;
-  background: color-mix(in srgb, var(--event-color, var(--brand-main)) 8%, rgba(255,255,255,0.8)) !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  background: color-mix(
+    in srgb,
+    var(--event-color, var(--brand-main)) 8%,
+    rgba(255, 255, 255, 0.8)
+  ) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition:
@@ -747,11 +778,17 @@
   gap: 2px;
 }
 
-.zc-day-event:hover, 
+.zc-day-event:hover,
 .zc-week-event:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0,0,0,0.04) !important;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.04) !important;
   transform: translateY(-2px);
-  background: color-mix(in srgb, var(--event-color, var(--brand-main)) 15%, rgba(255,255,255,0.95)) !important;
+  background: color-mix(
+    in srgb,
+    var(--event-color, var(--brand-main)) 15%,
+    rgba(255, 255, 255, 0.95)
+  ) !important;
   z-index: 20 !important;
 }
 
@@ -769,7 +806,7 @@
   border-radius: 6px;
   background: rgba(220, 38, 38, 0.1);
   border: 1px solid rgba(220, 38, 38, 0.2);
-  color: #DC2626;
+  color: #dc2626;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -818,14 +855,14 @@
 .zc-week-event.is-pending .zc-day-event__status {
   border-color: rgba(217, 119, 6, 0.25);
   background: rgba(217, 119, 6, 0.08); /* Amber tint */
-  color: #D97706;
+  color: #d97706;
 }
 
 .zc-day-event.is-completed .zc-day-event__status,
 .zc-week-event.is-completed .zc-day-event__status {
   border-color: rgba(37, 99, 235, 0.25);
   background: rgba(37, 99, 235, 0.08); /* Blue tint */
-  color: #2563EB;
+  color: #2563eb;
 }
 
 .zc-day-event__patient,
@@ -946,7 +983,9 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: background var(--transition), border-color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
 }
 
 .zc-week-empty:hover {

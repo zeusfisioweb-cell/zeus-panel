@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/Badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import type { Patient, Appointment, ClinicalRecord, RecordType } from '@/lib/types';
 import { RECORD_TYPE_LABELS, RECORD_TYPE_COLORS, STATUS_LABELS } from '@/lib/types';
@@ -37,6 +36,15 @@ interface PatientDetailsPanelProps {
     onDelete: (id: string) => void;
     onNewRecord: (type: RecordType) => void;
     onDeleteRecord: (id: string) => void;
+    onUnlinkPortal?: (id: string) => void;
+}
+
+function getAge(birthDate: string): number {
+    const today = new Date();
+    const dob = new Date(birthDate);
+    let age = today.getFullYear() - dob.getFullYear();
+    if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
+    return age;
 }
 
 export function PatientDetailsPanel({
@@ -48,10 +56,30 @@ export function PatientDetailsPanel({
     onDelete,
     onNewRecord,
     onDeleteRecord,
+    onUnlinkPortal,
 }: PatientDetailsPanelProps) {
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
     const [exporting, setExporting] = useState(false);
     const [exportingCsv, setExportingCsv] = useState(false);
+    const [unlinking, setUnlinking] = useState(false);
+
+    const age = patient.birth_date ? getAge(patient.birth_date) : null;
+    const isMinorApproachingAutonomy = age !== null && age >= 15 && age < 16;
+    const hasPortalAccount = Boolean(patient.auth_user_id);
+    const isManagedByGuardian = Boolean(patient.guardian_auth_user_id);
+
+    async function handleUnlinkPortal() {
+        if (!confirm('¿Desvincular la cuenta del portal? El paciente deberá completar el perfil de nuevo para volver a acceder.')) return;
+        setUnlinking(true);
+        const res = await fetch(`/api/admin/patients/${patient.id}/unlink-portal`, { method: 'POST' });
+        setUnlinking(false);
+        if (res.ok) {
+            toast.success('Cuenta del portal desvinculada');
+            onUnlinkPortal?.(patient.id);
+        } else {
+            toast.error('Error al desvincular la cuenta');
+        }
+    }
 
     const handleExportGdpr = async () => {
         setExporting(true);
@@ -113,6 +141,16 @@ export function PatientDetailsPanel({
 
     const renderDatos = () => (
         <div className="patient-detail-grid">
+            {isMinorApproachingAutonomy && !patient.document_id && (
+                <div className="patient-detail-item patient-detail-item--full" style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '0.75rem 1rem', color: '#92400e' }}>
+                    <strong>⚠ Acción requerida:</strong> Este paciente tiene {age} años y alcanzará autonomía sanitaria (16 años) próximamente. Sin DNI registrado no podrá acceder al portal de forma independiente. Añade su DNI en edición.
+                </div>
+            )}
+            {isManagedByGuardian && (
+                <div className="patient-detail-item patient-detail-item--full" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.5rem 1rem', color: '#0369a1', fontSize: '0.85rem' }}>
+                    Gestionado por tutor legal (Ley 41/2002)
+                </div>
+            )}
             <div className="patient-detail-item">
                 <span>Teléfono</span>
                 <strong>{patient.phone || '—'}</strong>
@@ -147,6 +185,18 @@ export function PatientDetailsPanel({
             </div>
 
             <div className="patient-detail-danger">
+                {hasPortalAccount && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleUnlinkPortal}
+                        disabled={unlinking}
+                        isLoading={unlinking}
+                        leftIcon={<Icon name="close" size={14} />}
+                    >
+                        Desvincular cuenta portal
+                    </Button>
+                )}
                 <Button
                     variant="ghost"
                     size="sm"
@@ -186,37 +236,37 @@ export function PatientDetailsPanel({
     const renderCitas = () => {
         if (appointments.length === 0) {
             return (
-                <div className="patient-empty-box">
+                <div className="zs-drawer__empty">
                     <Icon name="calendar" size={22} className="opacity-50" />
                     <p>Sin citas registradas</p>
                 </div>
             );
         }
 
+        const STATUS_DOT: Record<string, string> = {
+            completed: '#22c55e',
+            confirmed: '#3b82f6',
+            pending: '#f59e0b',
+            cancelled: '#ef4444',
+        };
+
         return (
-            <div className="patient-citas-list">
-                {appointments.map((appointment) => (
-                    <article key={appointment.id} className="patient-cita-item">
-                        <div className="patient-cita-item__top">
-                            <strong>{appointment.service?.name || 'Servicio general'}</strong>
-                            <span>
-                                {new Date(appointment.start_time).toLocaleDateString('es-ES', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    year: 'numeric',
-                                })}
-                            </span>
+            <div className="zs-citas-timeline">
+                {appointments.map((appt) => (
+                    <div key={appt.id} className="zs-citas-tl-item">
+                        <div className="zs-citas-tl-item__dot" style={{ background: STATUS_DOT[appt.status] ?? 'var(--brand-canela)' }} />
+                        <div className="zs-citas-tl-item__body">
+                            <div className="zs-citas-tl-item__service">{appt.service?.name || 'Servicio general'}</div>
+                            <div className="zs-citas-tl-item__meta">
+                                {new Date(appt.start_time).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                {' · '}
+                                {new Date(appt.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
                         </div>
-                        <div className="patient-cita-item__meta">
-                            {new Date(appointment.start_time).toLocaleTimeString('es-ES', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            })}
-                        </div>
-                        <Badge variant={appointment.status as 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline'}>
-                            {STATUS_LABELS[appointment.status] || appointment.status}
-                        </Badge>
-                    </article>
+                        <span className="zs-citas-tl-item__status" style={{ color: STATUS_DOT[appt.status] ?? 'var(--brand-canela)', background: `${STATUS_DOT[appt.status] ?? 'var(--brand-canela)'}18` }}>
+                            {STATUS_LABELS[appt.status] || appt.status}
+                        </span>
+                    </div>
                 ))}
             </div>
         );
@@ -305,37 +355,46 @@ export function PatientDetailsPanel({
         </div>
     );
 
-    return (
-        <Card className="sticky top-6 patient-detail-card">
-            <CardHeader className="patient-detail-card__head">
-                <CardTitle className="patient-detail-card__name">
-                    {patient.first_name} {patient.last_name}
-                </CardTitle>
+    const initials = `${patient.first_name?.[0] ?? ''}${patient.last_name?.[0] ?? ''}`.toUpperCase();
+    const headingId = useId();
+    const drawerRef = useRef<HTMLDivElement>(null);
 
-                <div className="patient-detail-card__head-actions">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onEdit}
-                        title="Editar paciente"
-                        aria-label="Editar paciente"
-                        className="patient-detail-card__icon-btn"
-                    >
-                        <Icon name="edit" size={16} />
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleKey);
+        drawerRef.current?.focus();
+        return () => document.removeEventListener('keydown', handleKey);
+    }, [onClose, patient.id]);
+
+    return (
+        <div
+            ref={drawerRef}
+            className="zs-drawer"
+            role="region"
+            aria-labelledby={headingId}
+            tabIndex={-1}
+        >
+            {/* Glass header with canela gradient */}
+            <div className="zs-drawer__head">
+                <div className="zs-drawer__avatar" aria-hidden="true">{initials}</div>
+                <div className="zs-drawer__identity">
+                    <h2 id={headingId} className="zs-drawer__name">{patient.first_name} {patient.last_name}</h2>
+                    <p className="zs-drawer__sub">{patient.email || patient.phone || 'Sin contacto'}</p>
+                </div>
+                <div className="zs-drawer__head-actions">
+                    <Button variant="ghost" size="sm" onClick={onEdit} title="Editar" aria-label="Editar paciente" className="patient-detail-card__icon-btn">
+                        <Icon name="edit" size={15} />
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onClose}
-                        aria-label="Cerrar panel de paciente"
-                        className="patient-detail-card__icon-btn"
-                    >
-                        <Icon name="close" size={18} />
+                    <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar" className="patient-detail-card__icon-btn">
+                        <Icon name="close" size={17} />
                     </Button>
                 </div>
-            </CardHeader>
+            </div>
 
-            <div className="patient-detail-tabs">
+            {/* Tabs */}
+            <div className="zs-drawer__tabs">
                 {([
                     { key: 'datos', label: 'Datos', icon: 'user' },
                     { key: 'citas', label: `Citas (${appointments.length})`, icon: 'calendar' },
@@ -346,19 +405,19 @@ export function PatientDetailsPanel({
                         type="button"
                         onClick={() => setActiveTab(tab.key)}
                         aria-pressed={activeTab === tab.key}
-                        className={`patient-detail-tab ${activeTab === tab.key ? 'is-active' : ''}`}
+                        className={`zs-drawer__tab ${activeTab === tab.key ? 'is-active' : ''}`}
                     >
-                        <Icon name={tab.icon} size={14} />
-                        <span className="patient-detail-tab__label">{tab.label}</span>
+                        <Icon name={tab.icon} size={13} />
+                        <span>{tab.label}</span>
                     </button>
                 ))}
             </div>
 
-            <CardContent className="patient-detail-card__content max-h-[640px] overflow-y-auto">
+            <div className="zs-drawer__body">
                 {activeTab === 'datos' && renderDatos()}
                 {activeTab === 'citas' && renderCitas()}
                 {activeTab === 'clinico' && renderClinico()}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

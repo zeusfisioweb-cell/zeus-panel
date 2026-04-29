@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 interface ServiciosHeaderProps {
     servicesCount: number;
     categoriesCount: number;
+    activeCount: number;
+    avgPrice: number;
     onNewCategory: () => void;
     onNewService: () => void;
 }
@@ -14,40 +16,42 @@ interface ServiciosHeaderProps {
 export function ServiciosHeader({
     servicesCount,
     categoriesCount,
+    activeCount,
+    avgPrice,
     onNewCategory,
     onNewService,
 }: ServiciosHeaderProps) {
+    const kpis = [
+        { label: 'Servicios', value: servicesCount, tone: 'canela', icon: 'spa' },
+        { label: 'Categorías', value: categoriesCount, tone: 'neutral', icon: 'folder' },
+        { label: 'Activos', value: activeCount, tone: 'success', icon: 'check' },
+        { label: 'Precio medio', value: `${Math.round(avgPrice)} €`, tone: 'warning', icon: 'scale' },
+    ] as const;
+
     return (
-        <header className="module-header module-header--servicios ops-module-head">
-            <div className="ops-module-head__intro">
-                <span className="module-header__kicker">Catalogo</span>
-                <h1 className="module-header__title">Servicios</h1>
-                <p className="module-header__desc">
-                    Catalogo de tratamientos, duracion y precio.
-                </p>
-                <p className="module-header__meta">
-                    {servicesCount} servicios | {categoriesCount} categorias
-                </p>
+        <header className="zs-svc-header">
+            <div className="zs-svc-header__top">
+                <div className="zs-svc-header__actions">
+                    <Button variant="secondary" onClick={onNewCategory} leftIcon={<Icon name="folder" size={15} />}>
+                        <span className="hidden sm:inline">Nueva categoría</span>
+                        <span className="sm:hidden">Categoría</span>
+                    </Button>
+                    <Button variant="primary" onClick={onNewService} leftIcon={<Icon name="plus" size={15} />}>
+                        Nuevo servicio
+                    </Button>
+                </div>
             </div>
 
-            <div className="ops-module-head__stats">
-                <article className="ops-module-metric">
-                    <span className="ops-module-metric__label">Servicios</span>
-                    <strong className="ops-module-metric__value">{servicesCount}</strong>
-                </article>
-                <article className="ops-module-metric">
-                    <span className="ops-module-metric__label">Categorias</span>
-                    <strong className="ops-module-metric__value">{categoriesCount}</strong>
-                </article>
-            </div>
-
-            <div className="module-header__actions ops-module-head__actions">
-                <Button variant="secondary" onClick={onNewCategory} leftIcon={<Icon name="folder" size={16} />}>
-                    Nueva categoria
-                </Button>
-                <Button variant="primary" onClick={onNewService} leftIcon={<Icon name="plus" size={16} />}>
-                    Nuevo servicio
-                </Button>
+            <div className="zs-svc-kpi-strip">
+                {kpis.map((k) => (
+                    <div key={k.label} className={`zs-svc-kpi zs-svc-kpi--${k.tone}`}>
+                        <div className="zs-svc-kpi__top">
+                            <p className="zs-svc-kpi__label">{k.label}</p>
+                            <span className="zs-svc-kpi__icon"><Icon name={k.icon} size={16} /></span>
+                        </div>
+                        <p className="zs-svc-kpi__value">{k.value}</p>
+                    </div>
+                ))}
             </div>
         </header>
     );

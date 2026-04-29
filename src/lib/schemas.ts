@@ -36,7 +36,7 @@ export const ServiceCategorySchema = z.object({
 // ─── Service ───────────────────────────────────────────────
 
 export const ServiceSchema = z.object({
-    category_id: z.string().min(1, { message: 'Debe seleccionar una categoría' }),
+    category_id: z.string().uuid({ message: 'Debe seleccionar una categoría válida' }),
     name: z.string().min(2, { message: 'El nombre del servicio es requerido' }),
     description: z.string().optional(),
     duration_minutes: z.coerce.number().int().min(5, { message: 'La duración mínima es de 5 minutos' }),
@@ -53,7 +53,7 @@ export const ProfessionalProfileSchema = z.object({
     email: z.string().email({ message: 'Correo electrónico inválido' }),
     specialty: z.string().optional(),
     bio: z.string().optional(),
-    color_code: z.string().optional(),
+    color_code: z.string().regex(/^#[0-9A-Fa-f]{3,8}$/, { message: 'Color inválido (ej: #3B82F6)' }).optional(),
     is_active: z.boolean().default(true),
     selectedServices: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos un servicio' }),
 });
@@ -64,7 +64,7 @@ export const ProfessionalCreateSchema = z.object({
     full_name: z.string().min(3, { message: 'El nombre completo es requerido' }),
     specialty: z.string().optional().nullable(),
     bio: z.string().optional().nullable(),
-    color_code: z.string().optional().nullable(),
+    color_code: z.string().regex(/^#[0-9A-Fa-f]{3,8}$/, { message: 'Color inválido (ej: #3B82F6)' }).optional().nullable(),
     is_active: z.boolean().default(true).optional(),
     service_ids: z.array(z.string().min(1)).min(1, { message: 'Debe seleccionar al menos un servicio' }),
     schedule_slots: z.array(z.object({
@@ -97,11 +97,11 @@ export const AppointmentFormSchema = z.object({
 
 // DB-level schema (timestamps as ISO strings, used in hooks)
 export const AppointmentInsertSchema = z.object({
-    patient_id: z.string().min(1, { message: 'Debe seleccionar un paciente' }).nullable().optional(),
-    professional_id: z.string().min(1, { message: 'Debe seleccionar un profesional' }).nullable().optional(),
-    service_id: z.string().min(1, { message: 'Debe seleccionar un servicio' }),
-    start_time: z.string().min(1, { message: 'Hora de inicio requerida' }),
-    end_time: z.string().min(1, { message: 'Hora de fin requerida' }),
+    patient_id: z.string().uuid({ message: 'ID de paciente inválido' }).nullable().optional(),
+    professional_id: z.string().uuid({ message: 'ID de profesional inválido' }).nullable().optional(),
+    service_id: z.string().uuid({ message: 'ID de servicio inválido' }),
+    start_time: z.string().datetime({ message: 'Formato de fecha/hora inválido (ISO 8601)' }),
+    end_time: z.string().datetime({ message: 'Formato de fecha/hora inválido (ISO 8601)' }),
     notes: z.string().nullable().optional(),
     patient_name: z.string().nullable().optional(),
     patient_phone: z.string().nullable().optional(),
@@ -117,12 +117,15 @@ export const AppointmentSchema = AppointmentFormSchema;
 
 // ─── Schedule Exception ────────────────────────────────────
 
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const scheduleTimeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+
 export const ScheduleExceptionSchema = z.object({
-    professional_id: z.string().min(1, { message: 'Profesional requerido' }),
-    exception_date: z.string().min(1, { message: 'Fecha requerida' }),
+    professional_id: z.string().uuid({ message: 'ID de profesional inválido' }),
+    exception_date: z.string().regex(dateRegex, { message: 'Formato inválido (YYYY-MM-DD)' }),
     is_available: z.boolean(),
-    start_time: z.string().nullable().optional(),
-    end_time: z.string().nullable().optional(),
+    start_time: z.string().regex(scheduleTimeRegex).nullable().optional(),
+    end_time: z.string().regex(scheduleTimeRegex).nullable().optional(),
     reason: z.string().nullable().optional(),
 });
 

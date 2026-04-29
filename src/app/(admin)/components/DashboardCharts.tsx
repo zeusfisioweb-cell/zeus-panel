@@ -2,6 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { DonutChart } from '@/components/charts/DonutChart';
+import { BarChartH } from '@/components/charts/BarChartH';
+import { RadialRing } from '@/components/charts/RadialRing';
+import { PatientsGrowthChart } from '../pacientes/components/PatientsGrowthChart';
 
 interface SessionBreakdownItem {
     name: string;
@@ -31,106 +35,87 @@ export function DashboardCharts({
     totalActionableCount,
     globalTotalSessions,
 }: DashboardChartsProps) {
-    const topServices = [...sessionBreakdown]
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 4);
-    const rankedStatuses = [...statusBreakdown].sort((a, b) => b.value - a.value);
-    const visibleStatuses = rankedStatuses.some((status) => status.value > 0)
-        ? rankedStatuses.filter((status) => status.value > 0)
-        : rankedStatuses;
+    const completedCount = statusBreakdown.find((s) => s.key === 'completed')?.value ?? 0;
+    const occupancyPct = globalTotalSessions > 0
+        ? Math.round((completedCount / globalTotalSessions) * 100)
+        : 0;
 
-    const formatPercent = (value: number) => {
-        if (globalTotalSessions <= 0) return '0%';
-        return `${Math.round((value / globalTotalSessions) * 100)}%`;
-    };
+    const barData = statusBreakdown.map((s) => ({
+        name: s.name,
+        shortName: s.name,
+        value: s.value,
+        color: s.color,
+    }));
 
     return (
-        <section className="summary-v5-panel summary-v5-panel--insight">
-            <div className="summary-v5-panel__header">
-                <div>
-                    <h2 className="summary-v5-panel__title">Resumen operativo</h2>
-                    <p className="summary-v5-panel__hint">Datos clave sin ruido visual</p>
+        <section className="zs-charts-panel" aria-label="Gráficos operativos">
+            {/* Row 1: Donut + Bar side by side */}
+            <div className="zs-charts-row">
+                {/* Services donut */}
+                <div className="zs-charts-card">
+                    <div className="zs-charts-card__header">
+                        <p className="zs-charts-card__title">Top servicios</p>
+                        <p className="zs-charts-card__hint">por sesiones</p>
+                    </div>
+                    <DonutChart
+                        data={sessionBreakdown.slice(0, 6)}
+                        centerLabel="ses. activas"
+                        centerValue={globalTotalSessions}
+                        height={200}
+                        showLegend={true}
+                    />
+                </div>
+
+                {/* Status bar */}
+                <div className="zs-charts-card">
+                    <div className="zs-charts-card__header">
+                        <p className="zs-charts-card__title">Estado de citas</p>
+                        <p className="zs-charts-card__hint">distribución total</p>
+                    </div>
+                    <BarChartH data={barData} height={180} axisWidth={90} />
+
+                    {/* Occupancy ring */}
+                    <div className="zs-occ-strip">
+                        <RadialRing value={occupancyPct} size={72} />
+                        <div className="zs-occ-strip__copy">
+                            <p className="zs-occ-strip__title">Completadas</p>
+                            <p className="zs-occ-strip__sub">
+                                {completedCount} de {globalTotalSessions} sesiones (sin canceladas)
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="summary-v5-insight">
-                <div className="summary-v5-insight__mini-grid">
-                    <article className="summary-v5-mini-chart">
-                        <p className="summary-v5-mini-chart__title">Actividad acumulada</p>
-                        <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--sum-text)' }}>
-                            {globalTotalSessions}
-                        </p>
-                        <p className="summary-v5-note">sesiones historicas registradas</p>
-                    </article>
+            {/* Row 2: Patients growth — full width, same card style */}
+            <div className="zs-charts-card" style={{ padding: '24px' }}>
+                <PatientsGrowthChart />
+            </div>
 
-                    <article className="summary-v5-mini-chart">
-                        <p className="summary-v5-mini-chart__title">Prioridad del dia</p>
-                        <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--sum-text)' }}>
-                            {pendingCount}
-                        </p>
-                        <p className="summary-v5-note">
-                            {pendingCount > 0 ? 'pendientes por confirmar' : 'sin pendientes'}
-                        </p>
-                    </article>
-                </div>
-
-                <div>
-                    <p className="summary-v5-mini-chart__title">Top servicios</p>
-                    <div className="summary-v5-legend">
-                        {topServices.length > 0 ? (
-                            topServices.map((item) => (
-                                <div key={item.name} className="summary-v5-legend__item">
-                                    <span className="summary-v5-legend__dot" style={{ backgroundColor: item.color }} />
-                                    <span className="summary-v5-legend__name">{item.name}</span>
-                                    <span className="summary-v5-legend__value">{formatPercent(item.value)}</span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="summary-v5-legend__item">
-                                <span className="summary-v5-legend__dot" style={{ backgroundColor: '#c0c4cc' }} />
-                                <span className="summary-v5-legend__name">Sin datos historicos</span>
-                                <span className="summary-v5-legend__value">0%</span>
-                            </div>
-                        )}
+            {/* Alert / CTA */}
+            {pendingCount > 0 ? (
+                <Link href="/citas?status=pending" style={{ textDecoration: 'none' }}>
+                    <div className="zs-alert zs-alert--warning zs-alert--interactive">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span>{pendingCount} citas pendientes de confirmación</span>
+                        <span className="zs-alert__cta">ver →</span>
                     </div>
+                </Link>
+            ) : (
+                <div className="zs-alert zs-alert--ok">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Operación estable — {totalActionableCount} citas en seguimiento</span>
                 </div>
+            )}
 
-                <div>
-                    <p className="summary-v5-mini-chart__title">Estados de cita</p>
-                    <div className="summary-v5-legend">
-                        {visibleStatuses.map((status) => (
-                            <div key={status.key} className="summary-v5-legend__item">
-                                <span className="summary-v5-legend__dot" style={{ backgroundColor: status.color }} />
-                                <span className="summary-v5-legend__name">{status.name}</span>
-                                <span className="summary-v5-legend__value">{status.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {pendingCount > 0 ? (
-                    <Link href="/citas?status=pending" style={{ textDecoration: 'none' }}>
-                        <div className="summary-v5-alert summary-v5-alert--warning summary-v5-alert--interactive">
-                            {pendingCount} pendientes por confirmar <span style={{ fontSize: '10px' }}>(ver)</span>
-                        </div>
-                    </Link>
-                ) : (
-                    <div className="summary-v5-alert summary-v5-alert--ok">
-                        Operacion estable
-                    </div>
-                )}
-
-                <p className="summary-v5-note">
-                    {pendingCount > 0
-                        ? `Confirma pendientes para proteger ${totalActionableCount} citas accionables del dia.`
-                        : `${totalActionableCount} citas accionables en seguimiento.`}
-                </p>
-
-                <div className="summary-v5-actions">
-                    <Link href="/citas" className="btn btn--primary">
-                        Abrir agenda completa
-                    </Link>
-                </div>
+            <div className="zs-charts-actions">
+                <Link href="/citas" className="btn btn--primary" style={{ width: '100%', textAlign: 'center' }}>
+                    Abrir agenda completa
+                </Link>
             </div>
         </section>
     );

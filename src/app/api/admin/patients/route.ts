@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
     assertSameOriginMutation,
     ensurePatientAccess,
+    getAdminSupabase,
     getProfessionalPatientIds,
     handleApiError,
     normalizeNullableText,
@@ -10,6 +11,7 @@ import {
     resolveScopedProfessionalId,
     writeAuditLog,
 } from '../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const getPatientsQuerySchema = z.object({
     search: z.string().optional().default(''),
@@ -30,17 +32,28 @@ const patientPayloadSchema = z.object({
 });
 
 const createPatientSchema = patientPayloadSchema.refine((data) => Boolean(normalizeNullableText(data.email) || normalizeNullableText(data.phone)), {
-    message: 'Debe proporcionar al menos un correo o numero de telefono',
+    message: 'Debe proporcionar al menos un correo o número de teléfono',
     path: ['email'],
 });
 
 const updatePatientSchema = patientPayloadSchema.partial().extend({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de paciente inválido' }),
+}).superRefine((data, ctx) => {
+    const emailProvided = data.email === undefined ? true : Boolean(normalizeNullableText(data.email));
+    const phoneProvided = data.phone === undefined ? true : Boolean(normalizeNullableText(data.phone));
+
+    if (!emailProvided && !phoneProvided) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Debe proporcionar al menos un correo o número de teléfono',
+            path: ['email'],
+        });
+    }
 });
 
 function sanitizeSearchTerm(search: string): string {
     return search
-        .replace(/[,%()]/g, ' ')
+        .replace(/[,%()_]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -75,7 +88,7 @@ export async function GET(request: Request) {
 
         const safeTerm = sanitizeSearchTerm(parsed.search);
         if (safeTerm) {
-            query = query.or(`first_name.ilike.%${safeTerm}%,last_name.ilike.%${safeTerm}%,document_id.ilike.%${safeTerm}%`);
+            query = query.or(`first_name.ilike.%${safeTerm}%,last_name.ilike.%${safeTerm}%,document_id.ilike.%${safeTerm}%,phone.ilike.%${safeTerm}%`);
         }
 
         const from = (parsed.page - 1) * parsed.pageSize;
@@ -99,7 +112,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
-        const { supabase, userId } = await requirePanelAccess();
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(ip, 'create-patient', 30, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
+        const { supabase, role, userId, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
         const parsed = createPatientSchema.parse(rawBody);
 
@@ -119,6 +141,20 @@ export async function POST(request: Request) {
             .single();
 
         if (error) throw error;
+
+        if (scopedProfessionalId) {
+            const adminSupabase = getAdminSupabase();
+            const { error: assignmentError } = await adminSupabase
+                .from('patient_professionals')
+                .insert({
+                    patient_id: data.id,
+                    professional_id: scopedProfessionalId,
+                    assigned_by: userId,
+                    source: 'manual',
+                });
+
+            if (assignmentError) throw assignmentError;
+        }
 
         await writeAuditLog({
             supabase,
@@ -145,6 +181,33 @@ export async function PATCH(request: Request) {
         const { id, ...updateData } = parsed;
 
         await ensurePatientAccess({ supabase, role, professionalId: scopedProfessionalId, patientId: id });
+
+        if (updateData.email !== undefined || updateData.phone !== undefined) {
+            const { data: currentPatient, error: currentPatientError } = await supabase
+                .from('patients')
+                .select('email, phone')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (currentPatientError) throw currentPatientError;
+            if (!currentPatient) {
+                return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
+            }
+
+            const nextEmail = updateData.email === undefined
+                ? currentPatient.email
+                : normalizeNullableText(updateData.email);
+            const nextPhone = updateData.phone === undefined
+                ? currentPatient.phone
+                : normalizeNullableText(updateData.phone);
+
+            if (!nextEmail && !nextPhone) {
+                return NextResponse.json(
+                    { error: 'Debe proporcionar al menos un correo o número de teléfono' },
+                    { status: 400 }
+                );
+            }
+        }
 
         const payload = {
             ...updateData,

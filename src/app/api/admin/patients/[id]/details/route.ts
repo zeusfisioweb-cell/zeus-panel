@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ensurePatientAccess, handleApiError, requirePanelAccess, resolveScopedProfessionalId } from '../../../_lib';
 
 const paramsSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de paciente inválido' }),
 });
 
 export async function GET(

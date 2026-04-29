@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +23,8 @@ import { DashboardAgenda } from './components/DashboardAgenda';
 import { AppointmentFormModal, AppointmentFormData } from './citas/components/AppointmentFormModal';
 import { useCreateCita, useCitas, useUpdateCitaStatus } from '@/hooks/useCitas';
 import { getDashboardData } from './actions';
+import { QRModal } from '@/components/QRModal';
+import Icon from '@/components/Icon';
 
 const CLINIC_TIME_ZONE = 'Europe/Madrid';
 
@@ -50,6 +52,7 @@ export default function DashboardPage() {
 
     const [dateRange, setDateRange] = useState({ start: new Date(), end: new Date() });
     const [showNewModal, setShowNewModal] = useState(false);
+    const [showQRModal, setShowQRModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     const updateDashboardDate = (nextDate: Date) => {
@@ -58,24 +61,21 @@ export default function DashboardPage() {
     };
 
     const { data: dashboardData, isLoading: loading } = useQuery<DashboardData | null>({
-        queryKey: ['dashboard', dateRange.start.toISOString(), dateRange.end.toISOString(), profile?.id, profile?.role],
+        queryKey: ['dashboard', dateRange.start.toISOString(), dateRange.end.toISOString(), profile?.professional_id, profile?.role],
         queryFn: async () => {
-            const todayStr = format(dateRange.start, 'yyyy-MM-dd');
-            const endStr = format(dateRange.end, 'yyyy-MM-dd');
-            const startDay = dateRange.start.getDay();
-            const weekStart = new Date(dateRange.start);
-            weekStart.setDate(dateRange.start.getDate() - (startDay === 0 ? 6 : startDay - 1));
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
+            // Compute Madrid-local day boundaries in UTC so Supabase receives proper ISO timestamps
+            const dayStartIso = DateTime.fromJSDate(dateRange.start, { zone: CLINIC_TIME_ZONE }).startOf('day').toUTC().toISO();
+            const dayEndIso = DateTime.fromJSDate(dateRange.end, { zone: CLINIC_TIME_ZONE }).endOf('day').toUTC().toISO();
+            if (!dayStartIso || !dayEndIso) return null;
+
+            // Week range (Mon-Sun) anchored to Madrid
+            const weekStartIso = DateTime.fromJSDate(dateRange.start, { zone: CLINIC_TIME_ZONE }).startOf('week').toUTC().toISO();
+            const weekEndIso = DateTime.fromJSDate(dateRange.start, { zone: CLINIC_TIME_ZONE }).endOf('week').toUTC().toISO();
+            if (!weekStartIso || !weekEndIso) return null;
 
             if (!profile) return null;
 
-            return await getDashboardData(
-                todayStr,
-                endStr,
-                weekStart.toISOString(),
-                weekEnd.toISOString()
-            );
+            return await getDashboardData(dayStartIso, dayEndIso, weekStartIso, weekEndIso);
         },
         enabled: !!profile,
     });
@@ -105,11 +105,19 @@ export default function DashboardPage() {
     const updateCitaStatus = useUpdateCitaStatus();
 
     // Load today's appointments for overlap validation on dashboard quick-create
-    const todayIso = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day').toISO() ?? '';
-    const tomorrowIso = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day').plus({ days: 1 }).toISO() ?? '';
+    // Memoize so query keys don't shift on every render
+    const { todayIso, tomorrowIso } = useMemo(() => {
+        const today = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day');
+        return {
+            todayIso: today.toISO() ?? '',
+            tomorrowIso: today.plus({ days: 1 }).toISO() ?? '',
+        };
+    }, []);
     const { data: todayAllAppointments = [] } = useCitas(todayIso, tomorrowIso);
 
     useEffect(() => {
+        if (!profile) return;
+
         const channel = supabase
             .channel('dashboard-appointments')
             .on(
@@ -118,7 +126,6 @@ export default function DashboardPage() {
                 () => {
                     toast.success('Nueva cita recibida', {
                         description: 'Se acaba de reservar una nueva cita.',
-                        icon: '',
                         duration: 5000,
                     });
                     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -143,7 +150,7 @@ export default function DashboardPage() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [queryClient, supabase]);
+    }, [queryClient, supabase, profile]);
 
     const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
         try {
@@ -158,27 +165,24 @@ export default function DashboardPage() {
     const handleCreateAppointment = async (form: AppointmentFormData, selectedPatientId: string | null) => {
         const service = services.find((s) => s.id === form.service_id);
 
-        // Use Luxon with clinic timezone — matches citas/page.tsx behaviour
-        const selectedDay = DateTime.fromJSDate(selectedDate, { zone: CLINIC_TIME_ZONE });
-        const baseDate = selectedDay.toISODate();
+        const baseDate = form.date;
 
         if (!baseDate) {
             toast.error('No se pudo interpretar la fecha de la cita');
-            return;
+            throw new Error('INVALID_DATE');
         }
 
         const startDateTime = DateTime.fromISO(`${baseDate}T${form.time}`, { zone: CLINIC_TIME_ZONE });
         if (!startDateTime.isValid) {
             toast.error('La hora seleccionada no es válida');
-            return;
+            throw new Error('INVALID_TIME');
         }
 
         const endDateTime = startDateTime.plus({ minutes: service?.duration_minutes || 60 });
 
         const effectiveProfessionalId =
-            profile?.role === 'professional' ? profile?.id : (form.professional_id || null);
+            profile?.role === 'professional' ? (profile?.professional_id ?? null) : (form.professional_id || null);
 
-        // Overlap guard — same logic as citas/page.tsx
         if (effectiveProfessionalId) {
             const overlaps = hasProfessionalOverlap(todayAllAppointments, {
                 professionalId: effectiveProfessionalId,
@@ -187,7 +191,7 @@ export default function DashboardPage() {
             });
             if (overlaps) {
                 toast.warning('No se permite solapar citas del mismo profesional');
-                return;
+                throw new Error('OVERLAP');
             }
         }
 
@@ -196,7 +200,7 @@ export default function DashboardPage() {
 
         if (!startIso || !endIso) {
             toast.error('Error al calcular la hora de la cita');
-            return;
+            throw new Error('INVALID_TIME');
         }
 
         try {
@@ -211,13 +215,14 @@ export default function DashboardPage() {
                 end_time: endIso,
                 notes: form.notes || null,
                 source: 'admin',
+                status: 'confirmed',
             });
 
-            setShowNewModal(false);
             toast.success('Cita creada correctamente');
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        } catch {
+        } catch (error) {
             toast.error('Error al crear la cita');
+            throw error;
         }
     };
 
@@ -263,60 +268,44 @@ export default function DashboardPage() {
     const selectedDateLabel = format(dateRange.start, "EEEE, d 'de' MMMM", { locale: es });
     const selectedDateShort = format(dateRange.start, 'dd MMM yyyy', { locale: es });
 
+    const isToday = dateRange.start.toDateString() === new Date().toDateString();
+
     return (
         <div className="content-shell summary-v5 animate-in fade-in duration-300">
-            <header className="summary-v5__header">
-                <div className="summary-v5__header-main">
-                    <p className="summary-v5__eyebrow">Zeus Fisioterapia</p>
-                    <h1 className="summary-v5__title">Resumen del centro</h1>
-                    <p className="summary-v5__subtitle">
-                        {selectedDateLabel} | {profile?.full_name || 'Usuario'}
-                    </p>
-                </div>
-
-                <div className="summary-v5__header-side">
-                    <div className="summary-v5__header-day" aria-label="Fecha seleccionada">
-                        <span>Fecha</span>
-                        <strong>{selectedDateShort}</strong>
+            <header className="zs-dash-header">
+                <div className="zs-dash-header__top">
+                    <div className="zs-dash-header__lead">
+                        <span className="zs-dash-header__eyebrow">Zeus Fisioterapia</span>
+                        <h1 className="zs-dash-header__title">Resumen del centro</h1>
+                        <p className="zs-dash-header__meta">{selectedDateLabel} · {profile?.full_name || 'Usuario'}</p>
                     </div>
 
-                    <div className="summary-v5__header-tools">
-                        <div className="summary-v5__date-nav">
+                    <div className="zs-dash-header__tools">
+                        <div className="zs-dash-datepicker">
                             <button
-                                className="btn btn--ghost"
                                 type="button"
-                                onClick={() => {
-                                    updateDashboardDate(subDays(dateRange.start, 1));
-                                }}
-                                title="Dia anterior"
-                                aria-label="Ir al dia anterior"
+                                className="zs-dash-datepicker__nav"
+                                onClick={() => updateDashboardDate(subDays(dateRange.start, 1))}
+                                title="Día anterior"
+                                aria-label="Ir al día anterior"
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
-
-                            <span className="summary-v5__date-value" aria-live="polite">
-                                {selectedDateShort}
-                            </span>
-
+                            <span className="zs-dash-datepicker__value" aria-live="polite">{selectedDateShort}</span>
                             <button
-                                className="btn btn--ghost"
                                 type="button"
-                                onClick={() => {
-                                    updateDashboardDate(addDays(dateRange.start, 1));
-                                }}
-                                title="Dia siguiente"
-                                aria-label="Ir al dia siguiente"
+                                className="zs-dash-datepicker__nav"
+                                onClick={() => updateDashboardDate(addDays(dateRange.start, 1))}
+                                title="Día siguiente"
+                                aria-label="Ir al día siguiente"
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
                             </button>
-
-                            {dateRange.start.toDateString() !== new Date().toDateString() && (
+                            {!isToday && (
                                 <button
-                                    className="btn btn--ghost"
                                     type="button"
-                                    onClick={() => {
-                                        updateDashboardDate(new Date());
-                                    }}
+                                    className="zs-dash-datepicker__today"
+                                    onClick={() => updateDashboardDate(new Date())}
                                     aria-label="Volver a hoy"
                                 >
                                     Hoy
@@ -324,11 +313,15 @@ export default function DashboardPage() {
                             )}
                         </div>
 
-                        <div className="summary-v5__header-actions">
-                            <button className="btn btn--primary" type="button" onClick={() => setShowNewModal(true)} aria-label="Crear nueva cita">
+                        <div className="zs-dash-header__actions">
+                            <button className="btn btn--secondary flex items-center justify-center gap-2" type="button" onClick={() => setShowQRModal(true)} title="Generar QR de Reservas">
+                                <Icon name="qr-code" size={16} />
+                                <span className="hidden sm:inline">Generar QR</span>
+                            </button>
+                            <button className="btn btn--secondary" type="button" onClick={() => setShowNewModal(true)}>
                                 Nueva cita
                             </button>
-                            <Link href="/citas" className="btn btn--secondary" aria-label="Abrir agenda completa">
+                            <Link href="/citas" className="btn btn--primary" aria-label="Abrir agenda completa">
                                 Abrir agenda
                             </Link>
                         </div>
@@ -336,20 +329,13 @@ export default function DashboardPage() {
                 </div>
             </header>
 
+            {/* KPI strip */}
             <section className="summary-v5__overview">
                 <DashboardStats stats={stats} globalStats={globalStats} todayAppointments={todayAppointments} />
             </section>
 
+            {/* Charts + Agenda bento grid */}
             <div className="summary-v5__grid">
-                <main className="summary-v5__main">
-                    <DashboardAgenda
-                        todayAppointments={agendaAppointments}
-                        totalActionableCount={actionableAppointments.length}
-                        onNewAppointmentClick={() => setShowNewModal(true)}
-                        onUpdateStatus={handleUpdateStatus}
-                    />
-                </main>
-
                 <aside className="summary-v5__aside">
                     <DashboardCharts
                         sessionBreakdown={sessionBreakdown}
@@ -359,6 +345,15 @@ export default function DashboardPage() {
                         globalTotalSessions={globalStats.totalGlobalAppointments}
                     />
                 </aside>
+
+                <main className="summary-v5__main">
+                    <DashboardAgenda
+                        todayAppointments={agendaAppointments}
+                        totalActionableCount={actionableAppointments.length}
+                        onNewAppointmentClick={() => setShowNewModal(true)}
+                        onUpdateStatus={handleUpdateStatus}
+                    />
+                </main>
             </div>
 
             <AppointmentFormModal
@@ -368,9 +363,14 @@ export default function DashboardPage() {
                 initialTime={'09:00'}
                 services={services}
                 professionals={professionals}
-                currentUserId={profile?.id}
+                currentProfessionalId={profile?.professional_id ?? null}
                 currentUserRole={profile?.role}
                 onSubmit={handleCreateAppointment}
+            />
+
+            <QRModal 
+                isOpen={showQRModal} 
+                onClose={() => setShowQRModal(false)} 
             />
         </div>
     );

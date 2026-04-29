@@ -78,9 +78,9 @@ export default function HorariosPage() {
                 start_time: newSlot.start_time,
                 end_time: newSlot.end_time,
             });
-            toast.success('Franja anadida');
+            toast.success('Franja añadida');
         } catch (error: unknown) {
-             toast.error(`Error al anadir franja: ${getErrorMessage(error)}`);
+             toast.error(`Error al añadir franja: ${getErrorMessage(error)}`);
         }
     }
 
@@ -108,19 +108,19 @@ export default function HorariosPage() {
                 is_available: newException.is_available,
             });
 
-            toast.success('Excepcion anadida');
+            toast.success('Excepción añadida');
             setNewException({ start_date: '', end_date: '', reason: '', is_available: false });
         } catch (error: unknown) {
-             toast.error(`Error al anadir excepcion: ${getErrorMessage(error)}`);
+             toast.error(`Error al añadir excepción: ${getErrorMessage(error)}`);
         }
     }
 
     async function deleteException(id: string) {
         try {
             await deleteExceptionM.mutateAsync({ id, professional_id: selectedPro });
-            toast.success('Excepcion eliminada');
+            toast.success('Excepción eliminada');
         } catch (error: unknown) {
-            toast.error(`Error al eliminar excepcion: ${getErrorMessage(error)}`);
+            toast.error(`Error al eliminar excepción: ${getErrorMessage(error)}`);
         }
     }
 
@@ -143,7 +143,7 @@ export default function HorariosPage() {
                 start_time: '15:00',
                 end_time: '20:00',
             });
-            toast.success(`Horario base anadido para ${DAY_NAMES[dayIndex]}`);
+            toast.success(`Horario base añadido para ${DAY_NAMES[dayIndex]}`);
         } catch (error: unknown) {
              toast.error(`Error al crear horario: ${getErrorMessage(error)}`);
         }
@@ -152,7 +152,7 @@ export default function HorariosPage() {
     function applyDefaultSchedule() {
         setConfirmAction({
             title: 'Aplicar horario base',
-            message: 'Aplicar horario base (L-V 9:30-14:00, 15:00-20:00)? Se eliminaran las franjas actuales.',
+            message: 'Aplicar horario base (L-V 9:30-14:00, 15:00-20:00)? Se eliminarán las franjas actuales.',
             onConfirm: async () => {
                 setConfirmAction(null);
 
@@ -194,58 +194,62 @@ export default function HorariosPage() {
     const weeklySlotCount = slots.length;
     const activeDays = slotsByDay.filter((day) => day.slots.length > 0).length;
 
+    function coveragePct(daySlots: typeof slots): number {
+        const WORK_MIN = 780; // 07:00–20:00
+        const total = daySlots.reduce((acc, s) => {
+            const [sh, sm] = s.start_time.split(':').map(Number);
+            const [eh, em] = s.end_time.split(':').map(Number);
+            return acc + (eh * 60 + em) - (sh * 60 + sm);
+        }, 0);
+        return Math.min(100, Math.round((total / WORK_MIN) * 100));
+    }
+
     return (
         <div className="content-shell schedule-shell ops-screen">
-            <header className="module-header module-header--schedule ops-module-head">
-                <div className="ops-module-head__intro">
-                    <span className="module-header__kicker">Agenda</span>
-                    <h1 className="module-header__title">Horarios</h1>
-                    <p className="module-header__desc">
-                        Disponibilidad semanal y excepciones por profesional.
-                    </p>
-                    <p className="module-header__meta">
-                        {weeklySlotCount} franjas | {activeDays}/7 dias activos | {exceptions.length} excepciones
-                    </p>
-                </div>
-
-                <div className="ops-module-head__stats">
-                    <article className="ops-module-metric">
-                        <span className="ops-module-metric__label">Franjas</span>
-                        <strong className="ops-module-metric__value">
-                            {isLoadingHorario ? <div className="spinner" style={{width: 16, height: 16}}/> : weeklySlotCount}
-                        </strong>
-                    </article>
-                    <article className="ops-module-metric">
-                        <span className="ops-module-metric__label">Dias activos</span>
-                        <strong className="ops-module-metric__value">
-                            {isLoadingHorario ? <div className="spinner" style={{width: 16, height: 16}}/> : activeDays}
-                        </strong>
-                    </article>
-                </div>
-
-                <div className="module-header__actions schedule-header__actions ops-module-head__actions">
-                    <label className="schedule-picker">
-                        <span className="schedule-picker__label">Profesional</span>
-                        <select
-                            className="form-input form-select schedule-picker__control"
-                            value={selectedPro}
-                            onChange={(event) => setSelectedPro(event.target.value)}
+            <header className="zs-hor-header">
+                <div className="zs-hor-header__top">
+                    <div className="zs-hor-header__lead">
+                        <span className="zs-hor-header__eyebrow">Agenda</span>
+                        <h1 className="zs-hor-header__title">Horarios</h1>
+                        <p className="zs-hor-header__meta">{weeklySlotCount} franjas · {activeDays}/7 días activos · {exceptions.length} excepciones</p>
+                    </div>
+                    <div className="zs-hor-header__actions">
+                        <label className="zs-hor-pro-picker">
+                            <span className="zs-hor-pro-picker__label">Profesional</span>
+                            <select
+                                className="zs-hor-pro-picker__select"
+                                value={selectedPro}
+                                onChange={(e) => setSelectedPro(e.target.value)}
+                            >
+                                {professionals.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.profile?.full_name || 'Profesional'}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <button
+                            className="btn btn--secondary"
+                            onClick={applyDefaultSchedule}
+                            disabled={applyDefaultM.isPending}
                         >
-                            {professionals.map((professional) => (
-                                <option key={professional.id} value={professional.id}>
-                                    {professional.profile?.full_name || 'Profesional'}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <button
-                        className="btn btn--secondary schedule-header__button"
-                        onClick={applyDefaultSchedule}
-                        disabled={applyDefaultM.isPending}
-                    >
-                        {applyDefaultM.isPending ? <div className="spinner" style={{width: 14, height: 14}}/> : <Icon name="refresh-cw" size={14} />}
-                        Aplicar horario base
-                    </button>
+                            {applyDefaultM.isPending ? <div className="spinner" style={{width:14,height:14}}/> : <Icon name="refresh-cw" size={14} />}
+                            Aplicar horario base
+                        </button>
+                    </div>
+                </div>
+
+                <div className="zs-hor-kpi-strip">
+                    <div className="zs-hor-kpi zs-hor-kpi--neutral">
+                        <p className="zs-hor-kpi__label">Franjas semanales</p>
+                        <p className="zs-hor-kpi__value">{isLoadingHorario ? '…' : weeklySlotCount}</p>
+                    </div>
+                    <div className="zs-hor-kpi zs-hor-kpi--success">
+                        <p className="zs-hor-kpi__label">Días activos</p>
+                        <p className="zs-hor-kpi__value">{isLoadingHorario ? '…' : `${activeDays}/7`}</p>
+                    </div>
+                    <div className={`zs-hor-kpi ${exceptions.length > 0 ? 'zs-hor-kpi--warning' : 'zs-hor-kpi--neutral'}`}>
+                        <p className="zs-hor-kpi__label">Excepciones</p>
+                        <p className="zs-hor-kpi__value">{exceptions.length}</p>
+                    </div>
                 </div>
             </header>
 
@@ -253,25 +257,32 @@ export default function HorariosPage() {
                 <section className="card schedule-card">
                     <div className="card__header schedule-card__header">
                         <h2 className="card__title">Disponibilidad semanal</h2>
-                        <p className="schedule-card__hint">Franjas base por dia.</p>
+                        <p className="schedule-card__hint">Franjas base por día.</p>
                     </div>
 
                     <div className="card__body schedule-day-list">
-                        {slotsByDay.map((day) => (
+                        {slotsByDay.map((day) => {
+                            const pct = coveragePct(day.slots);
+                            return (
                             <article
                                 key={day.dayIndex}
                                 className={`schedule-day ${day.slots.length > 0 ? '' : 'is-empty'}`}
                             >
+                                {/* Coverage bar */}
+                                <div className="zs-hor-coverage">
+                                    <div className="zs-hor-coverage__fill" style={{ width: `${pct}%` }} />
+                                </div>
                                 <div className="schedule-day__head">
                                     <h3 className="schedule-day__name">{day.name}</h3>
                                     <span className="schedule-day__count">
                                         {day.slots.length === 0 ? 'Sin franjas' : `${day.slots.length} franja${day.slots.length > 1 ? 's' : ''}`}
+                                        {pct > 0 && <span className="zs-hor-coverage__pct">{pct}%</span>}
                                     </span>
                                 </div>
                                 <div className="schedule-day__slots">
                                     {day.slots.length === 0 ? (
                                         <div className="schedule-day__empty-box">
-                                            <span className="schedule-day__empty">Dia sin disponibilidad</span>
+                                            <span className="schedule-day__empty">Día sin disponibilidad</span>
                                             <button
                                                 className="btn btn--ghost btn--sm schedule-day__quick-add"
                                                 onClick={() => addPresetForDay(day.dayIndex)}
@@ -297,14 +308,15 @@ export default function HorariosPage() {
                                     )}
                                 </div>
                             </article>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="card__body schedule-slot-builder">
-                        <h3 className="schedule-slot-builder__title">Anadir franja manual</h3>
+                        <h3 className="schedule-slot-builder__title">Añadir franja manual</h3>
                         <div className="schedule-slot-builder__form">
                             <div className="form-group">
-                                <label className="form-label">Dia</label>
+                                <label className="form-label">Día</label>
                                 <select
                                     className="form-input form-select"
                                     value={newSlot.day_of_week}
@@ -337,7 +349,7 @@ export default function HorariosPage() {
                                 disabled={createSlotM.isPending}
                             >
                                 {createSlotM.isPending ? <div className="spinner" style={{width: 14, height: 14, borderColor:'white', borderBottomColor: 'transparent'}}/> : <Icon name="plus" size={14} />}
-                                Anadir franja
+                                Añadir franja
                             </button>
                         </div>
                     </div>
@@ -346,7 +358,7 @@ export default function HorariosPage() {
                 <section className="card schedule-card schedule-card--exceptions">
                     <div className="card__header schedule-card__header">
                         <h2 className="card__title">Bloqueos y excepciones</h2>
-                        <p className="schedule-card__hint">Dias libres o aperturas extra.</p>
+                        <p className="schedule-card__hint">Días libres o aperturas extra.</p>
                     </div>
                     <div className="card__body schedule-exception-list">
                         {exceptions.length === 0 ? (
@@ -371,7 +383,7 @@ export default function HorariosPage() {
                                             <button
                                                 onClick={() => deleteException(exception.id)}
                                                 className="schedule-exception-item__remove"
-                                                aria-label="Eliminar excepcion"
+                                                aria-label="Eliminar excepción"
                                                 disabled={deleteExceptionM.isPending}
                                             >
                                                 <Icon name="close" size={12} />
@@ -383,7 +395,7 @@ export default function HorariosPage() {
                         )}
 
                         <div className="schedule-exception-builder">
-                            <h3 className="schedule-exception-builder__title">Nueva excepcion</h3>
+                            <h3 className="schedule-exception-builder__title">Nueva excepción</h3>
                             <div className="form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Desde</label>
@@ -403,7 +415,7 @@ export default function HorariosPage() {
                             <div className="form-group schedule-exception-builder__checkbox">
                                 <label className="form-checkbox-label">
                                     <input type="checkbox" checked={newException.is_available} onChange={(event) => setNewException({ ...newException, is_available: event.target.checked })} />
-                                    <span>Disponibilidad extra (no dia libre)</span>
+                                    <span>Disponibilidad extra (no día libre)</span>
                                 </label>
                             </div>
 
@@ -413,7 +425,7 @@ export default function HorariosPage() {
                                 disabled={createExceptionM.isPending}
                             >
                                 {createExceptionM.isPending ? <div className="spinner" style={{width: 14, height: 14, borderColor:'white', borderBottomColor: 'transparent'}}/> : <Icon name="plus" size={14} />}
-                                Anadir excepcion
+                                Añadir excepción
                             </button>
                         </div>
                     </div>

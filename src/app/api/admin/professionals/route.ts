@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
+import { assertSameOriginMutation, getAdminSupabase, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const updateProfessionalSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de profesional inválido' }),
     full_name: z.string().min(3).optional(),
     specialty: z.string().optional(),
     bio: z.string().optional(),
-    color_code: z.string().optional(),
+    color_code: z.string().regex(/^#[0-9A-Fa-f]{3,8}$/, { message: 'Color inválido (ej: #3B82F6)' }).optional(),
     is_active: z.boolean().optional(),
-    serviceIds: z.array(z.string()).optional(),
+    serviceIds: z.array(z.string()).max(100).optional(),
 });
 
 const deleteProfessionalSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de profesional inválido' }),
 });
 
 export async function GET() {
@@ -41,7 +42,6 @@ export async function GET() {
 
         const professionalSelect = `
                 id,
-                user_id,
                 specialty,
                 license_number,
                 bio,
@@ -99,15 +99,38 @@ export async function PATCH(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-update-professional', 20, 3600);
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Too many requests' },
+                {
+                    status: 429,
+                    headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+                }
+            );
+        }
+
         const rawBody = await request.json();
         const parsed = updateProfessionalSchema.parse(rawBody);
         const { id, serviceIds, ...professionalData } = parsed;
 
-        if (professionalData.full_name) {
+        const { data: targetProfessional, error: targetProfessionalError } = await supabase
+            .from('professionals')
+            .select('id, user_id')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (targetProfessionalError) throw targetProfessionalError;
+        if (!targetProfessional) {
+            return NextResponse.json({ error: 'Professional not found' }, { status: 404 });
+        }
+
+        if (professionalData.full_name !== undefined) {
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({ full_name: professionalData.full_name })
-                .eq('id', id);
+                .eq('id', targetProfessional.user_id);
 
             if (profileError) throw profileError;
         }
@@ -128,25 +151,11 @@ export async function PATCH(request: Request) {
         }
 
         if (serviceIds !== undefined) {
-            const { error: deleteServiceLinksError } = await supabase
-                .from('professional_services')
-                .delete()
-                .eq('professional_id', id);
-
-            if (deleteServiceLinksError) throw deleteServiceLinksError;
-
-            if (serviceIds.length > 0) {
-                const rows = serviceIds.map((serviceId) => ({
-                    professional_id: id,
-                    service_id: serviceId,
-                }));
-
-                const { error: insertServiceLinksError } = await supabase
-                    .from('professional_services')
-                    .insert(rows);
-
-                if (insertServiceLinksError) throw insertServiceLinksError;
-            }
+            const { error: replaceLinksError } = await supabase.rpc('replace_professional_service_links', {
+                p_professional_id: id,
+                p_service_ids: serviceIds,
+            });
+            if (replaceLinksError) throw replaceLinksError;
         }
 
         await writeAuditLog({
@@ -171,9 +180,32 @@ export async function DELETE(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-delete-professional', 8, 3600);
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Too many requests' },
+                {
+                    status: 429,
+                    headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+                }
+            );
+        }
+
         const rawBody = await request.json();
         const { id } = deleteProfessionalSchema.parse(rawBody);
         const nowIso = new Date().toISOString();
+
+        const { data: professional, error: professionalLookupError } = await supabase
+            .from('professionals')
+            .select('id, user_id')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (professionalLookupError) throw professionalLookupError;
+        if (!professional) {
+            return NextResponse.json({ error: 'Professional not found' }, { status: 404 });
+        }
 
         const { count, error: countError } = await supabase
             .from('appointments')
@@ -209,18 +241,35 @@ export async function DELETE(request: Request) {
 
         if (disableProfessionalError) throw disableProfessionalError;
 
+        let authBanError: string | null = null;
+        try {
+            const adminClient = getAdminSupabase();
+            const { error } = await adminClient.auth.admin.updateUserById(
+                professional.user_id,
+                { ban_duration: '87600h' }
+            );
+            if (error) authBanError = error.message;
+        } catch {
+            authBanError = 'Admin client unavailable';
+        }
+
         await writeAuditLog({
             supabase,
             userId,
             action: 'DELETE',
             tableName: 'professionals',
             recordId: id,
-            details: { reassigned_appointments: count ?? 0 },
+            details: {
+                reassigned_appointments: count ?? 0,
+                auth_banned: authBanError === null,
+                auth_ban_error: authBanError,
+            },
         });
 
         return NextResponse.json({
             success: true,
             reassignedAppointments: count ?? 0,
+            ...(authBanError ? { warning: 'Auth account could not be banned' } : {}),
         });
     } catch (error: unknown) {
         return handleApiError(error);

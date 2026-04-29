@@ -1,6 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+function isPublicPath(pathname: string): boolean {
+    return pathname.startsWith('/auth')
+        || pathname === '/login'
+        || pathname === '/portal/login'
+        || pathname === '/portal/cancel-confirm'
+}
+
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
@@ -36,14 +43,11 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/auth')
-    ) {
-        // no user, redirect to login page
+    if (!user && !isPublicPath(request.nextUrl.pathname)) {
         const url = request.nextUrl.clone()
-        url.pathname = '/login'
+        url.pathname = request.nextUrl.pathname.startsWith('/portal')
+            ? '/portal/login'
+            : '/login'
         return NextResponse.redirect(url)
     }
 

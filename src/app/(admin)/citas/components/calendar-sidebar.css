@@ -1,0 +1,293 @@
+/* ============================================================
+   Zeus Clinic — Calendar Sidebar (Mini Month Picker)
+   · Left-panel, always visible in calendar view
+   · 100% custom — no react-day-picker default styles loaded
+   · Palette: cream / canela (#AD7332)
+   ============================================================ */
+
+/* ─── Sidebar shell ─────────────────────────────────────────── */
+.zc-cal-sidebar {
+  flex-shrink: 0;
+  width: 254px;
+  background: #fffdf9;
+  border: 1px solid #e8ddd0;
+  border-radius: 20px;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.04),
+    0 6px 20px rgba(173,115,50,0.06);
+  padding: 20px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: flex-start;
+  position: sticky;
+  top: 16px;
+}
+
+/* Month label (above the picker) */
+.zc-cal-sidebar__month {
+  margin: 0 0 6px;
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #AD7332;
+}
+
+/* ─── DayPicker root scoped via .zc-rdp ────────────────────── */
+.zc-rdp {
+  --rdp-accent-color: #AD7332;
+  --rdp-text-color:   #111827;
+  width: 100%;
+  margin: 0;
+  font-family: inherit;
+}
+
+/* ─── Caption (nav + month/year) ────────────────────────────── */
+.zc-rdp .rdp-month_caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 8px;
+  border-bottom: 1px solid #ede5d8;
+  margin-bottom: 8px;
+}
+.zc-rdp .rdp-caption_label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1f1f1f;
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
+}
+.zc-rdp .rdp-nav {
+  display: flex;
+  gap: 2px;
+}
+.zc-rdp .rdp-button_previous,
+.zc-rdp .rdp-button_next {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #e8ddd0;
+  border-radius: 7px;
+  background: #fff;
+  color: #9CA3AF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  padding: 0;
+}
+.zc-rdp .rdp-button_previous:hover,
+.zc-rdp .rdp-button_next:hover {
+  background: #f7f0e6;
+  border-color: #AD7332;
+  color: #AD7332;
+}
+
+/* ─── Weekday row ────────────────────────────────────────────── */
+.zc-rdp .rdp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+.zc-rdp .rdp-weekday {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9CA3AF;
+  text-align: center;
+  padding: 3px 0;
+}
+.zc-rdp .rdp-weekday abbr { text-decoration: none; }
+
+/* ─── Week rows ──────────────────────────────────────────────── */
+.zc-rdp .rdp-months,
+.zc-rdp .rdp-month { width: 100%; }
+.zc-rdp .rdp-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.zc-rdp .rdp-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+/* ─── Day cell ───────────────────────────────────────────────── */
+.zc-rdp .rdp-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+.zc-rdp .rdp-day_button {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #374151;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+  position: relative;
+}
+.zc-rdp .rdp-day_button:hover {
+  background: #f5ece0;
+  color: #AD7332;
+}
+
+/* Today */
+.zc-rdp .rdp-today .rdp-day_button {
+  color: #AD7332;
+  font-weight: 800;
+}
+.zc-rdp .rdp-today:not(.rdp-selected) .rdp-day_button::after {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: #AD7332;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Selected */
+.zc-rdp .rdp-selected .rdp-day_button {
+  background: #AD7332 !important;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(173,115,50,0.32);
+}
+
+/* Outside current month */
+.zc-rdp .rdp-outside .rdp-day_button {
+  opacity: 0.28;
+}
+
+/* Disabled */
+.zc-rdp .rdp-disabled .rdp-day_button {
+  opacity: 0.18;
+  cursor: default;
+}
+
+/* ─── Busy days (have appointments) ─────────────────────────── */
+.zc-rdp .rdp-day--busy .rdp-day_button {
+  font-weight: 700;
+}
+.zc-rdp .rdp-day--busy:not(.rdp-selected) .rdp-day_button::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: #AD7332;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ─── Divider ────────────────────────────────────────────────── */
+.zc-cal-sidebar__divider {
+  height: 1px;
+  background: #ede5d8;
+  margin: 8px 0 4px;
+}
+
+/* ─── Daily Summary Panel ────────────────────────────────────── */
+.zc-cal-sidebar__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 2px 2px;
+}
+
+.zc-cal-sidebar__summary-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6B7280;
+}
+
+.zc-cal-sidebar__summary-total {
+  font-size: 10px;
+  font-weight: 700;
+  color: #AD7332;
+  background: rgba(173,115,50,0.10);
+  border-radius: 99px;
+  padding: 1px 7px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.zc-cal-sidebar__summary-empty {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.zc-cal-sidebar__stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.zc-cal-sidebar__stat {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  transition: background 0.12s;
+}
+.zc-cal-sidebar__stat:hover {
+  background: #f5ece0;
+}
+
+.zc-cal-sidebar__stat-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+}
+
+.zc-cal-sidebar__stat-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.zc-cal-sidebar__stat-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
+  min-width: 18px;
+  text-align: right;
+}

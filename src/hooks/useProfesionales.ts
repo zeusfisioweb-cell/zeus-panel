@@ -9,7 +9,7 @@ const createProfessionalPayloadSchema = z.object({
     full_name: z.string().min(3),
     specialty: z.string().optional(),
     bio: z.string().optional(),
-    color_code: z.string().optional(),
+    color_code: z.string().regex(/^#[0-9A-Fa-f]{3,8}$/, { message: 'Color inválido (ej: #3B82F6)' }).optional(),
     is_active: z.boolean().optional(),
     serviceIds: z.array(z.string()).min(1),
     scheduleSlots: z.array(z.object({
@@ -81,6 +81,9 @@ export function useProfesionales() {
                     is_active: Boolean(d.is_active),
                     created_at: d.created_at as string,
                     profile: Array.isArray(profile) ? profile[0] : profile,
+                    professional_services: Array.isArray(d.professional_services)
+                        ? (d.professional_services as Array<{ service_id: string }>)
+                        : [],
                 };
             }) as Professional[];
         },

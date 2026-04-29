@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { FormEvent, useEffect, useState, useRef } from 'react';
-import { Service, ServiceCategory } from '@/lib/types';
+import { Service, ServiceCategory, Professional } from '@/lib/types';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -13,8 +13,9 @@ interface ServiceFormModalProps {
     onClose: () => void;
     editing: Service | null;
     categories: ServiceCategory[];
-    onSubmit: (data: Omit<Service, 'id' | 'created_at' | 'category'>) => Promise<void>;
-    onUpdate: (id: string, data: Partial<Service>) => Promise<void>;
+    professionals?: Professional[];
+    onSubmit: (data: Omit<Service, 'id' | 'created_at' | 'category' | 'professional_services'> & { professional_ids: string[] }) => Promise<void>;
+    onUpdate: (id: string, data: Partial<Service> & { professional_ids: string[] }) => Promise<void>;
 }
 
 export function ServiceFormModal({
@@ -22,6 +23,7 @@ export function ServiceFormModal({
     onClose,
     editing,
     categories,
+    professionals = [],
     onSubmit,
     onUpdate,
 }: ServiceFormModalProps) {
@@ -34,6 +36,7 @@ export function ServiceFormModal({
         is_active: true,
     });
 
+    const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string[]>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const firstInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +53,9 @@ export function ServiceFormModal({
                 category_id: editing.category_id || '',
                 is_active: editing.is_active,
             });
+            setSelectedProfessionalIds(
+                (editing.professional_services ?? []).map(ps => ps.professional_id)
+            );
         } else {
             setForm({
                 name: '',
@@ -59,6 +65,7 @@ export function ServiceFormModal({
                 category_id: categories[0]?.id || '',
                 is_active: true,
             });
+            setSelectedProfessionalIds([]);
         }
 
         setErrors({});
@@ -68,6 +75,12 @@ export function ServiceFormModal({
             firstInputRef.current?.focus();
         }, 60);
     }, [isOpen, editing, categories]);
+
+    function toggleProfessional(id: string) {
+        setSelectedProfessionalIds(prev =>
+            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+        );
+    }
 
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
@@ -83,16 +96,17 @@ export function ServiceFormModal({
         setIsSubmitting(true);
 
         try {
-            const payload: Omit<Service, 'id' | 'created_at' | 'category'> = {
+            const base = {
                 ...form,
                 price: Number(form.price),
                 requires_medical_history: editing?.requires_medical_history ?? false,
+                professional_ids: selectedProfessionalIds,
             };
 
             if (editing) {
-                await onUpdate(editing.id, payload);
+                await onUpdate(editing.id, base);
             } else {
-                await onSubmit(payload);
+                await onSubmit(base);
             }
 
             onClose();
@@ -100,6 +114,8 @@ export function ServiceFormModal({
             setIsSubmitting(false);
         }
     }
+
+    const activeProfessionals = professionals.filter(p => p.is_active);
 
     return (
         <Modal
@@ -121,7 +137,7 @@ export function ServiceFormModal({
                     />
 
                     <div className="service-form__field">
-                        <label className="service-form__label">Descripcion</label>
+                        <label className="service-form__label">Descripción</label>
                         <textarea
                             className="form-input service-form__textarea"
                             value={form.description}
@@ -134,7 +150,7 @@ export function ServiceFormModal({
                     <div className="service-form__grid service-form__grid--2">
                         <Input
                             type="number"
-                            label="Duracion (minutos)"
+                            label="Duración (minutos)"
                             error={errors.duration_minutes?.[0]}
                             value={form.duration_minutes}
                             onChange={(event) => setForm({ ...form, duration_minutes: +event.target.value })}
@@ -154,7 +170,7 @@ export function ServiceFormModal({
 
                     <div className="service-form__grid service-form__grid--2">
                         <div className="service-form__field">
-                            <label className="service-form__label">Categoria</label>
+                            <label className="service-form__label">Categoría</label>
                             <select
                                 className="form-input form-select"
                                 value={form.category_id}
@@ -182,6 +198,38 @@ export function ServiceFormModal({
                             </select>
                         </div>
                     </div>
+
+                    {activeProfessionals.length > 0 && (
+                        <div className="service-form__field">
+                            <label className="service-form__label">
+                                Profesionales habilitados
+                                <span className="service-form__label-hint"> — quiénes imparten este servicio</span>
+                            </label>
+                            <div className="service-form__prof-list">
+                                {activeProfessionals.map(prof => {
+                                    const name = prof.profile?.full_name || 'Profesional';
+                                    const checked = selectedProfessionalIds.includes(prof.id);
+                                    return (
+                                        <label key={prof.id} className="service-form__prof-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => toggleProfessional(prof.id)}
+                                            />
+                                            <span
+                                                className="service-form__prof-dot"
+                                                style={{ background: prof.color_code || '#94a3b8' }}
+                                            />
+                                            <span>{name}</span>
+                                            {prof.specialty && (
+                                                <span className="service-form__prof-specialty">{prof.specialty}</span>
+                                            )}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="service-form__footer">

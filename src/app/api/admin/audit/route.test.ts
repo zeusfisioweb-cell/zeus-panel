@@ -57,7 +57,7 @@ describe('admin audit route', () => {
         const response = await POST(createJsonRequest({
             action: 'VIEW',
             table_name: 'patients',
-            record_id: 'patient-1',
+            record_id: '11111111-1111-1111-1111-111111111111',
             details: { source: 'test' },
         }));
         const body = await response.json();
@@ -70,7 +70,7 @@ describe('admin audit route', () => {
             userId: 'owner-1',
             action: 'VIEW',
             tableName: 'patients',
-            recordId: 'patient-1',
+            recordId: '11111111-1111-1111-1111-111111111111',
             details: { source: 'test' },
         });
     });
@@ -81,7 +81,7 @@ describe('admin audit route', () => {
         const response = await POST(createJsonRequest({
             action: 'VIEW',
             table_name: 'patients',
-            record_id: 'patient-1',
+            record_id: '11111111-1111-1111-1111-111111111111',
         }));
         const body = await response.json();
 

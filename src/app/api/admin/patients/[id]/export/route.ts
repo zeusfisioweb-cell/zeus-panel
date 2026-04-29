@@ -2,22 +2,28 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { buildMultiSectionCsv } from '@/lib/csv';
 import { handleApiError, requirePanelAccess, writeAuditLog } from '../../../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const paramsSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de paciente inválido' }),
 });
 
-/**
- * GDPR Data Export (Art. 20 - Right to Data Portability)
- * Returns all personal data related to a patient in JSON format.
- */
+// GDPR Data Export (Art. 20 - Right to Data Portability)
 export async function GET(
     request: Request,
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        // Only owners can export patient data
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(ip, 'patient-export', 20, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
         const { id } = paramsSchema.parse(await context.params);
         const format = new URL(request.url).searchParams.get('format');
 
@@ -131,7 +137,7 @@ export async function GET(
         // 2. Get all appointments for this patient
         const { data: appointments, error: appointmentsError } = await supabase
             .from('appointments')
-            .select('id, start_time, end_time, status, notes, patient_name, patient_phone, patient_email, source, cancellation_reason, created_at, updated_at, service:services(name, duration_minutes, price), professional:professionals(first_name, last_name)')
+            .select('id, start_time, end_time, status, notes, patient_name, patient_phone, patient_email, source, cancellation_reason, created_at, updated_at, service:services(name, duration_minutes, price), professional:professionals(profile:profiles(full_name))')
             .eq('patient_id', id)
             .order('start_time', { ascending: false });
         if (appointmentsError) throw appointmentsError;
@@ -216,7 +222,6 @@ export async function GET(
                 granted: c.granted,
                 granted_at: c.granted_at,
                 revoked_at: c.revoked_at,
-                ip_address: c.ip_address,
             })),
             data_access_log: (auditLogs ?? []).map((l) => ({
                 action: l.action,

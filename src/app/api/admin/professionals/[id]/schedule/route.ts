@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../../../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const paramsSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de profesional inválido' }),
 });
 
 const scheduleSlotSchema = z.object({
     day_of_week: z.number().int().min(1).max(7),
-    start_time: z.string().min(1),
-    end_time: z.string().min(1),
+    start_time: z.string().regex(timeRegex, { message: 'Formato inválido (HH:MM)' }),
+    end_time: z.string().regex(timeRegex, { message: 'Formato inválido (HH:MM)' }),
+}).refine((data) => data.end_time > data.start_time, {
+    message: 'La hora de fin debe ser posterior a la de inicio',
+    path: ['end_time'],
 });
 
 const upsertScheduleSchema = z.object({
@@ -44,31 +50,27 @@ export async function PUT(
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-replace-professional-schedule', 20, 3600);
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Too many requests' },
+                {
+                    status: 429,
+                    headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+                }
+            );
+        }
+
         const { id } = paramsSchema.parse(await context.params);
         const rawBody = await request.json();
         const parsed = upsertScheduleSchema.parse(rawBody);
 
-        const { error: deleteError } = await supabase
-            .from('schedule_slots')
-            .delete()
-            .eq('professional_id', id);
-
-        if (deleteError) throw deleteError;
-
-        if (parsed.slots.length > 0) {
-            const rows = parsed.slots.map((slot) => ({
-                professional_id: id,
-                day_of_week: slot.day_of_week,
-                start_time: slot.start_time,
-                end_time: slot.end_time,
-            }));
-
-            const { error: insertError } = await supabase
-                .from('schedule_slots')
-                .insert(rows);
-
-            if (insertError) throw insertError;
-        }
+        const { error: replaceError } = await supabase.rpc('replace_professional_schedule_slots', {
+            p_professional_id: id,
+            p_slots: parsed.slots,
+        });
+        if (replaceError) throw replaceError;
 
         await writeAuditLog({
             supabase,

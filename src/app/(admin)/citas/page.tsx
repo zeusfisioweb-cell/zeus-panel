@@ -26,6 +26,7 @@ import { CitasFilters } from './components/CitasFilters';
 import { CitasHeader } from './components/CitasHeader';
 import { CitasTable } from './components/CitasTable';
 import Icon from '@/components/Icon';
+import { CalendarSidebar } from './components/CalendarSidebar';
 
 const CLINIC_TIME_ZONE = 'Europe/Madrid';
 
@@ -78,7 +79,7 @@ export default function CitasPage() {
     const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
 
     const isProfessional = profile?.role === 'professional';
-    const profId = isProfessional ? profile?.id : undefined;
+    const profId = isProfessional ? (profile?.professional_id ?? undefined) : undefined;
 
     const rangeStart = useMemo(() => subDays(startOfMonth(selectedDate), 7).toISOString(), [selectedDate]);
     const rangeEnd = useMemo(() => addDays(endOfMonth(selectedDate), 7).toISOString(), [selectedDate]);
@@ -106,6 +107,7 @@ export default function CitasPage() {
 
     const createCita = useCreateCita();
     const updateStatus = useUpdateCitaStatus();
+
     const cancelCita = useCancelCita();
     const createException = useCreateException();
 
@@ -149,8 +151,7 @@ export default function CitasPage() {
 
     const handleCreateAppointment = async (form: AppointmentFormData, selectedPatientId: string | null) => {
         const service = services.find((s) => s.id === form.service_id);
-        const selectedDay = DateTime.fromJSDate(selectedDate, { zone: CLINIC_TIME_ZONE });
-        const baseDate = selectedDay.toISODate();
+        const baseDate = form.date;
 
         if (!baseDate) {
             toast.error('No se pudo interpretar la fecha de la cita');
@@ -166,7 +167,7 @@ export default function CitasPage() {
         const endDateTime = startDateTime.plus({ minutes: service?.duration_minutes || 60 });
         const dateOnly = startDateTime.toISODate();
         const effectiveProfessionalId =
-            (isProfessional && profile ? profile.id : null) ||
+            (isProfessional ? (profile?.professional_id ?? null) : null) ||
             form.professional_id ||
             initialProfessionalId ||
             null;
@@ -225,6 +226,7 @@ export default function CitasPage() {
                 end_time: endIso,
                 notes: form.notes || null,
                 source: 'admin',
+                status: 'confirmed',
             });
 
             setShowNewModal(false);
@@ -270,10 +272,6 @@ export default function CitasPage() {
         }
     };
 
-    const pendingCount = appointments.filter((apt) => apt.status === 'pending').length;
-    const confirmedCount = appointments.filter((apt) => apt.status === 'confirmed').length;
-    const completedCount = appointments.filter((apt) => apt.status === 'completed').length;
-
     const handleRetryLoad = () => {
         void refetchAppointments();
     };
@@ -289,30 +287,64 @@ export default function CitasPage() {
         }
     };
 
+    const handleQuickUpdateStatus = async (id: string, status: AppointmentStatus) => {
+        try {
+            await updateStatus.mutateAsync({ id, status });
+            toast.success(status === 'confirmed' ? 'Cita confirmada' : 'Estado actualizado');
+        } catch {
+            toast.error('Error al actualizar estado');
+        }
+    };
+
+
+
+    const handleBulkConfirm = async (ids: string[]) => {
+        try {
+            await Promise.all(ids.map(id => updateStatus.mutateAsync({ id, status: 'confirmed' })));
+            toast.success(`${ids.length} cita${ids.length !== 1 ? 's' : ''} confirmada${ids.length !== 1 ? 's' : ''}`);
+        } catch {
+            toast.error('Error al confirmar citas');
+        }
+    };
+
     return (
         <div className={`content-shell citas-shell citas-shell--clean ${mainPageViewMode === 'calendar' ? 'citas-shell--calendar' : ''}`}>
             <CitasHeader
                 mainPageViewMode={mainPageViewMode}
                 setMainPageViewMode={setMainPageViewMode}
-                totalCount={appointments.length}
-                pendingCount={pendingCount}
-                confirmedCount={confirmedCount}
-                completedCount={completedCount}
                 onToday={() => setSelectedDate(new Date())}
                 onBlockSchedule={() => setShowExceptionModal(true)}
                 onNewAppointment={() => {
                     setInitialTimeForm('09:00');
-                    setInitialProfessionalId(isProfessional && profile ? profile.id : null);
+                    setInitialProfessionalId(isProfessional ? (profile?.professional_id ?? null) : null);
                     setShowNewModal(true);
                 }}
             />
 
             {mainPageViewMode === 'calendar' ? (
                 <div className={`citas-stage flex-1 flex gap-5 min-h-0 ${selectedEvent ? 'zc-layout--detail' : ''} transition-all duration-300`}>
+                    {/* ── Mini-calendar sidebar ── */}
+                    <CalendarSidebar
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        appointments={calendarAppointments}
+                    />
+
                     <div className="citas-stage__main flex-1 min-h-0 flex flex-col min-w-0">
                         {loadingApts ? (
-                            <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
-                                <div className="spinner mr-2 border-[var(--brand-main)]" /> Cargando...
+                            <div className="zc-skeleton-timeline">
+                                <div className="zc-skeleton-timeline__header">
+                                    <div className="zc-skel zc-skel--title" />
+                                    <div className="zc-skel zc-skel--pill" />
+                                </div>
+                                <div className="zc-skeleton-timeline__strip">
+                                    {[...Array(7)].map((_, i) => <div key={i} className="zc-skel zc-skel--strip-day" />)}
+                                </div>
+                                <div className="zc-skeleton-timeline__events">
+                                    {[...Array(4)].map((_, i) => (
+                                        <div key={i} className="zc-skel-event" style={{ top: `${i * 90 + 40}px`, height: `${60 + (i % 2) * 20}px`, width: `${55 + (i % 3) * 15}%`, left: `${(i % 2) * 8}%` }} />
+                                    ))}
+                                </div>
                             </div>
                         ) : errorApts ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] gap-4 p-8 text-center bg-transparent">
@@ -367,9 +399,17 @@ export default function CitasPage() {
                     />
 
                     {loadingApts ? (
-                        <div className="text-center p-12 text-[var(--text-muted)] flex flex-col items-center">
-                            <div className="spinner mb-4 border-[var(--brand-main)] h-8 w-8" />
-                            Cargando citas...
+                        <div className="zc-skeleton-list">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="zc-skel-list-item">
+                                    <div className="zc-skel zc-skel--avatar" />
+                                    <div className="zc-skel-list-item__body">
+                                        <div className="zc-skel zc-skel--line" style={{ width: '55%' }} />
+                                        <div className="zc-skel zc-skel--line" style={{ width: '35%', marginTop: '6px' }} />
+                                    </div>
+                                    <div className="zc-skel zc-skel--pill" />
+                                </div>
+                            ))}
                         </div>
                     ) : errorApts ? (
                         <div className="text-center p-16 text-[var(--text-secondary)] flex flex-col items-center gap-4 border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl mt-4 shadow-sm">
@@ -388,7 +428,12 @@ export default function CitasPage() {
                             </button>
                         </div>
                     ) : (
-                        <CitasTable appointments={filteredAppointments} onViewAppointment={setSelectedEvent} />
+                        <CitasTable
+                            appointments={filteredAppointments}
+                            onViewAppointment={setSelectedEvent}
+                            onBulkConfirm={!isProfessional ? handleBulkConfirm : undefined}
+                            onQuickStatus={handleQuickUpdateStatus}
+                        />
                     )}
                 </div>
             )}
@@ -411,7 +456,7 @@ export default function CitasPage() {
                 initialProfessionalId={initialProfessionalId}
                 services={services}
                 professionals={professionals}
-                currentUserId={profile?.id}
+                currentProfessionalId={profile?.professional_id ?? null}
                 currentUserRole={profile?.role}
                 onSubmit={handleCreateAppointment}
             />

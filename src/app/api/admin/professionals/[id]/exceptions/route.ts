@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../../../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 const paramsSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de profesional inválido' }),
 });
 
 const createExceptionsSchema = z.object({
-    start_date: z.string().min(1),
-    end_date: z.string().optional().nullable(),
+    start_date: z.string().regex(dateRegex, { message: 'Formato inválido (YYYY-MM-DD)' }),
+    end_date: z.string().regex(dateRegex, { message: 'Formato inválido (YYYY-MM-DD)' }).optional().nullable(),
     reason: z.string().optional().nullable(),
     is_available: z.boolean().default(false),
 });
@@ -64,6 +67,15 @@ export async function POST(
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-create-professional-exceptions', 20, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
+
         const { id } = paramsSchema.parse(await context.params);
         const rawBody = await request.json();
         const parsed = createExceptionsSchema.parse(rawBody);

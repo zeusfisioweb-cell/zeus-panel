@@ -11,19 +11,28 @@ import {
     resolveScopedProfessionalId,
     writeAuditLog,
 } from '../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const recordTypeSchema = z.enum(['anamnesis', 'exploration', 'evolution', 'report']) as z.ZodType<RecordType>;
 
 const createClinicalRecordSchema = z.object({
-    patient_id: z.string().min(1),
+    patient_id: z.string().uuid({ message: 'ID de paciente inválido' }),
     type: recordTypeSchema,
     content: z.record(z.string(), z.unknown()),
-    professional_id: z.string().min(1).optional(),
+    professional_id: z.string().uuid({ message: 'ID de profesional inválido' }).optional(),
 });
 
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(ip, 'create-clinical-record', 60, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
         const { supabase, role, userId, professionalId } = await requirePanelAccess();
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
@@ -39,6 +48,7 @@ export async function POST(request: Request) {
                 { status: 422 }
             );
         }
+        const clinicalContent = contentValidation.data;
 
         await ensurePatientAccess({
             supabase,
@@ -74,7 +84,7 @@ export async function POST(request: Request) {
                 patient_id: parsed.patient_id,
                 professional_id: targetProfessionalId,
                 type: parsed.type,
-                content: parsed.content,
+                content: clinicalContent,
             })
             .select()
             .single();

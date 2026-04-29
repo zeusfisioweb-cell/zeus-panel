@@ -12,15 +12,18 @@ import {
     writeAuditLog,
 } from '../_lib';
 import { isAlignedToInterval, findConflict, canCancel } from '@/lib/booking-validation';
+import { checkRateLimit } from '@/lib/rate-limit';
 import type { Appointment } from '@/lib/types';
 
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Invalid date format' });
+
 const getAppointmentsQuerySchema = z.object({
-    start_date: z.string().optional(),
-    end_date: z.string().optional(),
+    start_date: z.union([z.string().datetime(), isoDateSchema]).optional(),
+    end_date: z.union([z.string().datetime(), isoDateSchema]).optional(),
 });
 
 const updateAppointmentSchema = AppointmentUpdateSchema.extend({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de cita inválido' }),
 });
 
 const appointmentSelect = `
@@ -83,6 +86,26 @@ async function ensureProfessionalServiceAccess(
     if (!data) throw new ApiRouteError(403, 'Forbidden');
 }
 
+function ensureValidAppointmentRange(startTime: string, endTime: string): void {
+    const startMs = new Date(startTime).getTime();
+    const endMs = new Date(endTime).getTime();
+
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
+        throw new ApiRouteError(400, 'Invalid appointment time range');
+    }
+
+    if (endMs <= startMs) {
+        throw new ApiRouteError(422, 'La hora de fin debe ser posterior a la hora de inicio');
+    }
+}
+
+function normalizeDateFilter(value: string): string {
+    if (isoDateSchema.safeParse(value).success) {
+        return `${value}T00:00:00.000Z`;
+    }
+    return value;
+}
+
 export async function GET(request: Request) {
     try {
         const { supabase, role, professionalId } = await requirePanelAccess();
@@ -99,11 +122,11 @@ export async function GET(request: Request) {
             .order('start_time', { ascending: true });
 
         if (parsed.start_date) {
-            query = query.gte('start_time', parsed.start_date);
+            query = query.gte('start_time', normalizeDateFilter(parsed.start_date));
         }
 
         if (parsed.end_date) {
-            query = query.lt('start_time', parsed.end_date);
+            query = query.lt('start_time', normalizeDateFilter(parsed.end_date));
         }
 
         if (scopedProfessionalId) {
@@ -122,6 +145,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(ip, 'create-appointment', 60, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
         const { supabase, role, userId, professionalId } = await requirePanelAccess();
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
@@ -146,6 +177,8 @@ export async function POST(request: Request) {
             professional_id: scopedProfessionalId ?? (parsed.professional_id ?? null),
         };
 
+        ensureValidAppointmentRange(parsed.start_time, parsed.end_time);
+
         const settings = await getBookingSettings(supabase);
 
         if (!isAlignedToInterval(parsed.start_time, settings.slot_interval_minutes)) {
@@ -155,10 +188,13 @@ export async function POST(request: Request) {
         if (payload.professional_id) {
             const startMs = new Date(parsed.start_time).getTime();
             const endMs = new Date(parsed.end_time).getTime();
+            const bufferMs = settings.buffer_minutes * 60 * 1000;
             const { data: existing, error: conflictErr } = await supabase
                 .from('appointments')
                 .select('id, start_time, end_time, status')
-                .eq('professional_id', payload.professional_id);
+                .eq('professional_id', payload.professional_id)
+                .gt('end_time', new Date(startMs - bufferMs).toISOString())
+                .lt('start_time', new Date(endMs + bufferMs).toISOString());
             if (conflictErr) throw conflictErr;
             const conflict = findConflict(startMs, endMs, settings.buffer_minutes, existing ?? []);
             if (conflict) {
@@ -208,17 +244,23 @@ export async function PATCH(request: Request) {
             throw new ApiRouteError(400, 'No changes provided');
         }
 
+        if (typeof cleanPayload.start_time === 'string' && typeof cleanPayload.end_time === 'string') {
+            ensureValidAppointmentRange(cleanPayload.start_time, cleanPayload.end_time);
+        }
+
         const isCancelling = cleanPayload.status === 'cancelled';
         const isChangingTiming = 'start_time' in cleanPayload || 'end_time' in cleanPayload || 'professional_id' in cleanPayload;
 
-        let currentAppt: {
+        type CurrentAppt = {
             id: string;
             patient_id: string | null;
             professional_id: string | null;
             start_time: string;
             end_time: string;
             status: string;
-        } | null = null;
+        };
+
+        let currentAppt: CurrentAppt | null = null;
 
         if (scopedProfessionalId || isCancelling || isChangingTiming) {
             const { data: curr, error: currErr } = await supabase
@@ -228,7 +270,7 @@ export async function PATCH(request: Request) {
                 .maybeSingle();
             if (currErr) throw currErr;
             if (!curr) throw new ApiRouteError(404, 'Appointment not found');
-            currentAppt = curr as typeof currentAppt;
+            currentAppt = curr as CurrentAppt;
         }
 
         if (scopedProfessionalId && currentAppt) {
@@ -261,6 +303,8 @@ export async function PATCH(request: Request) {
                 ? (cleanPayload.professional_id as string | null)
                 : currentAppt.professional_id;
 
+            ensureValidAppointmentRange(effectiveStart, effectiveEnd);
+
             if (!isAlignedToInterval(effectiveStart, settings.slot_interval_minutes)) {
                 throw new ApiRouteError(422, 'La hora de inicio no está alineada al intervalo de slots configurado');
             }
@@ -268,10 +312,13 @@ export async function PATCH(request: Request) {
             if (effectiveProfId) {
                 const startMs = new Date(effectiveStart).getTime();
                 const endMs = new Date(effectiveEnd).getTime();
+                const bufferMs = settings.buffer_minutes * 60 * 1000;
                 const { data: existing, error: conflictErr } = await supabase
                     .from('appointments')
                     .select('id, start_time, end_time, status')
-                    .eq('professional_id', effectiveProfId);
+                    .eq('professional_id', effectiveProfId)
+                    .gt('end_time', new Date(startMs - bufferMs).toISOString())
+                    .lt('start_time', new Date(endMs + bufferMs).toISOString());
                 if (conflictErr) throw conflictErr;
                 const conflict = findConflict(startMs, endMs, settings.buffer_minutes, existing ?? [], id);
                 if (conflict) {
@@ -291,9 +338,10 @@ export async function PATCH(request: Request) {
 
         const { data, error } = await query
             .select(appointmentSelect)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
+        if (!data) throw new ApiRouteError(404, 'Appointment not found or access denied');
 
         await writeAuditLog({
             supabase,

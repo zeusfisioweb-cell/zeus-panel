@@ -148,7 +148,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             return (
                 <div className="loading-page">
                     <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
-                        No se pudo cargar el perfil. Vuelve a iniciar sesion.
+                        No se pudo cargar el perfil. Vuelve a iniciar sesión.
                     </p>
                     <div style={{ display: 'flex', gap: 10 }}>
                         <button

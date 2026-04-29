@@ -42,7 +42,7 @@ describe('admin patient export route', () => {
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({
                 data: {
-                    id: 'patient-1',
+                    id: '11111111-1111-1111-1111-111111111111',
                     first_name: 'Ana',
                     last_name: 'Lopez',
                     email: 'ana@example.com',
@@ -63,7 +63,16 @@ describe('admin patient export route', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({
-                data: [],
+                data: [
+                    {
+                        start_time: '2026-04-03T09:00:00.000Z',
+                        end_time: '2026-04-03T10:00:00.000Z',
+                        status: 'confirmed',
+                        notes: 'Seguimiento',
+                        service: { name: 'Fisioterapia' },
+                        professional: { profile: { full_name: 'Pro Uno' } },
+                    },
+                ],
                 error: null,
             }),
         };
@@ -110,26 +119,28 @@ describe('admin patient export route', () => {
 
         const response = await GET(
             new Request('http://localhost/api/admin/patients/patient-1/export'),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
         const body = JSON.parse(await response.text()) as {
             personal_data: { first_name: string };
             export_metadata: { format_version: string };
+            appointments: Array<{ professional: { profile: { full_name: string } } }>;
         };
 
         expect(response.status).toBe(200);
-        expect(response.headers.get('Content-Disposition')).toContain('patient_patient-1_gdpr_export.json');
+        expect(response.headers.get('Content-Disposition')).toContain('patient_11111111-1111-1111-1111-111111111111_gdpr_export.json');
         expect(response.headers.get('Cache-Control')).toBe('no-store, private, max-age=0');
         expect(response.headers.get('Pragma')).toBe('no-cache');
         expect(response.headers.get('Expires')).toBe('0');
         expect(body.personal_data.first_name).toBe('Ana');
         expect(body.export_metadata.format_version).toBe('1.0');
+        expect(body.appointments[0]?.professional?.profile?.full_name).toBe('Pro Uno');
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
                 action: 'VIEW',
                 tableName: 'patients',
-                recordId: 'patient-1',
+                recordId: '11111111-1111-1111-1111-111111111111',
             })
         );
     });
@@ -154,7 +165,7 @@ describe('admin patient export route', () => {
 
         const response = await GET(
             new Request('http://localhost/api/admin/patients/patient-1/export'),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
         const body = await response.json();
 
@@ -169,7 +180,7 @@ describe('admin patient export route', () => {
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({
                 data: {
-                    id: 'patient-1',
+                    id: '11111111-1111-1111-1111-111111111111',
                     first_name: 'Ana',
                     last_name: 'Lopez',
                 },
@@ -199,7 +210,7 @@ describe('admin patient export route', () => {
 
         const response = await GET(
             new Request('http://localhost/api/admin/patients/patient-1/export'),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
         const body = await response.json();
 

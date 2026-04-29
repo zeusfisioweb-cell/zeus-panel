@@ -34,14 +34,14 @@ describe('admin profile route', () => {
     });
 
     it('returns current profile for authenticated users', async () => {
-        const single = vi.fn().mockResolvedValue({
+        const maybeSingle = vi.fn().mockResolvedValue({
             data: { id: 'user-1', role: 'owner' },
             error: null,
         });
         const query = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single,
+            maybeSingle,
         };
         const supabase = {
             from: vi.fn().mockReturnValue(query),
@@ -50,14 +50,44 @@ describe('admin profile route', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             userId: 'user-1',
+            role: 'owner',
+            professionalId: null,
         });
 
         const response = await GET();
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ id: 'user-1', role: 'owner' });
+        expect(body).toEqual({ id: 'user-1', role: 'owner', professional_id: null });
         expect(query.eq).toHaveBeenCalledWith('id', 'user-1');
+    });
+
+    it('includes professional_id for professional users', async () => {
+        const maybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'user-2', role: 'professional' },
+            error: null,
+        });
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle,
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(query),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            userId: 'user-2',
+            role: 'professional',
+            professionalId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+        });
+
+        const response = await GET();
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ id: 'user-2', role: 'professional', professional_id: 'dddddddd-dddd-dddd-dddd-dddddddddddd' });
     });
 
     it('returns 401 when no session is present', async () => {
@@ -87,6 +117,8 @@ describe('admin profile route', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             userId: 'user-1',
+            role: 'owner',
+            professionalId: null,
         });
 
         const response = await GET();
@@ -96,4 +128,3 @@ describe('admin profile route', () => {
         expect(body).toEqual({ error: 'Internal Server Error' });
     });
 });
-

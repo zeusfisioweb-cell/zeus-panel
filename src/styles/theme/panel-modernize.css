@@ -1,0 +1,504 @@
+/* ================================================================
+   Panel Modernize — visual refinement layer
+   Same brand, same structure. Elevates individual components.
+   Import last so these rules take final precedence.
+   ================================================================ */
+
+/* ──────────────────────────────────────────────────────────────
+   1. DASHBOARD KPI RIBBON — tonal color backgrounds per metric
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric {
+  border-radius: 18px !important;
+  padding: 18px 16px 14px !important;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease !important;
+}
+
+/* Primary — warm amber glow */
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--primary {
+  background: linear-gradient(148deg, #fffcf5 0%, #f3e4cc 100%) !important;
+  border-color: rgba(173, 115, 50, 0.38) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--primary::before {
+  background: linear-gradient(90deg, #ad7332 0%, #c9954d 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+/* Warning — golden amber */
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--warning {
+  background: linear-gradient(148deg, #fffdf0 0%, #fceabd 100%) !important;
+  border-color: rgba(217, 119, 6, 0.32) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--warning::before {
+  background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+/* Success — emerald */
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--success {
+  background: linear-gradient(148deg, #f2fef7 0%, #c8f0dc 100%) !important;
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--success::before {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+/* Info / Neutral — ocean blue */
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--info,
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__metric--neutral {
+  background: linear-gradient(148deg, #f4f7ff 0%, #d8e4ff 100%) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+}
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--info::before,
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon__metric--neutral::before {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%) !important;
+  height: 4px !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+/* Bigger, bolder KPI number */
+.admin-shell--modern.admin-shell--summary .summary-v5-ribbon__value {
+  font-size: clamp(36px, 3.6vw, 48px) !important;
+  letter-spacing: -0.045em !important;
+  margin: 10px 0 6px !important;
+  line-height: 0.92 !important;
+}
+
+/* Better hover — lift + shadow */
+.admin-shell--modern.admin-shell--summary
+  .summary-v5-ribbon-link:hover
+  .summary-v5-ribbon__metric--interactive {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Context inline banner — warmer tint */
+.admin-shell--modern.admin-shell--summary .summary-v5-context-inline {
+  background: linear-gradient(
+    135deg,
+    var(--zeus-surface) 0%,
+    var(--zeus-surface-soft) 100%
+  ) !important;
+  border-color: var(--zeus-line-unified) !important;
+  font-weight: 600 !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   2. MODULE METRIC BOXES — deeper gradient, bigger numbers
+   (header stats on Servicios, Pacientes, Horarios, etc.)
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric {
+  border-radius: 14px !important;
+  padding: 13px 15px 12px !important;
+  background: linear-gradient(
+    148deg,
+    var(--zeus-surface) 0%,
+    var(--zeus-surface-soft) 100%
+  ) !important;
+  border: 1.5px solid var(--zeus-line-unified) !important;
+  box-shadow:
+    0 2px 10px rgba(17, 12, 9, 0.07),
+    inset 0 1px 0 rgba(255, 252, 245, 0.9) !important;
+  min-width: 120px !important;
+  overflow: hidden !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric::before {
+  height: 4px !important;
+  background: linear-gradient(
+    90deg,
+    var(--zeus-primary-start) 0%,
+    var(--zeus-primary-end) 100%
+  ) !important;
+  border-radius: 14px 14px 0 0 !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric__value {
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1 !important;
+  color: var(--zeus-text) !important;
+  margin-top: 7px !important;
+  display: block !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-module-metric__label {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--zeus-text-subtle) !important;
+  margin-bottom: 0 !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   3. MODULE HEADER CARD — warm gradient, stronger shadow
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .module-header {
+  background: linear-gradient(152deg, #fffdf8 0%, #f5ead8 100%) !important;
+  border-color: var(--zeus-line-unified) !important;
+  box-shadow:
+    0 4px 18px rgba(17, 12, 9, 0.08),
+    inset 0 1px 0 rgba(255, 253, 250, 0.95) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   4. TOPBAR — warmer gradient, stronger shadow
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern .panel-topbar,
+.admin-shell--modern .panel-topbar--modern {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 253, 249, 0.97) 0%,
+    rgba(246, 238, 226, 0.95) 100%
+  ) !important;
+  border-color: var(--zeus-line-unified) !important;
+  box-shadow: 0 4px 18px rgba(17, 12, 9, 0.09) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   5. TABLE ROWS — warm hover with left accent bar
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .table th {
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 800 !important;
+  background: rgba(245, 234, 216, 0.6) !important;
+  border-bottom-color: var(--zeus-line-unified) !important;
+  text-transform: uppercase !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table td {
+  border-bottom-color: rgba(215, 191, 159, 0.35) !important;
+  transition: background 0.12s ease !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table tr:hover td {
+  background: rgba(181, 122, 59, 0.055) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--zeus-accent) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .table td:first-child {
+  font-weight: 700 !important;
+  color: var(--zeus-text) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   6. STATUS BADGES — bolder, crisper
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern .badge,
+.admin-shell--modern .pill,
+.admin-shell--modern .citas-status-chip {
+  font-weight: 800 !important;
+  letter-spacing: 0.025em !important;
+  padding: 4px 11px !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   7. PROFESSIONAL CARDS — lift on hover
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease !important;
+  box-shadow:
+    0 2px 10px rgba(17, 12, 9, 0.07),
+    inset 0 1px 0 rgba(255, 252, 245, 0.8) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .pro-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow:
+    0 18px 36px rgba(17, 12, 9, 0.15),
+    inset 0 1px 0 rgba(255, 252, 245, 0.9) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   8. SCHEDULE SLOT CHIPS (Horarios time ranges)
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .schedule-slot-chip {
+  background: linear-gradient(135deg, #fffdf8 0%, #f3e6d2 100%) !important;
+  border-color: var(--zeus-line-strong) !important;
+  color: var(--zeus-text) !important;
+  font-weight: 800 !important;
+  padding: 6px 13px !important;
+  font-size: 12px !important;
+  letter-spacing: 0.01em !important;
+  box-shadow: 0 1px 4px rgba(17, 12, 9, 0.07) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   9. FILTER & DATA CARDS
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-filter-card,
+.admin-shell--modern:not(.admin-shell--summary) .ops-filter-panel {
+  background: linear-gradient(152deg, #fffdf8 0%, #f5ead8 100%) !important;
+  border-color: var(--zeus-line-unified) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .ops-data-table-card {
+  box-shadow: 0 4px 18px rgba(17, 12, 9, 0.07) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   10. SETTINGS CHIPS (the inline data summary chips)
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip {
+  background: linear-gradient(
+    148deg,
+    var(--zeus-surface) 0%,
+    var(--zeus-surface-soft) 100%
+  ) !important;
+  border: 1.5px solid var(--zeus-line-unified) !important;
+  box-shadow: 0 2px 8px rgba(17, 12, 9, 0.06) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .settings-header-chip strong {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   11. DASHBOARD ASIDE PANELS (Resumen operativo)
+   ────────────────────────────────────────────────────────────── */
+
+/* Summary panels on the dashboard (donut, legend, mini-charts) */
+.admin-shell--modern.admin-shell--summary .summary-v5-panel {
+  box-shadow:
+    0 4px 18px rgba(17, 12, 9, 0.07),
+    inset 0 1px 0 rgba(255, 253, 250, 0.9) !important;
+  transition: box-shadow 0.2s ease !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-panel:hover {
+  box-shadow:
+    0 8px 24px rgba(17, 12, 9, 0.1),
+    inset 0 1px 0 rgba(255, 253, 250, 0.9) !important;
+}
+
+/* Legend items in the aside */
+.admin-shell--modern.admin-shell--summary .summary-v5-legend__item {
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-legend__item:hover {
+  border-color: var(--zeus-line-strong) !important;
+  background: var(--zeus-surface-soft) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   12. TIMELINE ITEMS (Agenda de hoy)
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern.admin-shell--summary .summary-v5-timeline__item {
+  box-shadow: 0 2px 8px rgba(17, 12, 9, 0.06) !important;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease !important;
+}
+
+.admin-shell--modern.admin-shell--summary .summary-v5-timeline__item:hover {
+  transform: translateX(2px) !important;
+  box-shadow: 0 6px 18px rgba(17, 12, 9, 0.09) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   13. DASHBOARD HEADER — subtle inner glow
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern.admin-shell--summary .summary-v5__header {
+  box-shadow:
+    0 6px 24px rgba(17, 12, 9, 0.08),
+    inset 0 1px 0 rgba(255, 253, 250, 0.9) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   14. KPI STRIP UPGRADE — gradient backgrounds + top accent bar
+       matching Resumen card style across all section pages
+   ────────────────────────────────────────────────────────────── */
+
+/* Base reset: flatten left border, enable ::before top bar */
+.zs-pac-kpi,
+.zs-pros-kpi,
+.zs-svc-kpi,
+.zs-hor-kpi {
+  position: relative !important;
+  overflow: hidden !important;
+  border-left-width: 1px !important;
+}
+
+/* Top accent bar replaces left border accent */
+.zs-pac-kpi::before,
+.zs-pros-kpi::before,
+.zs-svc-kpi::before,
+.zs-hor-kpi::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 0 auto 0 !important;
+  height: 4px !important;
+  background: linear-gradient(90deg, #ad7332 0%, #c9954d 100%) !important;
+  border-radius: 12px 12px 0 0 !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Canela */
+.zs-pac-kpi--canela,
+.zs-pros-kpi--canela,
+.zs-svc-kpi--canela {
+  background: linear-gradient(148deg, #fffcf5 0%, #f3e4cc 100%) !important;
+  border-color: rgba(173, 115, 50, 0.3) !important;
+}
+.zs-pac-kpi--canela::before,
+.zs-pros-kpi--canela::before,
+.zs-svc-kpi--canela::before {
+  background: linear-gradient(90deg, #ad7332 0%, #c9954d 100%) !important;
+}
+
+/* Success */
+.zs-pac-kpi--success,
+.zs-pros-kpi--success,
+.zs-svc-kpi--success,
+.zs-hor-kpi--success {
+  background: linear-gradient(148deg, #f2fef7 0%, #c8f0dc 100%) !important;
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+.zs-pac-kpi--success::before,
+.zs-pros-kpi--success::before,
+.zs-svc-kpi--success::before,
+.zs-hor-kpi--success::before {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
+}
+
+/* Info */
+.zs-pac-kpi--info,
+.zs-pros-kpi--info,
+.zs-svc-kpi--info {
+  background: linear-gradient(148deg, #f4f7ff 0%, #d8e4ff 100%) !important;
+  border-color: rgba(37, 99, 235, 0.26) !important;
+}
+.zs-pac-kpi--info::before,
+.zs-pros-kpi--info::before,
+.zs-svc-kpi--info::before {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%) !important;
+}
+
+/* Neutral */
+.zs-pac-kpi--neutral,
+.zs-pros-kpi--neutral,
+.zs-svc-kpi--neutral,
+.zs-hor-kpi--neutral {
+  background: linear-gradient(148deg, #f8f9fb 0%, #e8ecf1 100%) !important;
+  border-color: rgba(107, 114, 128, 0.28) !important;
+}
+.zs-pac-kpi--neutral::before,
+.zs-pros-kpi--neutral::before,
+.zs-svc-kpi--neutral::before,
+.zs-hor-kpi--neutral::before {
+  background: linear-gradient(90deg, #9ca3af 0%, #d1d5db 100%) !important;
+}
+
+/* Warning */
+.zs-pac-kpi--warning,
+.zs-hor-kpi--warning {
+  background: linear-gradient(148deg, #fffdf0 0%, #fceabd 100%) !important;
+  border-color: rgba(217, 119, 6, 0.3) !important;
+}
+.zs-pac-kpi--warning::before,
+.zs-hor-kpi--warning::before {
+  background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%) !important;
+}
+
+/* Bigger KPI numbers — match Resumen scale */
+.zs-pac-kpi__value,
+.zs-pros-kpi__value,
+.zs-svc-kpi__value,
+.zs-hor-kpi__value {
+  font-size: clamp(34px, 3.2vw, 46px) !important;
+  letter-spacing: -0.045em !important;
+  margin-top: 8px !important;
+  line-height: 0.95 !important;
+}
+
+/* Better hover: deeper lift + shadow */
+.zs-pac-kpi:hover,
+.zs-pros-kpi:hover,
+.zs-svc-kpi:hover,
+.zs-hor-kpi:hover {
+  transform: translateY(-5px) !important;
+  box-shadow:
+    0 16px 32px rgba(0, 0, 0, 0.1),
+    0 4px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   15. CARD WARM BACKGROUNDS — pro cards, service tiles
+   ────────────────────────────────────────────────────────────── */
+
+.zs-pro-card {
+  background: linear-gradient(152deg, #fffdf9 0%, #f6edd9 100%) !important;
+}
+
+.zs-svc-tile {
+  background: linear-gradient(152deg, #fffdf9 0%, #f6edd9 100%) !important;
+}
+
+/* Thicker top accent bar on cards */
+.zs-pro-card::before,
+.zs-svc-tile::before {
+  height: 4px !important;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   16. PATIENT TABLE — avatar initials column
+   ────────────────────────────────────────────────────────────── */
+
+.zs-pac-row__ident {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zs-pac-row__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0d0a8 0%, #e5b278 100%);
+  color: #5a3b18;
+  font-size: 11.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

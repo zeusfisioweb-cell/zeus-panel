@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ScheduleExceptionSchema } from '@/lib/schemas';
 import { assertSameOriginMutation, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 const getScheduleExceptionsQuerySchema = z.object({
-    start_date: z.string().optional(),
-    end_date: z.string().optional(),
-    professional_id: z.string().optional(),
+    start_date: z.string().regex(dateRegex).optional(),
+    end_date: z.string().regex(dateRegex).optional(),
+    professional_id: z.string().uuid().optional(),
 });
 
 export async function GET(request: Request) {
@@ -52,6 +55,15 @@ export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, role, professionalId, userId } = await requirePanelAccess();
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-create-schedule-exception', 20, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
+
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
         const parsed = ScheduleExceptionSchema.parse(rawBody);

@@ -1,7 +1,7 @@
 /* Operational SaaS Theme - Global admin overrides + dashboard */
 
 :root {
-  --font-sans: var(--font-body), 'Manrope', 'Segoe UI', sans-serif;
+  --font-sans: var(--font-body), "Manrope", "Segoe UI", sans-serif;
 
   --ops-accent: #0f766e;
   --ops-accent-strong: #0f5f58;
@@ -19,7 +19,8 @@
   --ops-line: #dbe3ec;
   --ops-line-strong: #c7d4e2;
 
-  --ops-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 6px 14px rgba(15, 23, 42, 0.05);
+  --ops-shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.05), 0 6px 14px rgba(15, 23, 42, 0.05);
   --ops-shadow-md: 0 12px 24px rgba(15, 23, 42, 0.08);
 
   --brand-main: var(--ops-accent);
@@ -42,8 +43,16 @@
 body {
   background-color: var(--ops-bg);
   background-image:
-    radial-gradient(circle at 0% -10%, rgba(37, 99, 235, 0.08), transparent 34%),
-    radial-gradient(circle at 100% 0%, rgba(15, 118, 110, 0.08), transparent 30%);
+    radial-gradient(
+      circle at 0% -10%,
+      rgba(37, 99, 235, 0.08),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(15, 118, 110, 0.08),
+      transparent 30%
+    );
   background-attachment: fixed;
   color: var(--ops-text);
   font-family: var(--font-sans);
@@ -184,7 +193,11 @@ body {
 }
 
 .admin-shell--modern .sidebar::before {
-  background: radial-gradient(circle at 5% -10%, rgba(14, 165, 233, 0.22), transparent 46%);
+  background: radial-gradient(
+    circle at 5% -10%,
+    rgba(14, 165, 233, 0.22),
+    transparent 46%
+  );
 }
 
 .admin-shell--modern .sidebar__brand {
@@ -248,7 +261,11 @@ body {
 
 .admin-shell--modern .sidebar__link--active {
   border-color: rgba(45, 212, 191, 0.52);
-  background: linear-gradient(90deg, rgba(15, 118, 110, 0.35), rgba(15, 23, 42, 0.82));
+  background: linear-gradient(
+    90deg,
+    rgba(15, 118, 110, 0.35),
+    rgba(15, 23, 42, 0.82)
+  );
   color: #ffffff;
   box-shadow: inset 2px 0 0 rgba(45, 212, 191, 0.95);
 }
@@ -382,7 +399,11 @@ body {
   color: var(--ops-text);
   font-size: 13px;
   font-weight: 600;
-  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
 .admin-shell--modern .btn--sm {
@@ -431,7 +452,9 @@ body {
   height: 40px;
   padding: 0 16px;
   box-shadow: 0 8px 18px rgba(15, 118, 110, 0.24);
-  transition: background-color 0.16s ease, box-shadow 0.16s ease;
+  transition:
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .btn-premium:hover {
@@ -456,8 +479,8 @@ body {
 .admin-shell--modern .pro-form__textarea,
 .admin-shell--modern .service-form__textarea,
 .admin-shell--modern .appointment-form__search-input,
-.admin-shell--modern input[type='date'].form-input,
-.admin-shell--modern input[type='time'].form-input,
+.admin-shell--modern input[type="date"].form-input,
+.admin-shell--modern input[type="time"].form-input,
 .admin-shell--modern textarea.form-input {
   border-radius: 9px;
   border-color: var(--ops-line-strong);
@@ -977,7 +1000,7 @@ body {
 }
 
 .bento-status-dot::before {
-  content: '';
+  content: "";
   width: 6px;
   height: 6px;
   border-radius: 999px;
@@ -1271,7 +1294,11 @@ body {
 }
 
 .admin-shell--modern .sidebar::before {
-  background: radial-gradient(circle at 5% -10%, rgba(56, 189, 248, 0.24), transparent 48%);
+  background: radial-gradient(
+    circle at 5% -10%,
+    rgba(56, 189, 248, 0.24),
+    transparent 48%
+  );
 }
 
 .admin-shell--modern .sidebar__overview {
@@ -1290,7 +1317,11 @@ body {
 
 .admin-shell--modern .sidebar__link--active {
   border-color: rgba(45, 212, 191, 0.54);
-  background: linear-gradient(90deg, rgba(15, 118, 110, 0.34), rgba(15, 23, 42, 0.86));
+  background: linear-gradient(
+    90deg,
+    rgba(15, 118, 110, 0.34),
+    rgba(15, 23, 42, 0.86)
+  );
 }
 
 .admin-shell--modern .module-header,
@@ -1484,7 +1515,10 @@ body {
   background: #ffffff;
   padding: 14px;
   box-shadow: var(--ops-shadow-sm);
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
 .pro-card:hover {
@@ -1724,7 +1758,8 @@ body {
   --ops-text: #0f172a;
   --ops-text-muted: #475569;
   --ops-text-subtle: #64748b;
-  --ops-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.04);
+  --ops-shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.04);
   --ops-shadow-md: 0 10px 22px rgba(15, 23, 42, 0.08);
 }
 
@@ -1853,8 +1888,8 @@ body {
 .admin-shell--modern .pro-form__textarea,
 .admin-shell--modern .service-form__textarea,
 .admin-shell--modern .appointment-form__search-input,
-.admin-shell--modern input[type='date'].form-input,
-.admin-shell--modern input[type='time'].form-input,
+.admin-shell--modern input[type="date"].form-input,
+.admin-shell--modern input[type="time"].form-input,
 .admin-shell--modern textarea.form-input {
   min-height: 34px;
   border-radius: 8px;
@@ -2450,9 +2485,9 @@ body {
     padding-top: 8px;
   }
 
-    .summary-v3-agenda-item__actions {
-        justify-content: flex-start;
-    }
+  .summary-v3-agenda-item__actions {
+    justify-content: flex-start;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2908,7 +2943,6 @@ body {
   }
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Summary route contextual shell                                               */
 /* -------------------------------------------------------------------------- */
@@ -2928,7 +2962,11 @@ body {
   --ops-line-strong: #cda983;
 
   background:
-    radial-gradient(circle at 78% -6%, rgba(173, 115, 50, 0.22), transparent 34%),
+    radial-gradient(
+      circle at 78% -6%,
+      rgba(173, 115, 50, 0.22),
+      transparent 34%
+    ),
     radial-gradient(circle at 8% 100%, rgba(46, 34, 25, 0.12), transparent 36%),
     linear-gradient(180deg, #f3e8db 0%, #efe2d1 100%);
 }
@@ -2950,7 +2988,11 @@ body {
 }
 
 .admin-shell--modern.admin-shell--summary .sidebar::before {
-  background: radial-gradient(circle at 10% -10%, rgba(173, 115, 50, 0.36), transparent 48%);
+  background: radial-gradient(
+    circle at 10% -10%,
+    rgba(173, 115, 50, 0.36),
+    transparent 48%
+  );
 }
 
 .admin-shell--modern.admin-shell--summary .sidebar__brand {
@@ -2990,7 +3032,11 @@ body {
 
 .admin-shell--modern.admin-shell--summary .sidebar__link--active {
   border-color: rgba(211, 165, 106, 0.65);
-  background: linear-gradient(90deg, rgba(173, 115, 50, 0.48), rgba(32, 23, 16, 0.84));
+  background: linear-gradient(
+    90deg,
+    rgba(173, 115, 50, 0.48),
+    rgba(32, 23, 16, 0.84)
+  );
   color: #fffefb;
   box-shadow: inset 2px 0 0 rgba(231, 194, 152, 0.95);
 }

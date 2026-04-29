@@ -53,20 +53,20 @@ describe('admin schedule exception delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-exceptions/exception-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'exception-1' }) }
+            { params: Promise.resolve({ id: '99999999-9999-9999-9999-999999999999' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
         expect(body).toEqual({ success: true });
         expect(assertSameOriginMutationMock).toHaveBeenCalled();
-        expect(deleteQuery.eq).toHaveBeenCalledWith('id', 'exception-1');
+        expect(deleteQuery.eq).toHaveBeenCalledWith('id', '99999999-9999-9999-9999-999999999999');
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
                 action: 'DELETE',
                 tableName: 'schedule_exceptions',
-                recordId: 'exception-1',
+                recordId: '99999999-9999-9999-9999-999999999999',
             })
         );
     });
@@ -78,7 +78,7 @@ describe('admin schedule exception delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-exceptions/exception-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'exception-1' }) }
+            { params: Promise.resolve({ id: '99999999-9999-9999-9999-999999999999' }) }
         );
         const body = await response.json();
 
@@ -102,7 +102,7 @@ describe('admin schedule exception delete route', () => {
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-exceptions/exception-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'exception-1' }) }
+            { params: Promise.resolve({ id: '99999999-9999-9999-9999-999999999999' }) }
         );
         const body = await response.json();
 

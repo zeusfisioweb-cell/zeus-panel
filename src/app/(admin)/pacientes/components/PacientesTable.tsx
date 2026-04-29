@@ -1,10 +1,18 @@
 'use client';
 
 import React from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Icon from '@/components/Icon';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Patient } from '@/lib/types';
+
+function relativeDate(iso: string): string {
+    try {
+        return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: es });
+    } catch {
+        return new Date(iso).toLocaleDateString('es-ES');
+    }
+}
 
 interface PacientesTableProps {
     patients: Patient[];
@@ -33,147 +41,140 @@ export function PacientesTable({
     const searchInputId = 'patients-table-search';
 
     return (
-        <div className="pacientes-table-shell ops-data-module">
-            <Card className="ops-filter-card">
-                <CardContent>
-                    <div className="filter-bar pacientes-filter-bar">
-                        <div className="filter-bar__search">
-                            <label htmlFor={searchInputId} className="sr-only">
-                                Buscar pacientes por nombre, apellido o documento
-                            </label>
-                            <span className="filter-bar__search-icon">
-                                <Icon name="search" size={16} />
-                            </span>
-                            <input
-                                id={searchInputId}
-                                name="patients_search"
-                                autoComplete="off"
-                                className="form-input"
-                                placeholder="Buscar por nombre o documento"
-                                value={search}
-                                onChange={(event) => onSearchChange(event.target.value)}
-                            />
-                        </div>
-                        <div className="filter-bar__count" aria-live="polite">
-                            {totalCount} registrados
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="zs-pac-table-shell">
+            {/* Search bar */}
+            <div className="zs-pac-search-bar">
+                <div className="zs-pac-search-bar__input-wrap">
+                    <span className="zs-pac-search-bar__icon"><Icon name="search" size={15} /></span>
+                    <label htmlFor={searchInputId} className="sr-only">
+                        Buscar pacientes por nombre, apellido, documento o teléfono
+                    </label>
+                    <input
+                        id={searchInputId}
+                        name="patients_search"
+                        autoComplete="off"
+                        className="zs-pac-search-bar__input"
+                        placeholder="Buscar por nombre, documento o teléfono"
+                        value={search}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                    />
+                </div>
+                <span className="zs-pac-search-bar__count" aria-live="polite">{totalCount} registrados</span>
+            </div>
 
-            <Card className="overflow-hidden flex flex-col ops-data-table-card">
-                <CardContent className="p-0 flex-1 overflow-auto">
-                    <div className="table-wrapper">
-                        <table className="table w-full pacientes-table">
-                            <caption className="sr-only">Listado de pacientes registrados</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Paciente</th>
-                                    <th scope="col">Contacto</th>
-                                    <th scope="col">Consentimiento</th>
-                                    <th scope="col">Alta</th>
-                                    <th scope="col" className="text-right">Ficha</th>
+            {/* Table */}
+            <div className="zs-pac-table-card">
+                <div className="zs-pac-table-wrap">
+                    <table className="zs-pac-table">
+                        <caption className="sr-only">Listado de pacientes registrados</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Paciente</th>
+                                <th scope="col">Contacto</th>
+                                <th scope="col">Consentimiento</th>
+                                <th scope="col">Alta</th>
+                                <th scope="col" className="text-right">Ficha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {patients.map((patient) => (
+                                <tr
+                                    key={patient.id}
+                                    className={`zs-pac-row ${selectedPatientId === patient.id ? 'is-selected' : ''}`}
+                                >
+                                    <td>
+                                        <div className="zs-pac-row__ident">
+                                            <div className="zs-pac-row__avatar" aria-hidden="true">
+                                                {(patient.first_name?.[0] ?? '').toUpperCase()}{(patient.last_name?.[0] ?? '').toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="zs-pac-row__name">{patient.first_name} {patient.last_name}</div>
+                                                <div className="zs-pac-row__doc">{patient.document_id || 'Sin documento'}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="zs-pac-row__phone">{patient.phone || '—'}</div>
+                                        <div className="zs-pac-row__email">{patient.email || '—'}</div>
+                                    </td>
+                                    <td>
+                                        <span className={`zs-pac-consent ${patient.gdpr_consent ? 'zs-pac-consent--ok' : 'zs-pac-consent--pending'}`}>
+                                            <span className="zs-pac-consent__dot" />
+                                            {patient.gdpr_consent ? 'Aceptado' : 'Pendiente'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="zs-pac-row__date" title={new Date(patient.created_at).toLocaleDateString('es-ES')}>
+                                            {relativeDate(patient.created_at)}
+                                        </div>
+                                        <div className="zs-pac-row__date-abs">{new Date(patient.created_at).toLocaleDateString('es-ES')}</div>
+                                    </td>
+                                    <td className="text-right">
+                                        <button
+                                            className="zs-pac-ficha-btn"
+                                            onClick={() => onViewPatient(patient)}
+                                            aria-label={`Ver ficha de ${patient.first_name} ${patient.last_name}`}
+                                        >
+                                            Ver ficha
+                                            <Icon name="chevron-right" size={13} />
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
+                            ))}
 
-                            <tbody className="pacientes-table__body">
-                                {patients.map((patient) => (
-                                    <tr
-                                        key={patient.id}
-                                        onClick={() => onViewPatient(patient)}
-                                        className={`cursor-pointer transition-colors pacientes-table__row ${
-                                            selectedPatientId === patient.id ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
-                                        }`}
-                                    >
-                                        <td>
-                                            <div className="pacientes-table__name" title={`${patient.first_name} ${patient.last_name}`}>
-                                                {patient.first_name} {patient.last_name}
-                                            </div>
-                                            <div className="pacientes-table__meta" title={patient.document_id || 'Sin documento'}>
-                                                Documento: {patient.document_id || 'Sin documento'}
-                                            </div>
-                                        </td>
+                            {patients.length === 0 && (
+                                <tr>
+                                    <td colSpan={5}>
+                                        <div className="zs-pac-empty">
+                                            <div className="zs-pac-empty__icon"><Icon name="users" size={24} /></div>
+                                            <p className="zs-pac-empty__title">Sin resultados</p>
+                                            <p className="zs-pac-empty__text">Sin pacientes para este filtro.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
 
-                                        <td>
-                                            <div className="pacientes-table__phone" title={patient.phone || 'Sin teléfono'}>
-                                                {patient.phone || 'Sin teléfono'}
-                                            </div>
-                                            <div className="pacientes-table__email" title={patient.email || 'Sin email'}>
-                                                {patient.email || 'Sin email'}
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            <Badge variant={patient.gdpr_consent ? 'success' : 'default'}>
-                                                {patient.gdpr_consent ? 'Aceptado' : 'Pendiente'}
-                                            </Badge>
-                                        </td>
-
-                                        <td className="text-sm text-[var(--text-muted)]">
-                                            {new Date(patient.created_at).toLocaleDateString('es-ES')}
-                                        </td>
-
-                                        <td className="text-right">
-                                            <button
-                                                className="btn btn--secondary btn--sm"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    onViewPatient(patient);
-                                                }}
-                                            >
-                                                Ver ficha
-                                                <Icon name="chevron-right" size={14} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {patients.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="py-10 text-center bg-[var(--bg-hover)]">
-                                            <div className="flex flex-col items-center justify-center text-[var(--text-muted)]">
-                                                <div className="mb-2 opacity-50">
-                                                    <Icon name="users" size={24} />
-                                                </div>
-                                                <span className="text-sm font-medium">Sin resultados</span>
-                                                <span className="text-xs mt-1">Sin pacientes para este filtro.</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-
-                <div className="p-3 border-t border-[var(--border-color)] flex items-center justify-between text-sm flex-wrap gap-2 pacientes-table__footer">
-                    <span className="text-[var(--text-muted)]">
+                {/* Pill pagination */}
+                <div className="zs-pac-pagination">
+                    <span className="zs-pac-pagination__info">
                         Mostrando {patients.length} de {totalCount} pacientes
                     </span>
-
-                    <div className="flex items-center gap-2">
+                    <div className="zs-pac-pagination__pills">
                         <button
-                            className="btn btn--secondary btn--sm"
+                            className="zs-pac-pagination__pill"
                             disabled={page <= 1}
                             onClick={() => onPageChange(page - 1)}
+                            aria-label="Página anterior"
                         >
-                            Anterior
+                            <Icon name="chevron-left" size={14} />
                         </button>
-
-                        <span className="px-2 text-[var(--text-main)] font-medium">
-                            Página {page} de {totalPages}
-                        </span>
-
+                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                            const p = page <= 3 ? i + 1 : page - 2 + i;
+                            if (p < 1 || p > totalPages) return null;
+                            return (
+                                <button
+                                    key={p}
+                                    className={`zs-pac-pagination__pill ${p === page ? 'is-active' : ''}`}
+                                    onClick={() => onPageChange(p)}
+                                >
+                                    {p}
+                                </button>
+                            );
+                        })}
                         <button
-                            className="btn btn--secondary btn--sm"
+                            className="zs-pac-pagination__pill"
                             disabled={page >= totalPages}
                             onClick={() => onPageChange(page + 1)}
+                            aria-label="Página siguiente"
                         >
-                            Siguiente
+                            <Icon name="chevron-right" size={14} />
                         </button>
                     </div>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 }

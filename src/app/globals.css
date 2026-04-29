@@ -10,6 +10,39 @@
 @import "../styles/theme/bento.css";
 @import "../styles/theme/panel-v6.css";
 @import "../styles/theme/professional-refresh.css";
+@import "../styles/theme/panel-modernize.css";
+@import "../styles/theme/portal.css";
 
 /* Forced HMR update for bento styles */
 /* turbopack-bust-2 */
+
+@media print {
+    /* Hide sidebar, topbar and interactive buttons */
+    nav, aside, .sidebar, .panel-topbar, button {
+        display: none !important;
+    }
+    
+    /* Ensure the main content takes full width without margins */
+    .admin-shell--modern .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Keep charts looking good on paper */
+    .zs-charts-row {
+        break-inside: avoid;
+    }
+    
+    /* Avoid cutting charts in half */
+    .zs-charts-card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    /* Print background colors correctly */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}

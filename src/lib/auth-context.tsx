@@ -330,7 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (signInResult === 'timeout') {
             setLoading(false);
-            return { error: 'Tiempo de espera agotado al iniciar sesion. Intentalo de nuevo.' };
+            return { error: 'Tiempo de espera agotado al iniciar sesión. Inténtalo de nuevo.' };
         }
 
         if (signInResult.error) {
@@ -339,7 +339,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Fallback robusto: si onAuthStateChange no llega a tiempo, resolvemos
-        // sesion/perfil manualmente para evitar spinner infinito.
+        // sesión/perfil manualmente para evitar spinner infinito.
         const sessionResult = await Promise.race([
             supabase.auth.getSession(),
             timeout,
@@ -347,13 +347,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (sessionResult === 'timeout') {
             setLoading(false);
-            return { error: 'La sesion tardo demasiado en establecerse. Intentalo otra vez.' };
+            return { error: 'La sesión tardó demasiado en establecerse. Inténtalo otra vez.' };
         }
 
         const activeSession = sessionResult.data.session;
         if (!activeSession?.user) {
             setLoading(false);
-            return { error: 'No se pudo establecer la sesion de usuario.' };
+            return { error: 'No se pudo establecer la sesión de usuario.' };
         }
 
         setSession(activeSession);

@@ -2,8 +2,6 @@
 
 import React from 'react';
 import { Service, ServiceCategory } from '@/lib/types';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import Icon from '@/components/Icon';
 
@@ -14,103 +12,99 @@ interface ServiciosTableProps {
     onDelete: (id: string) => void;
 }
 
+const CATEGORY_ACCENTS = [
+    '#AD7332', // canela  — Fisioterapia
+    '#7C3AED', // purple  — Psicología
+    '#059669', // green
+    '#2563EB', // blue
+    '#D97706', // amber
+    '#0F766E', // teal
+];
+
 export function ServiciosTable({ categories, services, onEdit, onDelete }: ServiciosTableProps) {
-    const grouped = categories.map((category) => ({
-        category,
-        services: services.filter((service) => service.category_id === category.id),
+    const grouped = categories.map((cat, i) => ({
+        category: cat,
+        services: services.filter((s) => s.category_id === cat.id),
+        accent: CATEGORY_ACCENTS[i % CATEGORY_ACCENTS.length],
     }));
 
     if (grouped.length === 0) {
         return (
-            <div className="empty-state">
-                <div className="empty-state__icon"><Icon name="folder" size={24} /></div>
-                <div className="empty-state__title">No hay categorias</div>
-                <div className="empty-state__text">Crea una categoria para empezar.</div>
+            <div className="zs-svc-empty">
+                <div className="zs-svc-empty__icon"><Icon name="folder" size={28} /></div>
+                <p className="zs-svc-empty__title">No hay categorías</p>
+                <p className="zs-svc-empty__text">Crea una categoría para empezar.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 ops-data-module">
-            {grouped.map(({ category, services: categoryServices }) => (
-                <Card key={category.id} className="ops-data-table-card">
-                    <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-[var(--border-color)]">
-                        <CardTitle className="text-base">{category.name}</CardTitle>
-                        <Badge variant="default">{categoryServices.length} servicios</Badge>
-                    </CardHeader>
+        <div className="zs-svc-catalog">
+            {grouped.map(({ category, services: catSvcs, accent }) => (
+                <section
+                    key={category.id}
+                    className="zs-svc-section"
+                    style={{ '--zs-cat-color': accent } as React.CSSProperties}
+                >
+                    <div className="zs-svc-section__head">
+                        <h2 className="zs-svc-section__name">{category.name}</h2>
+                        <span className="zs-svc-section__count">
+                            {catSvcs.length} {catSvcs.length === 1 ? 'servicio' : 'servicios'}
+                        </span>
+                    </div>
 
-                    <CardContent className="p-0">
-                        <div className="table-wrapper">
-                            <table className="table w-full servicios-table">
-                                <caption className="sr-only">Servicios de la categoria {category.name}</caption>
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Servicio</th>
-                                        <th scope="col">Precio y duracion</th>
-                                        <th scope="col">Estado</th>
-                                        <th scope="col" className="text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="servicios-table__body">
-                                    {categoryServices.map((service) => (
-                                        <tr
-                                            key={service.id}
-                                            className="border-b last:border-0 border-[var(--border-color)] hover:bg-[var(--bg-hover)] servicios-table__row"
-                                        >
-                                            <td>
-                                                <div className="font-semibold text-[var(--text-main)] text-sm">{service.name}</div>
-                                                {service.description && (
-                                                    <div className="text-[13px] text-[var(--text-muted)] mt-1 max-w-[28rem] truncate">
-                                                        {service.description}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className="text-[var(--text-main)] font-medium">{Number(service.price).toFixed(0)} EUR</div>
-                                                <div className="text-[var(--text-muted)] text-xs">{service.duration_minutes} min</div>
-                                            </td>
-                                            <td>
-                                                <Badge variant={service.is_active ? 'success' : 'default'}>
-                                                    {service.is_active ? 'Activo' : 'Inactivo'}
-                                                </Badge>
-                                            </td>
-                                            <td className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="sm" onClick={() => onEdit(service)} aria-label="Editar servicio">
-                                                        <Icon name="edit" size={14} />
-                                                        Editar
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="servicios-table__danger"
-                                                        onClick={() => onDelete(service.id)}
-                                                        aria-label="Eliminar servicio"
-                                                    >
-                                                        <Icon name="trash" size={14} />
-                                                        Eliminar
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-
-                                    {categoryServices.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="py-8 text-center bg-[var(--bg-hover)] rounded-b-xl">
-                                                <div className="flex flex-col items-center justify-center text-[var(--text-muted)]">
-                                                    <div className="mb-2 opacity-50"><Icon name="spa" size={20} /></div>
-                                                    <span className="text-sm font-medium">Sin servicios</span>
-                                                    <span className="text-xs mt-1">Sin servicios en esta categoria.</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                    {catSvcs.length === 0 ? (
+                        <div className="zs-svc-section__empty">
+                            <Icon name="spa" size={16} />
+                            <span>Sin servicios en esta categoría</span>
                         </div>
-                    </CardContent>
-                </Card>
+                    ) : (
+                        <div className="zs-svc-grid">
+                            {catSvcs.map((svc) => (
+                                <article key={svc.id} className="zs-svc-tile">
+                                    {/* Badge (izq) + Precio hero (der) */}
+                                    <div className="zs-svc-tile__toprow">
+                                        <span className={`zs-svc-tile__badge ${svc.is_active ? 'zs-svc-tile__badge--active' : 'zs-svc-tile__badge--inactive'}`}>
+                                            {svc.is_active ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                        <span className="zs-svc-tile__price">
+                                            {Number(svc.price).toFixed(0)}
+                                            <span className="zs-svc-tile__currency"> EUR</span>
+                                        </span>
+                                    </div>
+
+                                    <h3 className="zs-svc-tile__name">{svc.name}</h3>
+
+                                    {svc.description && (
+                                        <p className="zs-svc-tile__desc">{svc.description}</p>
+                                    )}
+
+                                    <div className="zs-svc-tile__footer">
+                                        <span className="zs-svc-tile__duration">
+                                            <Icon name="clock" size={11} />
+                                            {svc.duration_minutes} min
+                                        </span>
+                                        <div className="zs-svc-tile__actions">
+                                            <Button variant="ghost" size="sm" onClick={() => onEdit(svc)} aria-label={`Editar ${svc.name}`}>
+                                                <Icon name="edit" size={13} />
+                                                Editar
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => onDelete(svc.id)}
+                                                aria-label={`Eliminar ${svc.name}`}
+                                            >
+                                                <Icon name="trash" size={13} />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    )}
+                </section>
             ))}
         </div>
     );

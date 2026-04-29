@@ -23,9 +23,14 @@ vi.mock('@supabase/supabase-js', () => ({
 
 vi.mock('../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
-        requirePanelAccess: requirePanelAccessMock,
+    requirePanelAccess: requirePanelAccessMock,
     assertSameOriginMutation: vi.fn(),
     writeAuditLog: writeAuditLogMock,
+    getAdminSupabase: () => createSupabaseAdminMock(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+    ),
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
             return Response.json({ error: error.message }, { status: error.status });
@@ -95,7 +100,7 @@ describe('admin create professional route', () => {
 
     it('creates professional and writes audit log on success', async () => {
         const createUser = vi.fn().mockResolvedValue({
-            data: { user: { id: 'professional-1' } },
+            data: { user: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc' } },
             error: null,
         });
         const deleteUser = vi.fn().mockResolvedValue({});
@@ -132,7 +137,7 @@ describe('admin create professional route', () => {
             bio: null,
             color_code: '#AD7332',
             is_active: true,
-            service_ids: ['service-1'],
+            service_ids: ['44444444-4444-4444-4444-444444444444'],
             schedule_slots: [
                 { day_of_week: 1, start_time: '09:00', end_time: '13:00' },
             ],
@@ -140,7 +145,7 @@ describe('admin create professional route', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, user_id: 'professional-1' });
+        expect(body).toEqual({ success: true, user_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc' });
         expect(createSupabaseAdminMock).toHaveBeenCalledWith(
             'https://example.supabase.co',
             'service-role-key',
@@ -162,7 +167,7 @@ describe('admin create professional route', () => {
                 userId: 'owner-1',
                 action: 'CREATE',
                 tableName: 'professionals',
-                recordId: 'professional-1',
+                recordId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
                 details: expect.objectContaining({
                     email: 'pro@example.com',
                     service_count: 1,

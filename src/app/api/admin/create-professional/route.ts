@@ -1,30 +1,21 @@
 import { NextResponse } from 'next/server';
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
-import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
-
-// Initialize Supabase admin client (requires service role key)
-// This bypasses RLS and can create users in auth.users
-function getAdminSupabase() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-        throw new Error('Missing Supabase Service Role Key');
-    }
-
-    return createSupabaseAdmin(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    });
-}
+import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId: ownerUserId } = await requirePanelAccess({ ownerOnly: true });
+
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(ip, 'create-professional', 10, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
 
         const adminAuthClient = getAdminSupabase();
 
@@ -65,7 +56,12 @@ export async function POST(request: Request) {
 
         if (authError || !authData.user) {
             console.error('Error creating auth user:', authError);
-            return NextResponse.json({ error: authError?.message || 'Error creating auth user' }, { status: 500 });
+            const isEmailTaken = authError?.message?.toLowerCase().includes('already registered')
+                || authError?.message?.toLowerCase().includes('already been registered');
+            return NextResponse.json(
+                { error: isEmailTaken ? 'El correo ya está registrado' : 'Error al crear el usuario' },
+                { status: isEmailTaken ? 409 : 500 }
+            );
         }
 
         const userId = authData.user.id;
@@ -82,12 +78,8 @@ export async function POST(request: Request) {
 
         if (profileError) {
             console.error('Error creating profile, rolling back auth user:', profileError);
-            // Rollback: delete the auth user to avoid leaving a zombie user without a profile
             await adminAuthClient.auth.admin.deleteUser(userId);
-            return NextResponse.json(
-                { error: `Error al crear el perfil del profesional: ${profileError.message}` },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: 'Error al crear el perfil del profesional' }, { status: 500 });
         }
 
         // 3. Create professional record
@@ -105,10 +97,7 @@ export async function POST(request: Request) {
         if (professionalError) {
             console.error('Error creating professional, rolling back auth user:', professionalError);
             await adminAuthClient.auth.admin.deleteUser(userId);
-            return NextResponse.json(
-                { error: `Error al crear el profesional: ${professionalError.message}` },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: 'Error al crear el profesional' }, { status: 500 });
         }
 
         // 4. Create professional-service links when provided
@@ -125,10 +114,7 @@ export async function POST(request: Request) {
             if (serviceLinksError) {
                 console.error('Error creating professional services, rolling back auth user:', serviceLinksError);
                 await adminAuthClient.auth.admin.deleteUser(userId);
-                return NextResponse.json(
-                    { error: `Error al asociar servicios al profesional: ${serviceLinksError.message}` },
-                    { status: 500 }
-                );
+                return NextResponse.json({ error: 'Error al asociar servicios al profesional' }, { status: 500 });
             }
         }
 
@@ -148,10 +134,7 @@ export async function POST(request: Request) {
             if (scheduleError) {
                 console.error('Error creating schedule slots, rolling back auth user:', scheduleError);
                 await adminAuthClient.auth.admin.deleteUser(userId);
-                return NextResponse.json(
-                    { error: `Error al crear el horario del profesional: ${scheduleError.message}` },
-                    { status: 500 }
-                );
+                return NextResponse.json({ error: 'Error al crear el horario del profesional' }, { status: 500 });
             }
         }
 

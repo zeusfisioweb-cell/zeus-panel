@@ -22,8 +22,8 @@ interface DashboardRpcStats {
 }
 
 export async function getDashboardData(
-    todayStr: string,
-    endStr: string,
+    dayStartIso: string,
+    dayEndIso: string,
     weekStartIso: string,
     weekEndIso: string
 ): Promise<DashboardData> {
@@ -38,7 +38,7 @@ export async function getDashboardData(
         .from('profiles')
         .select('id, role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
     if (profileError || !profile) {
         throw new Error('Profile not found');
@@ -86,8 +86,8 @@ export async function getDashboardData(
     let appointmentsQuery = supabase
         .from('appointments')
         .select('*, service:services(*), professional:professionals(*, profile:profiles(*))')
-        .gte('start_time', `${todayStr}T00:00:00`)
-        .lte('start_time', `${endStr}T23:59:59`)
+        .gte('start_time', dayStartIso)
+        .lte('start_time', dayEndIso)
         .order('start_time', { ascending: true });
 
     if (!isOwner && currentProfessionalId) {

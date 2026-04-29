@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PATCH, POST } from './route';
+import { GET, PATCH, POST } from './route';
 
 const ApiRouteErrorMock = vi.hoisted(() => class ApiRouteError extends Error {
     status: number;
@@ -53,19 +53,21 @@ describe('admin appointments route RBAC', () => {
 
     it('requires existing patient access when a professional creates a linked appointment', async () => {
         const single = vi.fn().mockResolvedValue({
-            data: { id: 'appointment-1', status: 'pending', professional: null },
+            data: { id: '66666666-6666-6666-6666-666666666666', status: 'pending', professional: null },
             error: null,
         });
         const insertSelect = vi.fn().mockReturnValue({ single });
         const insert = vi.fn().mockReturnValue({ select: insertSelect });
         const conflictQuery = {
-            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            eq: vi.fn().mockReturnThis(),
+            gt: vi.fn().mockReturnThis(),
+            lt: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
         const professionalServiceLookup = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-                data: { service_id: 'service-1' },
+                data: { service_id: '44444444-4444-4444-4444-444444444444' },
                 error: null,
             }),
         };
@@ -88,14 +90,14 @@ describe('admin appointments route RBAC', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             role: 'professional',
-            userId: 'professional-1',
-            professionalId: 'professional-row-1',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
         ensurePatientAccessMock.mockResolvedValue(undefined);
 
         const response = await POST(createJsonRequest({
-            patient_id: 'patient-1',
-            service_id: 'service-1',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            service_id: '44444444-4444-4444-4444-444444444444',
             start_time: '2026-04-16T09:00:00.000Z',
             end_time: '2026-04-16T10:00:00.000Z',
             source: 'admin',
@@ -106,17 +108,17 @@ describe('admin appointments route RBAC', () => {
         expect(ensurePatientAccessMock).toHaveBeenCalledWith({
             supabase,
             role: 'professional',
-            professionalId: 'professional-row-1',
-            patientId: 'patient-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+            patientId: '11111111-1111-1111-1111-111111111111',
         });
         expect(insert).toHaveBeenCalledWith([
             expect.objectContaining({
-                patient_id: 'patient-1',
-                professional_id: 'professional-row-1',
+                patient_id: '11111111-1111-1111-1111-111111111111',
+                professional_id: '33333333-3333-3333-3333-333333333333',
             }),
         ]);
-        expect(professionalServiceLookup.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
-        expect(professionalServiceLookup.eq).toHaveBeenCalledWith('service_id', 'service-1');
+        expect(professionalServiceLookup.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+        expect(professionalServiceLookup.eq).toHaveBeenCalledWith('service_id', '44444444-4444-4444-4444-444444444444');
     });
 
     it('blocks a professional from creating an appointment with a service not assigned to them', async () => {
@@ -140,14 +142,14 @@ describe('admin appointments route RBAC', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             role: 'professional',
-            userId: 'professional-1',
-            professionalId: 'professional-row-1',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
         ensurePatientAccessMock.mockResolvedValue(undefined);
 
         const response = await POST(createJsonRequest({
-            patient_id: 'patient-1',
-            service_id: 'service-x',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            service_id: '55555555-5555-5555-5555-555555555555',
             start_time: '2026-04-16T09:00:00.000Z',
             end_time: '2026-04-16T10:00:00.000Z',
             source: 'admin',
@@ -164,9 +166,9 @@ describe('admin appointments route RBAC', () => {
         const update = vi.fn().mockReturnThis();
         const maybeSingle = vi.fn().mockResolvedValue({
             data: {
-                id: 'appointment-1',
-                patient_id: 'patient-1',
-                professional_id: 'professional-1',
+                id: '66666666-6666-6666-6666-666666666666',
+                patient_id: '11111111-1111-1111-1111-111111111111',
+                professional_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
             },
             error: null,
         });
@@ -183,18 +185,293 @@ describe('admin appointments route RBAC', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             role: 'professional',
-            userId: 'professional-1',
-            professionalId: 'professional-1',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
         });
 
         const response = await PATCH(createJsonRequest({
-            id: 'appointment-1',
-            patient_id: 'patient-2',
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '22222222-2222-2222-2222-222222222222',
         }));
         const body = await response.json();
 
         expect(response.status).toBe(403);
         expect(body).toEqual({ error: 'Forbidden' });
         expect(update).not.toHaveBeenCalled();
+    });
+
+    it('rejects appointments whose end time is not after start time on create', async () => {
+        const supabase = {
+            from: vi.fn(() => {
+                throw new Error('Supabase should not be queried for invalid ranges');
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+
+        const response = await POST(createJsonRequest({
+            service_id: '44444444-4444-4444-4444-444444444444',
+            start_time: '2026-04-16T10:00:00.000Z',
+            end_time: '2026-04-16T09:00:00.000Z',
+            source: 'admin',
+            status: 'pending',
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(422);
+        expect(body).toEqual({ error: 'La hora de fin debe ser posterior a la hora de inicio' });
+    });
+
+    it('rejects appointments whose end time is not after start time on update', async () => {
+        const supabase = {
+            from: vi.fn(() => {
+                throw new Error('Supabase should not be queried for invalid ranges');
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+
+        getBookingSettingsMock.mockResolvedValue({
+            slot_interval_minutes: 30,
+            buffer_minutes: 0,
+            cancellation_hours: 24,
+        });
+
+        const response = await PATCH(createJsonRequest({
+            id: '66666666-6666-6666-6666-666666666666',
+            start_time: '2026-04-16T10:00:00.000Z',
+            end_time: '2026-04-16T09:00:00.000Z',
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(422);
+        expect(body).toEqual({ error: 'La hora de fin debe ser posterior a la hora de inicio' });
+    });
+});
+
+describe('admin appointments route GET', () => {
+    beforeEach(() => {
+        requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockClear();
+    });
+
+    it('returns appointments for owner without professional filter', async () => {
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            lt: vi.fn().mockReturnThis(),
+        };
+        Object.assign(query, { then: undefined });
+        const resolvedQuery = {
+            ...query,
+            then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
+                resolve({ data: [{ id: '66666666-6666-6666-6666-666666666666', professional: null }], error: null }),
+        };
+        const selectMock = vi.fn().mockReturnValue(resolvedQuery);
+        const supabase = { from: vi.fn().mockReturnValue({ select: selectMock, order: vi.fn().mockReturnThis() }) };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await GET(new Request('http://localhost/api/admin/appointments'));
+        expect(response.status).toBe(200);
+        const body = await response.json();
+        expect(Array.isArray(body)).toBe(true);
+    });
+
+    it('filters appointments by professional when role is professional', async () => {
+        const eqMock = vi.fn().mockResolvedValue({
+            data: [{ id: '66666666-6666-6666-6666-666666666666', professional: null }],
+            error: null,
+        });
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            eq: eqMock,
+        };
+        const supabase = { from: vi.fn().mockReturnValue(query) };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+
+        const response = await GET(new Request('http://localhost/api/admin/appointments'));
+        expect(response.status).toBe(200);
+        expect(eqMock).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+    });
+
+    it('accepts YYYY-MM-DD filters and normalizes them to ISO start-of-day', async () => {
+        const gteMock = vi.fn().mockReturnThis();
+        const ltMock = vi.fn().mockResolvedValue({
+            data: [{ id: '77777777-7777-7777-7777-777777777777', professional: null }],
+            error: null,
+        });
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            gte: gteMock,
+            lt: ltMock,
+        };
+        const supabase = { from: vi.fn().mockReturnValue(query) };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await GET(
+            new Request('http://localhost/api/admin/appointments?start_date=2026-04-01&end_date=2026-05-01')
+        );
+        expect(response.status).toBe(200);
+        expect(gteMock).toHaveBeenCalledWith('start_time', '2026-04-01T00:00:00.000Z');
+        expect(ltMock).toHaveBeenCalledWith('start_time', '2026-05-01T00:00:00.000Z');
+    });
+});
+
+describe('admin appointments route PATCH owner success', () => {
+    beforeEach(() => {
+        requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockClear();
+        getBookingSettingsMock.mockReset();
+        writeAuditLogMock.mockReset();
+    });
+
+    it('owner can update appointment status without timing checks', async () => {
+        // Status-only update: no scopedProfessionalId, not cancelling, no timing change
+        // So currentAppt is NOT fetched — only one DB call (the update).
+        const maybeSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+                professional: null,
+            },
+            error: null,
+        });
+        const supabase = {
+            from: vi.fn(() => ({
+                update: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                select: vi.fn().mockReturnValue({ maybeSingle }),
+            })),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await PATCH(new Request('http://localhost/api/admin/appointments', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+            }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.status).toBe('confirmed');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'UPDATE',
+            tableName: 'appointments',
+        }));
+    });
+
+    it('owner can reschedule an appointment (timing change path)', async () => {
+        const currentAppt = {
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            professional_id: '33333333-3333-3333-3333-333333333333',
+            start_time: '2026-04-16T09:00:00.000Z',
+            end_time: '2026-04-16T10:00:00.000Z',
+            status: 'pending',
+        };
+        const fetchCurrentAppt = vi.fn().mockResolvedValue({ data: currentAppt, error: null });
+        const updateMaybeSingle = vi.fn().mockResolvedValue({
+            data: { ...currentAppt, start_time: '2026-04-17T09:00:00.000Z', end_time: '2026-04-17T10:00:00.000Z', professional: null },
+            error: null,
+        });
+        // isChangingTiming=true so fetches current appt (callCount=1) then fetches conflict check (callCount=2) then update (callCount=3)
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    // fetch current appointment
+                    return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: fetchCurrentAppt };
+                }
+                if (callCount === 2) {
+                    // conflict check: select.eq.gt.lt
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        gt: vi.fn().mockReturnThis(),
+                        lt: vi.fn().mockResolvedValue({ data: [], error: null }),
+                    };
+                }
+                // update
+                return {
+                    update: vi.fn().mockReturnThis(),
+                    eq: vi.fn().mockReturnThis(),
+                    select: vi.fn().mockReturnValue({ maybeSingle: updateMaybeSingle }),
+                };
+            }),
+        };
+
+        getBookingSettingsMock.mockResolvedValue({
+            slot_interval_minutes: 30,
+            buffer_minutes: 0,
+            cancellation_hours: 24,
+        });
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await PATCH(new Request('http://localhost/api/admin/appointments', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '66666666-6666-6666-6666-666666666666',
+                start_time: '2026-04-17T09:00:00.000Z',
+                end_time: '2026-04-17T10:00:00.000Z',
+            }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.start_time).toBe('2026-04-17T09:00:00.000Z');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'UPDATE',
+            tableName: 'appointments',
+        }));
     });
 });

@@ -83,7 +83,7 @@ export default function Sidebar() {
                 className="sidebar-mobile-toggle"
                 type="button"
                 onClick={() => setMobileOpen(true)}
-                aria-label="Abrir menu"
+                aria-label="Abrir menú"
             >
                 <Icon name="menu" size={22} />
             </button>
@@ -97,7 +97,7 @@ export default function Sidebar() {
                     <div className="sidebar__brand-image">
                         <Image
                             src="/zeusheader.webp"
-                            alt="Zeus Clinica"
+                            alt="Zeus Clínica"
                             width={200}
                             height={60}
                             style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '60px', objectFit: 'contain' }}
@@ -108,17 +108,18 @@ export default function Sidebar() {
                         className="sidebar__close-mobile"
                         type="button"
                         onClick={() => setMobileOpen(false)}
-                        aria-label="Cerrar menu"
+                        aria-label="Cerrar menú"
                     >
                         <Icon name="close" size={18} />
                     </button>
                 </div>
 
-                <div className="sidebar__overview">
-                    <span className="sidebar__overview-label">Operacion</span>
-                    <strong className="sidebar__overview-title">Control diario</strong>
-                    <span className="sidebar__overview-meta">
-                        {pendingCount > 0 ? `${pendingCount} pendientes` : 'Sin pendientes'}
+                <div className="sidebar__overview" style={{ background: 'rgba(173, 115, 50, 0.05)', margin: '0 12px 20px', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(173, 115, 50, 0.12)' }}>
+                    <span className="sidebar__overview-label" style={{ color: 'var(--brand-main)', fontWeight: 800 }}>ESTADO</span>
+                    <strong className="sidebar__overview-title" style={{ fontSize: '13px' }}>Fisioterapia Zeus</strong>
+                    <span className="sidebar__overview-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: pendingCount > 0 ? 'var(--warning-main)' : 'var(--success-main)' }} />
+                        {pendingCount > 0 ? `${pendingCount} citas pendientes` : 'Al día'}
                     </span>
                 </div>
 
@@ -178,8 +179,8 @@ export default function Sidebar() {
                             type="button"
                             onClick={signOut}
                             className="sidebar__logout-icon"
-                            title="Cerrar sesion"
-                            aria-label="Cerrar sesion"
+                            title="Cerrar sesión"
+                            aria-label="Cerrar sesión"
                         >
                             <Icon name="logout" size={16} />
                         </button>

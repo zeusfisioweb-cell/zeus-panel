@@ -109,3 +109,40 @@ export function useDeletePaciente() {
         },
     });
 }
+
+export type PatientGrowthPeriod = 'week' | 'month' | 'year';
+
+export interface PatientGrowthPoint {
+    label: string;
+    key: string;
+    new_patients: number;
+    total_patients: number;
+}
+
+export function usePatientsGrowth(period: PatientGrowthPeriod = 'month') {
+    return useQuery({
+        queryKey: ['patients-growth', period],
+        queryFn: async () => {
+            const response = await fetch(`/api/admin/patients/growth?period=${period}`, {
+                method: 'GET',
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+
+            const payload = (await response.json()) as {
+                points: PatientGrowthPoint[];
+                period: PatientGrowthPeriod;
+                kpis?: {
+                    total: number;
+                    gdprConsentRate: number;
+                    marketingConsentRate: number;
+                };
+            };
+            return payload;
+        },
+        staleTime: 5 * 60 * 1000, // 5 min
+    });
+}

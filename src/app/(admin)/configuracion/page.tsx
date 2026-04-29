@@ -69,7 +69,7 @@ export default function ConfiguracionPage() {
             });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Error desconocido';
-            toast.error(`Error al cargar la configuracion: ${message}`);
+            toast.error(`Error al cargar la configuración: ${message}`);
         } finally {
             setLoading(false);
         }
@@ -114,7 +114,7 @@ export default function ConfiguracionPage() {
 
             const updated = (await response.json()) as BookingSettings;
             setSettings(updated);
-            toast.success('Configuracion guardada correctamente');
+            toast.success('Configuración guardada correctamente');
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Error desconocido';
             toast.error(`Error al guardar: ${message}`);
@@ -136,27 +136,32 @@ export default function ConfiguracionPage() {
 
     return (
         <div className="content-shell settings-shell ops-screen">
-            <header className="module-header module-header--settings ops-module-head">
-                <div className="ops-module-head__intro">
-                    <span className="module-header__kicker">Ajustes</span>
-                    <h1 className="module-header__title">Configuracion</h1>
-                    <p className="module-header__desc">
-                        Ajustes de reservas, contacto y textos legales.
-                    </p>
-                    <p className="module-header__meta">
-                        Agenda {form.opening_hour} - {form.closing_hour} | Ventana: {form.booking_advance_days} dias
-                    </p>
+            <header className="zs-cfg-header">
+                <div className="zs-cfg-header__top">
+                    <div className="zs-cfg-header__lead">
+                        <p className="zs-cfg-header__meta">
+                            Centro clínico Zeus · gestión de reservas y legal
+                        </p>
+                    </div>
                 </div>
 
-                <div className="ops-module-head__stats">
-                    <article className="ops-module-metric">
-                        <span className="ops-module-metric__label">Horario</span>
-                        <strong className="ops-module-metric__value">{form.opening_hour} - {form.closing_hour}</strong>
-                    </article>
-                    <article className="ops-module-metric">
-                        <span className="ops-module-metric__label">Aviso minimo</span>
-                        <strong className="ops-module-metric__value">{form.min_booking_notice_hours} h</strong>
-                    </article>
+                <div className="zs-cfg-kpi-strip">
+                    <div className="zs-cfg-kpi zs-cfg-kpi--canela">
+                        <p className="zs-cfg-kpi__label">Apertura / Cierre</p>
+                        <p className="zs-cfg-kpi__value">{form.opening_hour.replace(':00','h')}–{form.closing_hour.replace(':00','h')}</p>
+                    </div>
+                    <div className="zs-cfg-kpi zs-cfg-kpi--neutral">
+                        <p className="zs-cfg-kpi__label">Ventana reserva</p>
+                        <p className="zs-cfg-kpi__value">{form.booking_advance_days} días</p>
+                    </div>
+                    <div className="zs-cfg-kpi zs-cfg-kpi--neutral">
+                        <p className="zs-cfg-kpi__label">Aviso mínimo</p>
+                        <p className="zs-cfg-kpi__value">{form.min_booking_notice_hours} h</p>
+                    </div>
+                    <div className={`zs-cfg-kpi ${configuredLegalLinks === 2 ? 'zs-cfg-kpi--success' : 'zs-cfg-kpi--warning'}`}>
+                        <p className="zs-cfg-kpi__label">Legal OK</p>
+                        <p className="zs-cfg-kpi__value">{configuredLegalLinks}/2</p>
+                    </div>
                 </div>
             </header>
 
@@ -168,14 +173,14 @@ export default function ConfiguracionPage() {
                                 <Icon name="building" size={18} />
                             </span>
                             <div>
-                                <h2 className="settings-panel__title">Datos de la clinica</h2>
+                                <h2 className="settings-panel__title"><span className="zs-cfg-num">01</span> Datos de la clínica</h2>
                                 <p className="settings-panel__desc">Datos visibles en panel y reservas.</p>
                             </div>
                         </div>
 
                         <div className="settings-fields settings-fields--2">
                             <label className="settings-field">
-                                <span className="form-label">Nombre de la clinica</span>
+                                <span className="form-label">Nombre de la clínica</span>
                                 <input
                                     className="form-input"
                                     value={form.clinic_name}
@@ -184,7 +189,7 @@ export default function ConfiguracionPage() {
                                 />
                             </label>
                             <label className="settings-field">
-                                <span className="form-label">Telefono</span>
+                                <span className="form-label">Teléfono</span>
                                 <input
                                     className="form-input"
                                     value={form.phone}
@@ -199,16 +204,16 @@ export default function ConfiguracionPage() {
                                     type="email"
                                     value={form.email}
                                     onChange={e => setForm({ ...form, email: e.target.value })}
-                                    placeholder="clinica@email.com"
+                                    placeholder="clínica@email.com"
                                 />
                             </label>
                             <label className="settings-field">
-                                <span className="form-label">Direccion</span>
+                                <span className="form-label">Dirección</span>
                                 <input
                                     className="form-input"
                                     value={form.address}
                                     onChange={e => setForm({ ...form, address: e.target.value })}
-                                    placeholder="Calle, numero, ciudad"
+                                    placeholder="Calle, número, ciudad"
                                 />
                             </label>
                         </div>
@@ -220,8 +225,8 @@ export default function ConfiguracionPage() {
                                 <Icon name="calendar" size={18} />
                             </span>
                             <div>
-                                <h2 className="settings-panel__title">Reservas online</h2>
-                                <p className="settings-panel__desc">Reglas base de agenda y antelacion.</p>
+                                <h2 className="settings-panel__title"><span className="zs-cfg-num">02</span> Reservas online</h2>
+                                <p className="settings-panel__desc">Reglas base de agenda y antelación.</p>
                             </div>
                         </div>
 
@@ -247,7 +252,7 @@ export default function ConfiguracionPage() {
                             </label>
 
                             <label className="settings-field">
-                                <span className="form-label">Reservar con antelacion (dias)</span>
+                                <span className="form-label">Reservar con antelación (días)</span>
                                 <input
                                     className="form-input"
                                     type="number"
@@ -259,7 +264,7 @@ export default function ConfiguracionPage() {
                             </label>
 
                             <label className="settings-field">
-                                <span className="form-label">Aviso minimo (horas)</span>
+                                <span className="form-label">Aviso mínimo (horas)</span>
                                 <input
                                     className="form-input"
                                     type="number"
@@ -271,7 +276,7 @@ export default function ConfiguracionPage() {
                             </label>
 
                             <label className="settings-field">
-                                <span className="form-label">Cancelacion (horas)</span>
+                                <span className="form-label">Cancelación (horas)</span>
                                 <input
                                     className="form-input"
                                     type="number"
@@ -316,14 +321,14 @@ export default function ConfiguracionPage() {
                                 <Icon name="scale" size={18} />
                             </span>
                             <div>
-                                <h2 className="settings-panel__title">Legal y consentimientos</h2>
+                                <h2 className="settings-panel__title"><span className="zs-cfg-num">03</span> Legal y consentimientos</h2>
                                 <p className="settings-panel__desc">Textos y enlaces que ve el paciente al reservar.</p>
                             </div>
                         </div>
 
                         <div className="settings-fields settings-fields--2">
                             <label className="settings-field">
-                                <span className="form-label">URL politica de privacidad</span>
+                                <span className="form-label">URL política de privacidad</span>
                                 <input
                                     className="form-input"
                                     type="url"
@@ -333,7 +338,7 @@ export default function ConfiguracionPage() {
                                 />
                             </label>
                             <label className="settings-field">
-                                <span className="form-label">URL terminos y condiciones</span>
+                                <span className="form-label">URL términos y condiciones</span>
                                 <input
                                     className="form-input"
                                     type="url"
@@ -349,7 +354,7 @@ export default function ConfiguracionPage() {
                                     value={form.gdpr_text}
                                     onChange={e => setForm({ ...form, gdpr_text: e.target.value })}
                                     rows={5}
-                                    placeholder="Texto de proteccion de datos que se muestra al paciente..."
+                                    placeholder="Texto de protección de datos que se muestra al paciente..."
                                 />
                             </label>
                             <label className="settings-field settings-field--full">
@@ -359,7 +364,7 @@ export default function ConfiguracionPage() {
                                     value={form.informed_consent_text}
                                     onChange={e => setForm({ ...form, informed_consent_text: e.target.value })}
                                     rows={5}
-                                    placeholder="Texto de consentimiento informado segun Ley 41/2002..."
+                                    placeholder="Texto de consentimiento informado según Ley 41/2002..."
                                 />
                             </label>
                         </div>
@@ -368,7 +373,7 @@ export default function ConfiguracionPage() {
 
                 <aside className="settings-aside">
                     <div className="bento-card settings-summary-card">
-                        <h3>Revision rapida</h3>
+                        <h3>Revisión rápida</h3>
                         <p>Solo lo esencial antes de guardar.</p>
                         <div className="settings-summary-list">
                             <div className="settings-summary-item">
@@ -377,7 +382,7 @@ export default function ConfiguracionPage() {
                             </div>
                             <div className="settings-summary-item">
                                 <span>Ventana de reserva</span>
-                                <strong>{form.booking_advance_days} dias</strong>
+                                <strong>{form.booking_advance_days} días</strong>
                             </div>
                             <div className="settings-summary-item">
                                 <span>Ritmo de agenda</span>
@@ -398,7 +403,7 @@ export default function ConfiguracionPage() {
                             className="btn btn--primary settings-save-button"
                         >
                             <Icon name="save" size={16} />
-                            {saving ? 'Guardando...' : 'Guardar configuracion'}
+                            {saving ? 'Guardando...' : 'Guardar configuración'}
                         </button>
                     </div>
                 </aside>

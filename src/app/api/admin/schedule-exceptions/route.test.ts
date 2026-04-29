@@ -38,21 +38,21 @@ describe('admin schedule exceptions route RBAC', () => {
             supabase,
             role: 'professional',
             userId: 'pro-user-1',
-            professionalId: 'professional-row-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
-        resolveScopedProfessionalIdMock.mockReturnValue('professional-row-1');
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
 
         const response = await GET(
-            new Request('http://localhost/api/admin/schedule-exceptions?professional_id=other-prof')
+            new Request('http://localhost/api/admin/schedule-exceptions?professional_id=44444444-4444-4444-4444-444444444444')
         );
 
         expect(response.status).toBe(200);
-        expect(query.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
+        expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
     });
 
     it('stores scoped professional id on POST for professional users', async () => {
         const single = vi.fn().mockResolvedValue({
-            data: { id: 'exception-1', professional_id: 'professional-row-1' },
+            data: { id: '99999999-9999-9999-9999-999999999999', professional_id: '33333333-3333-3333-3333-333333333333' },
             error: null,
         });
         const select = vi.fn().mockReturnValue({ single });
@@ -65,15 +65,15 @@ describe('admin schedule exceptions route RBAC', () => {
             supabase,
             role: 'professional',
             userId: 'pro-user-1',
-            professionalId: 'professional-row-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
-        resolveScopedProfessionalIdMock.mockReturnValue('professional-row-1');
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
 
         const response = await POST(
             new Request('http://localhost/api/admin/schedule-exceptions', {
                 method: 'POST',
                 body: JSON.stringify({
-                    professional_id: 'other-professional',
+                    professional_id: '44444444-4444-4444-4444-444444444444',
                     exception_date: '2026-04-17',
                     is_available: false,
                     reason: 'vacaciones',
@@ -84,7 +84,7 @@ describe('admin schedule exceptions route RBAC', () => {
         expect(response.status).toBe(200);
         expect(insert).toHaveBeenCalledWith(
             expect.objectContaining({
-                professional_id: 'professional-row-1',
+                professional_id: '33333333-3333-3333-3333-333333333333',
             })
         );
         expect(writeAuditLogMock).toHaveBeenCalledWith(
@@ -92,7 +92,7 @@ describe('admin schedule exceptions route RBAC', () => {
                 userId: 'pro-user-1',
                 action: 'CREATE',
                 tableName: 'schedule_exceptions',
-                recordId: 'exception-1',
+                recordId: '99999999-9999-9999-9999-999999999999',
             })
         );
     });

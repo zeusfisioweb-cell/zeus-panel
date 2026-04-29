@@ -10,6 +10,7 @@ import {
     useServicios,
     useUpdateServicio,
 } from '@/hooks/useServicios';
+import { useProfesionales } from '@/hooks/useProfesionales';
 
 import ConfirmModal from '@/components/ConfirmModal';
 import { CategoryFormModal } from './components/CategoryFormModal';
@@ -29,6 +30,7 @@ async function readApiError(response: Response): Promise<string> {
 export default function ServiciosPage() {
     const { data: services = [], isLoading: isLoadingServices } = useServicios();
     const { data: categories = [], isLoading: isLoadingCategories, refetch: refetchCategories } = useCategorias();
+    const { data: professionals = [] } = useProfesionales();
 
     const createService = useCreateServicio();
     const updateService = useUpdateServicio();
@@ -48,7 +50,7 @@ export default function ServiciosPage() {
 
     function handleOpenNewService() {
         if (categories.length === 0) {
-            toast.error('Crea al menos una categoria primero');
+            toast.error('Crea al menos una categoría primero');
             return;
         }
         setEditingService(null);
@@ -60,20 +62,20 @@ export default function ServiciosPage() {
         setShowServiceModal(true);
     }
 
-    async function handleServiceSubmit(data: Omit<Service, 'id' | 'created_at' | 'category'>) {
+    async function handleServiceSubmit(data: Omit<Service, 'id' | 'created_at' | 'category' | 'professional_services'> & { professional_ids: string[] }) {
         try {
-            await createService.mutateAsync(data);
-            toast.success('Servicio creado con exito');
+            await createService.mutateAsync(data as Parameters<typeof createService.mutateAsync>[0]);
+            toast.success('Servicio creado con éxito');
         } catch (error: unknown) {
             toast.error(`Error al crear el servicio: ${getErrorMessage(error)}`);
             throw error;
         }
     }
 
-    async function handleServiceUpdate(id: string, data: Partial<Service>) {
+    async function handleServiceUpdate(id: string, data: Partial<Service> & { professional_ids: string[] }) {
         try {
-            await updateService.mutateAsync({ id, ...data });
-            toast.success('Servicio actualizado con exito');
+            await updateService.mutateAsync({ id, ...data } as Parameters<typeof updateService.mutateAsync>[0]);
+            toast.success('Servicio actualizado con éxito');
         } catch (error: unknown) {
             toast.error(`Error al actualizar el servicio: ${getErrorMessage(error)}`);
             throw error;
@@ -93,10 +95,10 @@ export default function ServiciosPage() {
                 throw new Error(await readApiError(response));
             }
 
-            toast.success('Categoria creada con exito');
+            toast.success('Categoría creada con éxito');
             refetchCategories();
         } catch (error: unknown) {
-            toast.error(`Error al crear la categoria: ${getErrorMessage(error)}`);
+            toast.error(`Error al crear la categoría: ${getErrorMessage(error)}`);
             throw error;
         }
     }
@@ -130,6 +132,8 @@ export default function ServiciosPage() {
             <ServiciosHeader
                 servicesCount={services.length}
                 categoriesCount={categories.length}
+                activeCount={services.filter((s) => s.is_active).length}
+                avgPrice={services.length > 0 ? services.reduce((acc, s) => acc + Number(s.price), 0) / services.length : 0}
                 onNewCategory={() => setShowCategoryModal(true)}
                 onNewService={handleOpenNewService}
             />
@@ -146,6 +150,7 @@ export default function ServiciosPage() {
                 onClose={() => setShowServiceModal(false)}
                 editing={editingService}
                 categories={categories}
+                professionals={professionals}
                 onSubmit={handleServiceSubmit}
                 onUpdate={handleServiceUpdate}
             />

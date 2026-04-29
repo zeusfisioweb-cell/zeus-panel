@@ -48,20 +48,20 @@ describe('admin patient details route RBAC', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             role: 'professional',
-            userId: 'professional-1',
-            professionalId: 'professional-row-1',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
         ensurePatientAccessMock.mockResolvedValue(undefined);
 
         const response = await GET(
             new Request('http://localhost/api/admin/patients/patient-1/details'),
-            { params: Promise.resolve({ id: 'patient-1' }) }
+            { params: Promise.resolve({ id: '11111111-1111-1111-1111-111111111111' }) }
         );
 
         expect(response.status).toBe(200);
-        expect(appointmentsQuery.eq).toHaveBeenCalledWith('patient_id', 'patient-1');
-        expect(appointmentsQuery.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
-        expect(recordsQuery.eq).toHaveBeenCalledWith('patient_id', 'patient-1');
-        expect(recordsQuery.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
+        expect(appointmentsQuery.eq).toHaveBeenCalledWith('patient_id', '11111111-1111-1111-1111-111111111111');
+        expect(appointmentsQuery.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+        expect(recordsQuery.eq).toHaveBeenCalledWith('patient_id', '11111111-1111-1111-1111-111111111111');
+        expect(recordsQuery.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
     });
 });

@@ -42,7 +42,7 @@ describe('admin appointment delete route RBAC', () => {
             eq: vi.fn().mockReturnThis(),
             select: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'appointment-1' },
+                data: { id: '66666666-6666-6666-6666-666666666666' },
                 error: null,
             }),
         };
@@ -54,26 +54,26 @@ describe('admin appointment delete route RBAC', () => {
             supabase,
             role: 'professional',
             userId: 'pro-user-1',
-            professionalId: 'professional-row-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
-        resolveScopedProfessionalIdMock.mockReturnValue('professional-row-1');
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/appointments/appointment-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'appointment-1' }) }
+            { params: Promise.resolve({ id: '66666666-6666-6666-6666-666666666666' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
         expect(body).toEqual({ success: true });
-        expect(query.eq).toHaveBeenCalledWith('id', 'appointment-1');
-        expect(query.eq).toHaveBeenCalledWith('professional_id', 'professional-row-1');
+        expect(query.eq).toHaveBeenCalledWith('id', '66666666-6666-6666-6666-666666666666');
+        expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'pro-user-1',
                 action: 'DELETE',
                 tableName: 'appointments',
-                recordId: 'appointment-1',
+                recordId: '66666666-6666-6666-6666-666666666666',
             })
         );
     });
@@ -96,13 +96,13 @@ describe('admin appointment delete route RBAC', () => {
             supabase,
             role: 'professional',
             userId: 'pro-user-1',
-            professionalId: 'professional-row-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
-        resolveScopedProfessionalIdMock.mockReturnValue('professional-row-1');
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/appointments/appointment-1', { method: 'DELETE' }),
-            { params: Promise.resolve({ id: 'appointment-1' }) }
+            { params: Promise.resolve({ id: '66666666-6666-6666-6666-666666666666' }) }
         );
         const body = await response.json();
 

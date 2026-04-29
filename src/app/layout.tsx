@@ -1,29 +1,11 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Manrope, Montserrat } from 'next/font/google';
+import { headers } from 'next/headers';
 import { AuthProvider } from '@/lib/auth-context';
 import './globals.css';
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  variable: '--font-body',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-zeus-sans',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ['latin'],
-  variable: '--font-zeus-display',
-  weight: ['500', '600', '700'],
-});
-
 export const metadata: Metadata = {
-  title: 'Zeus Admin - Panel de Gestion',
-  description: 'Panel de administracion para Zeus Fisioterapia y Psicologia',
+  title: 'Zeus Admin - Panel de Gestión',
+  description: 'Panel de administración para Zeus Fisioterapia y Psicología',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -35,19 +17,25 @@ export const metadata: Metadata = {
 
 import Providers from './providers';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const fontVars = {
+    '--font-body': '"Segoe UI", Arial, sans-serif',
+    '--font-zeus-sans': '"Segoe UI", Arial, sans-serif',
+    '--font-zeus-display': 'Georgia, "Times New Roman", serif',
+  } as React.CSSProperties;
+
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${montserrat.variable} ${cormorantGaramond.variable}`} suppressHydrationWarning>
-        <Providers>
+      <body style={fontVars} suppressHydrationWarning>
+        <Providers nonce={nonce}>
           <AuthProvider>{children}</AuthProvider>
         </Providers>
       </body>
     </html>
   );
 }
-

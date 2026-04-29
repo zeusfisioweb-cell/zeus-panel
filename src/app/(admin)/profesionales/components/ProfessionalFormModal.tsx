@@ -253,12 +253,12 @@ export function ProfessionalFormModal({
     );
 
     const renderScheduleTab = () => {
-        const days = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
         return (
             <div className="pro-form__stack">
                 <div className="pro-form__hint">
-                    Define bloques de disponibilidad. Puedes anadir turnos de manana y tarde en el mismo dia.
+                    Define bloques de disponibilidad. Puedes añadir turnos de mañana y tarde en el mismo día.
                 </div>
 
                 <div className="pro-form__schedule-list">
@@ -358,7 +358,7 @@ export function ProfessionalFormModal({
                                             }}
                                             leftIcon={<Icon name="plus" size={12} />}
                                         >
-                                            Anadir turno
+                                            Añadir turno
                                         </Button>
                                     </div>
                                 )}

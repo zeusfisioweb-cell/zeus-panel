@@ -9,9 +9,10 @@ import {
     resolveScopedProfessionalId,
     writeAuditLog,
 } from '../../_lib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const paramsSchema = z.object({
-    id: z.string().min(1),
+    id: z.string().uuid({ message: 'ID de historia clínica inválido' }),
 });
 
 interface ClinicalRecordAccessRow {
@@ -27,6 +28,15 @@ export async function DELETE(
     try {
         assertSameOriginMutation(_request);
         const { supabase, role, userId, professionalId } = await requirePanelAccess();
+        const ip = _request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-delete-clinical-record', 40, 3600);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Too many requests' }, {
+                status: 429,
+                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+            });
+        }
+
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const { id } = paramsSchema.parse(await context.params);
 

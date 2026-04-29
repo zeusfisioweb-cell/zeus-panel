@@ -9,18 +9,20 @@ export const PROFESSIONAL_RESTRICTED_PATHS = [
   '/servicios',
   '/horarios',
   '/configuracion',
+  '/analitica',
 ] as const;
 
 export const PANEL_NAV_ITEMS: PanelNavItem[] = [
   { section: 'Panel' },
   { href: '/', icon: 'dashboard', label: 'Resumen' },
   { href: '/citas', icon: 'calendar', label: 'Citas', showBadge: true },
-  { section: 'Gestion' },
+  { section: 'Gestión' },
   { href: '/profesionales', icon: 'doctor', label: 'Profesionales', ownerOnly: true },
   { href: '/servicios', icon: 'spa', label: 'Servicios', ownerOnly: true },
   { href: '/pacientes', icon: 'users', label: 'Pacientes' },
   { href: '/horarios', icon: 'clock', label: 'Horarios', ownerOnly: true },
-  { href: '/configuracion', icon: 'settings', label: 'Configuracion', ownerOnly: true },
+  { href: '/analitica', icon: 'chart', label: 'Analítica', ownerOnly: true },
+  { href: '/configuracion', icon: 'settings', label: 'Configuración', ownerOnly: true },
 ];
 
 const SECTION_TITLE_MAP: Array<{ prefix: string; title: string }> = [
@@ -29,7 +31,7 @@ const SECTION_TITLE_MAP: Array<{ prefix: string; title: string }> = [
   { prefix: '/profesionales', title: 'Profesionales' },
   { prefix: '/servicios', title: 'Servicios' },
   { prefix: '/horarios', title: 'Horarios' },
-  { prefix: '/configuracion', title: 'Configuracion' },
+  { prefix: '/configuracion', title: 'Configuración' },
 ];
 
 export function getPanelSectionTitle(pathname: string): string {

@@ -45,9 +45,9 @@ describe('admin clinical record delete RBAC', () => {
         const deleteRecord = vi.fn().mockReturnThis();
         const maybeSingle = vi.fn().mockResolvedValue({
             data: {
-                id: 'record-1',
-                patient_id: 'patient-1',
-                professional_id: 'professional-2',
+                id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                patient_id: '11111111-1111-1111-1111-111111111111',
+                professional_id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
             },
             error: null,
         });
@@ -64,19 +64,62 @@ describe('admin clinical record delete RBAC', () => {
         requirePanelAccessMock.mockResolvedValue({
             supabase,
             role: 'professional',
-            userId: 'professional-1',
-            professionalId: 'professional-1',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
         });
         ensurePatientAccessMock.mockResolvedValue(undefined);
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/clinical-records/record-1'),
-            { params: Promise.resolve({ id: 'record-1' }) }
+            { params: Promise.resolve({ id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(403);
         expect(body).toEqual({ error: 'Forbidden' });
         expect(deleteRecord).not.toHaveBeenCalled();
+    });
+
+    it('owner deletes a clinical record and writes audit log', async () => {
+        const maybeSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                patient_id: '11111111-1111-1111-1111-111111111111',
+                professional_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            },
+            error: null,
+        });
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle };
+                }
+                return { delete: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ error: null }) };
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        ensurePatientAccessMock.mockResolvedValue(undefined);
+
+        const response = await DELETE(
+            new Request('http://localhost/api/admin/clinical-records/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+            { params: Promise.resolve({ id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ success: true });
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'DELETE',
+            tableName: 'clinical_records',
+            recordId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        }));
     });
 });

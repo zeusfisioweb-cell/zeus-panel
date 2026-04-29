@@ -40,7 +40,7 @@ describe('admin schedule slots route', () => {
 
     it('creates schedule slot and writes audit log', async () => {
         const single = vi.fn().mockResolvedValue({
-            data: { id: 'slot-1', professional_id: 'pro-1' },
+            data: { id: '88888888-8888-8888-8888-888888888888', professional_id: '33333333-3333-3333-3333-333333333333' },
             error: null,
         });
         const select = vi.fn().mockReturnValue({ single });
@@ -58,7 +58,7 @@ describe('admin schedule slots route', () => {
             new Request('http://localhost/api/admin/schedule-slots', {
                 method: 'POST',
                 body: JSON.stringify({
-                    professional_id: 'pro-1',
+                    professional_id: '33333333-3333-3333-3333-333333333333',
                     day_of_week: 1,
                     start_time: '09:00',
                     end_time: '12:00',
@@ -68,14 +68,14 @@ describe('admin schedule slots route', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ id: 'slot-1', professional_id: 'pro-1' });
+        expect(body).toEqual({ id: '88888888-8888-8888-8888-888888888888', professional_id: '33333333-3333-3333-3333-333333333333' });
         expect(assertSameOriginMutationMock).toHaveBeenCalled();
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
                 action: 'CREATE',
                 tableName: 'schedule_slots',
-                recordId: 'slot-1',
+                recordId: '88888888-8888-8888-8888-888888888888',
             })
         );
     });
@@ -89,7 +89,7 @@ describe('admin schedule slots route', () => {
             new Request('http://localhost/api/admin/schedule-slots', {
                 method: 'POST',
                 body: JSON.stringify({
-                    professional_id: 'pro-1',
+                    professional_id: '33333333-3333-3333-3333-333333333333',
                     day_of_week: 1,
                     start_time: '09:00',
                     end_time: '12:00',
@@ -123,7 +123,7 @@ describe('admin schedule slots route', () => {
             new Request('http://localhost/api/admin/schedule-slots', {
                 method: 'POST',
                 body: JSON.stringify({
-                    professional_id: 'pro-1',
+                    professional_id: '33333333-3333-3333-3333-333333333333',
                     day_of_week: 1,
                     start_time: '09:00',
                     end_time: '12:00',
