@@ -38,8 +38,9 @@ Registro operativo:
 - 2026-04-28: tests de integración portal añadidos para hardening (`cancel-confirm`, `booking` duración inválida, `dependientes` rate-limit/origin). Suite en `191/191` verde.
 - 2026-04-28: `eslint` del panel excluye `chrome-devtools-mcp/**` al ser superficie externa/no producto; `npm run lint` vuelve a verde.
 - 2026-04-28: build estabilizado en local cambiando script `build` a `next build --webpack` y excluyendo `chrome-devtools-mcp` del `tsconfig`; `npm run build` vuelve a verde.
-- 2026-04-29: acceso al portal del paciente expuesto desde web pública mediante navegación explícita a `/portal/login`; en despliegue raíz, `vercel.json` enruta `/portal/*` y `/auth/*` al proyecto del panel antes del rewrite del sitio estático.
+- 2026-04-29: acceso al portal del paciente expuesto desde web pública mediante navegación explícita a `/portal/login`.
 - 2026-04-29: UX de entrada al portal refinada en web pública: icono de acceso en navbar desktop, CTA con icono en menú móvil y accesos destacados dentro de `web/citas.html` (incluyendo entrada visible en primer pantallazo móvil).
+- 2026-04-29: separación técnica portal/panel completada en repositorio: el portal vive ahora en `../portal` como proyecto Next.js independiente y el panel queda dedicado a superficie admin.
 - 2026-04-29: bloque de remediación production-readiness implementado en local:
   - nueva migración `20260429160000_harden_appointments_update_and_atomic_admin_writes.sql` para cerrar `UPDATE` directo de portal sobre `appointments` y añadir RPC atómicas de reemplazo;
   - `PUT /api/admin/professionals/[id]/schedule`, `PATCH /api/admin/services` y `PATCH /api/admin/professionals` pasan a RPC atómica (`replace_*`);
@@ -47,6 +48,7 @@ Registro operativo:
   - rate limiting añadido en todas las mutaciones admin que quedaban sin `checkRateLimit`.
 - 2026-04-29: verificación local posterior al bloque: `36/36` archivos de test (`196/196`), `lint` verde y `build` verde.
 - 2026-04-29: migración aplicada en remoto como `20260429135253_harden_appointments_update_and_atomic_admin_writes` y evidencia post-apply (policy `appointments UPDATE`, ACL de RPC atómicas, matriz RBAC y probe de bypass) documentada en `supabase/SECURITY_HARDENING_EVIDENCE_2026-04-29.md`.
+- 2026-04-29 (pre-separación de despliegues): smoke HTTP del deployment `zeus-panel-three.vercel.app` mostró `GET /login` OK, pero rutas de portal no reflejaban el estado esperado. Desde la separación técnica, la validación de `/portal/*` ya no corresponde a este despliegue sino al proyecto `portal`.
 
 Rutas principales:
 
