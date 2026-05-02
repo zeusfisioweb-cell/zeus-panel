@@ -107,7 +107,7 @@ export const AppointmentInsertSchema = z.object({
     patient_phone: z.string().nullable().optional(),
     patient_email: z.string().nullable().optional(),
     source: z.enum(['web', 'admin', 'phone']).default('admin'),
-    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).default('pending'),
+    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).default('confirmed'),
 });
 
 export const AppointmentUpdateSchema = AppointmentInsertSchema.partial();

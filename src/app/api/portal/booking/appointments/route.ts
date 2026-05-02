@@ -136,7 +136,7 @@ export async function POST(request: Request) {
                 service_id: body.service_id,
                 start_time: body.start_time,
                 end_time: body.end_time,
-                status: 'pending',
+                status: 'confirmed',
                 source: 'web',
                 notes: body.notes ?? null,
                 patient_name: `${patient.first_name} ${patient.last_name}`,
