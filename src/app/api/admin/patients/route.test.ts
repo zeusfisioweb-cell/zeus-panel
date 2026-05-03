@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { GET, PATCH, POST } from './route';
 
 const getProfessionalPatientIdsMock = vi.hoisted(() => vi.fn());
-const checkRateLimitMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 const resolveScopedProfessionalIdMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
@@ -26,19 +25,8 @@ vi.mock('../_lib', () => ({
     getAdminSupabase: getAdminSupabaseMock,
 }));
 
-vi.mock('@/lib/rate-limit', () => ({
-    checkRateLimit: checkRateLimitMock,
-}));
-
 describe('admin patients route RBAC', () => {
     beforeEach(() => {
-        checkRateLimitMock.mockReset();
-        checkRateLimitMock.mockResolvedValue({
-            success: true,
-            limit: 30,
-            remaining: 29,
-            reset: 0,
-        });
         getProfessionalPatientIdsMock.mockReset();
         requirePanelAccessMock.mockReset();
         resolveScopedProfessionalIdMock.mockReset();
@@ -166,32 +154,6 @@ describe('admin patients route RBAC', () => {
 
         expect(response.status).toBe(200);
         expect(query.or).toHaveBeenCalledWith('first_name.ilike.%Ana Test%,last_name.ilike.%Ana Test%,document_id.ilike.%Ana Test%,phone.ilike.%Ana Test%');
-    });
-
-    it('returns 429 before creating a patient when rate limited', async () => {
-        checkRateLimitMock.mockResolvedValue({
-            success: false,
-            limit: 30,
-            remaining: 0,
-            reset: Date.now() + 60_000,
-        });
-
-        const response = await POST(new Request('http://localhost/api/admin/patients', {
-            method: 'POST',
-            body: JSON.stringify({
-                first_name: 'Ana',
-                last_name: 'Lopez',
-                email: 'ana@example.com',
-                gdpr_consent: true,
-            }),
-        }));
-        const body = await response.json();
-
-        expect(response.status).toBe(429);
-        expect(body).toEqual({ error: 'Too many requests' });
-        expect(Number(response.headers.get('Retry-After'))).toBeGreaterThan(0);
-        expect(requirePanelAccessMock).not.toHaveBeenCalled();
-        expect(writeAuditLogMock).not.toHaveBeenCalled();
     });
 
     it('creates a new patient and writes audit log', async () => {

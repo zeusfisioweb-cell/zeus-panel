@@ -1,22 +1,10 @@
 import { NextResponse } from 'next/server';
 import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId: ownerUserId } = await requirePanelAccess({ ownerOnly: true });
-
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(ip, 'create-professional', 10, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
-
         const adminAuthClient = getAdminSupabase();
 
         // Validate request body

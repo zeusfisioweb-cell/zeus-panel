@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ServiceSchema, ServiceUpdateSchema } from '@/lib/schemas';
 import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const updateServiceSchema = ServiceUpdateSchema.extend({
     id: z.string().uuid({ message: 'ID de servicio inválido' }),
 });
@@ -77,15 +75,6 @@ export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-create-service', 20, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
-
         const rawBody = await request.json();
         const { professional_ids, ...serviceData } = rawBody as { professional_ids?: string[] } & Record<string, unknown>;
         const parsed = ServiceSchema.parse(serviceData);
@@ -128,15 +117,6 @@ export async function PATCH(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-update-service', 30, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
-
         const rawBody = await request.json();
         const { professional_ids, ...rest } = rawBody as { professional_ids?: string[] } & Record<string, unknown>;
         const parsed = updateServiceSchema.parse(rest);
@@ -185,15 +165,6 @@ export async function DELETE(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-delete-service', 10, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
-
         const rawBody = await request.json();
         const { id } = deleteServiceSchema.parse(rawBody);
 

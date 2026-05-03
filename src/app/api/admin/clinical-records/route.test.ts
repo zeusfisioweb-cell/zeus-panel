@@ -13,7 +13,6 @@ const ApiRouteErrorMock = vi.hoisted(
         }
 );
 
-const checkRateLimitMock = vi.hoisted(() => vi.fn());
 const ensurePatientAccessMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 const resolveScopedProfessionalIdMock = vi.hoisted(() => vi.fn());
@@ -41,10 +40,6 @@ vi.mock('../_lib', () => ({
     },
 }));
 
-vi.mock('@/lib/rate-limit', () => ({
-    checkRateLimit: checkRateLimitMock,
-}));
-
 function createJsonRequest(body: unknown): Request {
     return new Request('http://localhost/api/admin/clinical-records', {
         method: 'POST',
@@ -54,13 +49,6 @@ function createJsonRequest(body: unknown): Request {
 
 describe('admin clinical records route RBAC', () => {
     beforeEach(() => {
-        checkRateLimitMock.mockReset();
-        checkRateLimitMock.mockResolvedValue({
-            success: true,
-            limit: 60,
-            remaining: 59,
-            reset: 0,
-        });
         ensurePatientAccessMock.mockReset();
         requirePanelAccessMock.mockReset();
         resolveScopedProfessionalIdMock.mockReset();
@@ -108,28 +96,6 @@ describe('admin clinical records route RBAC', () => {
             })
         );
         expect(writeAuditLogMock).toHaveBeenCalled();
-    });
-
-    it('returns 429 before loading panel access when rate limited', async () => {
-        checkRateLimitMock.mockResolvedValue({
-            success: false,
-            limit: 60,
-            remaining: 0,
-            reset: Date.now() + 60_000,
-        });
-
-        const response = await POST(createJsonRequest({
-            patient_id: '11111111-1111-1111-1111-111111111111',
-            type: 'evolution',
-            content: { treatment_applied: 'Terapia manual aplicada' },
-        }));
-        const body = await response.json();
-
-        expect(response.status).toBe(429);
-        expect(body).toEqual({ error: 'Too many requests' });
-        expect(Number(response.headers.get('Retry-After'))).toBeGreaterThan(0);
-        expect(requirePanelAccessMock).not.toHaveBeenCalled();
-        expect(writeAuditLogMock).not.toHaveBeenCalled();
     });
 
     it('rejects invalid content for the selected clinical record type', async () => {

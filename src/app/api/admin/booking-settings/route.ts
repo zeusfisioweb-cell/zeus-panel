@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const updateBookingSettingsSchema = z.object({
@@ -48,14 +46,6 @@ export async function GET() {
 export async function PATCH(request: Request) {
     try {
         assertSameOriginMutation(request);
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(ip, 'update-booking-settings', 10, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const currentSettingsRes = await supabase
             .from('booking_settings')

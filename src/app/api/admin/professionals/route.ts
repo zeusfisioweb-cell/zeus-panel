@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const updateProfessionalSchema = z.object({
     id: z.string().uuid({ message: 'ID de profesional inválido' }),
     full_name: z.string().min(3).optional(),
@@ -99,18 +97,6 @@ export async function PATCH(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-update-professional', 20, 3600);
-        if (!rl.success) {
-            return NextResponse.json(
-                { error: 'Too many requests' },
-                {
-                    status: 429,
-                    headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-                }
-            );
-        }
-
         const rawBody = await request.json();
         const parsed = updateProfessionalSchema.parse(rawBody);
         const { id, serviceIds, ...professionalData } = parsed;
@@ -180,18 +166,6 @@ export async function DELETE(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-delete-professional', 8, 3600);
-        if (!rl.success) {
-            return NextResponse.json(
-                { error: 'Too many requests' },
-                {
-                    status: 429,
-                    headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-                }
-            );
-        }
-
         const rawBody = await request.json();
         const { id } = deleteProfessionalSchema.parse(rawBody);
         const nowIso = new Date().toISOString();

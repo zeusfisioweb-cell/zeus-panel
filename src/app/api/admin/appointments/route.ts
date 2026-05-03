@@ -12,7 +12,7 @@ import {
     writeAuditLog,
 } from '../_lib';
 import { isAlignedToInterval, findConflict, canCancel } from '@/lib/booking-validation';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { sendAppointmentWhatsApp } from '@/lib/whatsapp';
 import type { Appointment } from '@/lib/types';
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Invalid date format' });
@@ -106,6 +106,26 @@ function normalizeDateFilter(value: string): string {
     return value;
 }
 
+function sendWhatsAppForAppointment(appointment: Appointment, isReschedule: boolean): Promise<void> {
+    const patientName = appointment.patient
+        ? `${appointment.patient.first_name} ${appointment.patient.last_name}`
+        : (appointment.patient_name ?? 'Paciente');
+    const patientPhone = appointment.patient?.phone ?? null;
+    const serviceName = appointment.service?.name ?? '';
+    const professionalName = appointment.professional?.profile?.full_name ?? '';
+
+    if (!patientPhone) return Promise.resolve();
+
+    return sendAppointmentWhatsApp({
+        patientName,
+        patientPhone,
+        serviceName,
+        professionalName,
+        startTime: appointment.start_time,
+        isReschedule,
+    });
+}
+
 export async function GET(request: Request) {
     try {
         const { supabase, role, professionalId } = await requirePanelAccess();
@@ -145,14 +165,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(ip, 'create-appointment', 60, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
         const { supabase, role, userId, professionalId } = await requirePanelAccess();
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
@@ -221,7 +233,10 @@ export async function POST(request: Request) {
             },
         });
 
-        return NextResponse.json(normalizeAppointmentRow(data));
+        const normalized = normalizeAppointmentRow(data);
+        void sendWhatsAppForAppointment(normalized, false);
+
+        return NextResponse.json(normalized);
     } catch (error: unknown) {
         return handleApiError(error);
     }
@@ -354,7 +369,15 @@ export async function PATCH(request: Request) {
             },
         });
 
-        return NextResponse.json(normalizeAppointmentRow(data));
+        const updated = normalizeAppointmentRow(data);
+
+        if (isChangingTiming) {
+            void sendWhatsAppForAppointment(updated, true);
+        } else if (cleanPayload.status === 'confirmed' && currentAppt?.status !== 'confirmed') {
+            void sendWhatsAppForAppointment(updated, false);
+        }
+
+        return NextResponse.json(updated);
     } catch (error: unknown) {
         return handleApiError(error);
     }

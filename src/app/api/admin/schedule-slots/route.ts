@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const createScheduleSlotSchema = z.object({
@@ -19,15 +17,6 @@ export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-create-schedule-slot', 40, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
-
         const rawBody = await request.json();
         const parsed = createScheduleSlotSchema.parse(rawBody);
 

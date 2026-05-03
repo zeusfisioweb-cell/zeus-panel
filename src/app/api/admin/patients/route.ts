@@ -11,8 +11,6 @@ import {
     resolveScopedProfessionalId,
     writeAuditLog,
 } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const getPatientsQuerySchema = z.object({
     search: z.string().optional().default(''),
     page: z.coerce.number().int().min(1).default(1),
@@ -112,14 +110,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(ip, 'create-patient', 30, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
         const { supabase, role, userId, professionalId } = await requirePanelAccess();
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();

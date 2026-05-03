@@ -8,8 +8,6 @@ import {
     requirePanelAccess,
     writeAuditLog,
 } from '@/app/api/admin/_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const revokePortalAccessSchema = z.object({
     patient_id: z.string().uuid({ message: 'patient_id inválido' }),
 });
@@ -40,15 +38,6 @@ export async function DELETE(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(`${userId}:${ip}`, 'admin-revoke-portal-access', 10, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
-
         const { searchParams } = new URL(request.url);
         const parsed = revokePortalAccessSchema.safeParse({
             patient_id: searchParams.get('patient_id'),

@@ -11,8 +11,6 @@ import {
     resolveScopedProfessionalId,
     writeAuditLog,
 } from '../_lib';
-import { checkRateLimit } from '@/lib/rate-limit';
-
 const recordTypeSchema = z.enum(['anamnesis', 'exploration', 'evolution', 'report']) as z.ZodType<RecordType>;
 
 const createClinicalRecordSchema = z.object({
@@ -25,14 +23,6 @@ const createClinicalRecordSchema = z.object({
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-        const rl = await checkRateLimit(ip, 'create-clinical-record', 60, 3600);
-        if (!rl.success) {
-            return NextResponse.json({ error: 'Too many requests' }, {
-                status: 429,
-                headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) },
-            });
-        }
         const { supabase, role, userId, professionalId } = await requirePanelAccess();
         const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const rawBody = await request.json();
