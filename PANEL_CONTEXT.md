@@ -15,11 +15,12 @@ Registro operativo:
 - 2026-04-22: auditoria preproduccion detecta fallos funcionales en panel y deuda de runtime en Supabase; se corrige el lado panel y se identifica deuda de migraciones reproducibles.
 - 2026-04-22 (sesion tarde): ronda de hardening con agentes `security-reviewer` + `typescript-reviewer`. Ver bloque "Ronda de hardening 2026-04-22" abajo para detalle de cambios y pendientes.
 - 2026-04-25: rediseño visual completo del panel (sprints 0-7 + polish). Nuevo namespace `.zs-*`, Recharts + framer-motion, paleta canela con token `--brand-canela-text` para texto AA (7.4:1), 7 headers unificados (eyebrow + H1 + KPI strip + actions). A11y WCAG 2.2: charts con `role="img"`+`aria-label`+`<table class="zs-sr-only">`, focus ring sólido, drawer pacientes con `role="region"`+Escape, `aria-pressed` en segmented controls, `<tr onClick>` reemplazado por botón accesible. Build en verde. Ver bloque "Rediseño visual 2026-04-25" abajo.
-- 2026-04-25: se eliminan todos los SQL locales de `supabase/migrations/` para reconstruir un baseline limpio. Antes de cambios de produccion hay que rehacer migraciones de contrato runtime y cerrar RPC expuestas.
-- 2026-04-25: hotfix local `supabase/migrations/20260425193000_security_rpc_contract.sql` preparado para cerrar RPC/RLS criticos. Revisado contra docs actuales de Supabase: `SECURITY DEFINER` con `search_path = ''`, default privileges cerradas y grants explicitos. Aplicado posteriormente en remoto el 2026-04-26.
+- 2026-04-25: se eliminan todos los SQL locales de `supabase/migrations/` para reconstruir baseline.
+- 2026-04-29: baseline activa de hardening (`20260425220459..20260429135253`) reconstruida y alineada con el ledger remoto (`supabase/MIGRATION_BASELINE_LOCK_2026-04-29.md`).
+- 2026-04-25: hotfix local `supabase/migrations/20260425220459_security_rpc_contract.sql` preparado para cerrar RPC/RLS criticos. Revisado contra docs actuales de Supabase: `SECURITY DEFINER` con `search_path = ''`, default privileges cerradas y grants explicitos. Aplicado posteriormente en remoto el 2026-04-26.
 - 2026-04-25: `@supabase/supabase-js` actualizado a 2.104.1. El panel hereda los retries automaticos de PostgREST para `GET/HEAD`; las mutaciones siguen sin retry automatico.
 - 2026-04-25: fase de auditoria backend/booking. `ensurePatientAccess()` ahora rechaza pacientes soft-deleted antes de permitir detalles, citas, edicion o fichas; `POST /clinical-records` persiste el contenido canonizado por Zod; `web/js/booking.js` falla cerrado si no hay profesionales asociados al servicio o si no puede cargar disponibilidad. Se añade smoke publico `panel/e2e/public-booking.spec.ts` y se actualiza `smoke-auth` para copy con acentos.
-- 2026-04-26: `20260425193000_security_rpc_contract.sql` aplicado en Supabase remoto como `20260425220459_security_rpc_contract`. El panel deja de depender de RPC sensibles con grants `PUBLIC`; `get_dashboard_stats` queda solo para `authenticated`; `create_booking/get_available_slots` siguen disponibles para booking publico como `anon`. Evidencia en `supabase/SECURITY_RPC_CONTRACT_EVIDENCE_2026-04-26.md`.
+- 2026-04-26: `20260425220459_security_rpc_contract.sql` aplicado en Supabase remoto como `20260425220459_security_rpc_contract`. El panel deja de depender de RPC sensibles con grants `PUBLIC`; `get_dashboard_stats` queda solo para `authenticated`; `create_booking/get_available_slots` siguen disponibles para booking publico como `anon`. Evidencia en `supabase/SECURITY_RPC_CONTRACT_EVIDENCE_2026-04-26.md`.
 - 2026-04-26: control explicito de clientes aplicado. `patient_professionals` queda como mapa paciente-profesional con grants cerrados y policies optimizadas; `ensurePatientAccess()` y `getProfessionalPatientIds()` lo consultan primero, y `POST /api/admin/patients` crea asignacion manual para profesionales. Evidencia en `supabase/PATIENT_PROFESSIONAL_ASSIGNMENTS_EVIDENCE_2026-04-26.md`.
 - 2026-04-26: 3ª pasada de polish visual. Tipografía H1 unificada a Cormorant Garamond en las 7 secciones; cards de profesionales y tiles de servicios elevados a blanco con top strip canela 3px; calendar grid lines restauradas con tinte canela; acento activo de sidebar subido a 4px; baseline global de inputs con fondo cream + borde canela. Ver bloque "Polish visual 2026-04-26" abajo.
 - 2026-04-26: validacion runtime real posterior: `web/citas.html` carga disponibilidad real contra Supabase; `create_booking` funciona como `anon` y la reserva de prueba se limpia; RPC sensibles devuelven permission denied para `anon`. Evidencia en `supabase/RUNTIME_VALIDATION_2026-04-26.md`.
@@ -42,13 +43,23 @@ Registro operativo:
 - 2026-04-29: UX de entrada al portal refinada en web pública: icono de acceso en navbar desktop, CTA con icono en menú móvil y accesos destacados dentro de `web/citas.html` (incluyendo entrada visible en primer pantallazo móvil).
 - 2026-04-29: separación técnica portal/panel completada en repositorio: el portal vive ahora en `../portal` como proyecto Next.js independiente y el panel queda dedicado a superficie admin.
 - 2026-04-29: bloque de remediación production-readiness implementado en local:
-  - nueva migración `20260429160000_harden_appointments_update_and_atomic_admin_writes.sql` para cerrar `UPDATE` directo de portal sobre `appointments` y añadir RPC atómicas de reemplazo;
+  - nueva migración `20260429135253_harden_appointments_update_and_atomic_admin_writes.sql` para cerrar `UPDATE` directo de portal sobre `appointments` y añadir RPC atómicas de reemplazo;
   - `PUT /api/admin/professionals/[id]/schedule`, `PATCH /api/admin/services` y `PATCH /api/admin/professionals` pasan a RPC atómica (`replace_*`);
   - auditoría obligatoria en `POST /api/portal/complete-profile`, `POST /api/portal/dependientes` y `DELETE /api/portal/dependientes/[id]`;
   - rate limiting añadido en todas las mutaciones admin que quedaban sin `checkRateLimit`.
 - 2026-04-29: verificación local posterior al bloque: `36/36` archivos de test (`196/196`), `lint` verde y `build` verde.
 - 2026-04-29: migración aplicada en remoto como `20260429135253_harden_appointments_update_and_atomic_admin_writes` y evidencia post-apply (policy `appointments UPDATE`, ACL de RPC atómicas, matriz RBAC y probe de bypass) documentada en `supabase/SECURITY_HARDENING_EVIDENCE_2026-04-29.md`.
+- 2026-04-30: inicio de fase 1 para unificación de identidad web/portal (local): migración `supabase/migrations/20260430143000_identity_contract_phase1.sql` con normalización de `patients.document_id`/`patients.phone`, tabla `patient_identity_duplicate_review` y actualización de `create_booking` para normalizar DNI de entrada. Pendiente de apply remoto.
+- 2026-04-30: fase 2 local de booking público server-side: nueva ruta `portal/src/app/api/public/booking/appointments/route.ts` (same-origin + rate limit + validación de conflicto/duración/ventana) y `web/js/booking.js` actualizado para usar `POST /api/public/booking/appointments` en lugar de RPC `create_booking` directa.
+- 2026-05-02: ajuste de UX/hardening en portal: booking público deriva a login con `portal_required` para completar reserva autenticada; rate-limit en rutas portal usa llaves estables (`user.id` autenticado, `ip + document_id` normalizado en público), mensaje 429 unificado y fallback en memoria cuando no hay Upstash para evitar bloqueo total por configuración.
+- 2026-05-02: normalización de identidad reforzada en portal (`document_id`, `phone`, `first_name/last_name`) y `complete-profile` devuelve `identity_mismatch` (409) con copy guiado cuando los datos no cuadran con clínica tras normalización.
+- 2026-05-03: integración WhatsApp vía Meta Cloud API para notificaciones de citas. Nuevo `src/lib/whatsapp.ts` (fire-and-forget, modo dev sin token, normalización de teléfono, fechas en español). Modificados `POST/PATCH /api/admin/appointments` y `POST /api/portal/booking/appointments` para enviar WhatsApp al confirmar o reagendar. Ver bloque "Integración WhatsApp 2026-05-03" abajo para detalle completo.
+- 2026-05-03: eliminado el limite de antelacion maxima para reservas (`booking_advance_days`). Se quito validacion `maxStartMs` en `POST /api/portal/booking/appointments` (panel), `POST /api/portal/booking/appointments` (portal) y `POST /api/public/booking/appointments` (portal). Se quito restriccion `maxDate` en calendarios cliente de `web/js/booking.js`, `panel/src/app/portal/reservar/ReservarClient.tsx` y `portal/src/app/portal/reservar/ReservarClient.tsx`. La navegacion de meses ya no tiene tope hacia adelante.
+- 2026-05-03: antelacion minima de reserva (`min_booking_notice_hours`) bajada de 2h a 1h por defecto en `configuracion/page.tsx` (admin form), `panel/portal/src/app/portal/reservar/ReservarClient.tsx` (fallback cliente) y valor en BD.
+- 2026-05-03: hardening booking portal (local): `POST /api/portal/booking/appointments` valida disponibilidad real contra `get_available_slots` antes de insertar (devuelve `409 slot_taken` si el rango no existe en agenda efectiva) y `GET /api/portal/booking/services` filtra servicios sin profesionales activos asignados para evitar selección de servicios sin opciones de profesional.
+- 2026-04-30: continuidad de sesión documentada en `production-readiness/2026-04-30/01-next-session-handoff.md` con checklist de deploy/smoke y cierre DB pendiente.
 - 2026-04-29 (pre-separación de despliegues): smoke HTTP del deployment `zeus-panel-three.vercel.app` mostró `GET /login` OK, pero rutas de portal no reflejaban el estado esperado. Desde la separación técnica, la validación de `/portal/*` ya no corresponde a este despliegue sino al proyecto `portal`.
+- 2026-04-30: validación manual de vista `professional` ejecutada en runtime local mediante Chrome MCP. Login correcto con cuenta profesional, acceso confirmado a `/` y `/citas`, y redirección automática confirmada desde rutas restringidas (`/profesionales`, `/analitica`) hacia `/`. Se creó una cuenta temporal de prueba para la validación y se eliminó completamente al cerrar la comprobación (`profiles`, `professionals` y `auth.users`).
 
 Rutas principales:
 
@@ -265,7 +276,7 @@ Estado actual de esta sesion:
 - Build en verde fuera del sandbox en esta sesion: `npm run build` compilo correctamente 24 paginas estaticas y 31 rutas App Router con Next.js 16.2.4.
 - E2E autenticado completo en verde fuera del sandbox: `npm run test:e2e` con `PANEL_E2E_EMAIL`/`PANEL_E2E_PASSWORD`, 8 passed. Se ajustaron los smokes para esperar el heading actual `Resumen del centro` y readiness de rutas privadas hasta 15s.
 - Tests focalizados de acceso paciente-profesional tambien en verde: `npm run test -- src/app/api/admin/_lib.test.ts src/app/api/admin/patients/route.test.ts`.
-- Hay migraciones forward-only recientes en `supabase/migrations/`, pero falta baseline completo. El entorno actual no tiene `supabase` CLI ni `pg_dump` para generarlo.
+- Hay baseline activa de migraciones en `supabase/migrations/` alineada con remoto para la ventana de hardening; puede extenderse el histórico anterior en una fase aparte.
 - Validacion runtime real de booking publico y RPC Supabase en verde; ver `supabase/RUNTIME_VALIDATION_2026-04-26.md`.
 - Preparacion de produccion documentada en `../production-readiness/2026-04-26/`; continuar por `06-next-handoff.md`.
 
@@ -299,7 +310,7 @@ panel/
 3. Extender Playwright smoke actual a dashboard, citas, pacientes, profesionales, servicios, horarios y configuracion.
 4. Corregir mojibake/copy pendiente: acentos, `clinica`, `sesion`, `contrasena`, textos largos y estados vacios.
 5. Revisar visualmente responsive en 390px, 768px, 1366px y 1920px.
-6. Reconstruir baseline Supabase desde el schema real tras la aplicacion de `20260425220459_security_rpc_contract`.
+6. Extender histórico de baseline Supabase previo a `20260425220459` si se decide conservar también todo el pasado en Git.
 
 ## Criterio Para Reestructurar
 
@@ -373,7 +384,7 @@ Sin problemas en: orphan appointments, inverted time, orphan FKs, bad color_code
 1. **Configurar `NEXT_PUBLIC_APP_URL` en Vercel/entorno de produccion** con el dominio final del panel (ej `https://panel.zeus...`). Sin ella, las mutaciones con `Origin` fallan por configuracion incompleta.
 2. **Activar Leaked Password Protection en Supabase** (Dashboard → Authentication → Password Security). Advisor la reporta WARN.
 3. **Limpieza de datos**: decidir que hacer con `Test Patient` (sin email ni telefono, probablemente de seed) y con el profesional activo sin slots (no puede recibir reservas publicas).
-4. **Configurar Upstash rate limiting en produccion** (`UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`). Sin esas variables, los endpoints rate-limited fallan cerrado.
+4. **Configurar Upstash rate limiting en produccion** (`UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`). En panel admin, sin esas variables los endpoints rate-limited fallan cerrado; en portal de paciente hay fallback en memoria para continuidad operativa.
 5. **Rotar `SUPABASE_SERVICE_ROLE_KEY`** (repositorio privado lo baja a P2, pero sigue en la lista).
 6. **Revisar 3 `unused_index` reportados por advisor** despues de validar trafico real en produccion (es esperado con poca data).
 7. **Subir cobertura de branches** en endpoints con deuda (`patients`, `services`, `professionals`, `clinical-records`).
@@ -498,3 +509,92 @@ Los 7 headers siguen el mismo contrato: eyebrow canela + H1 + meta + KPI strip (
 - ✅ Pacientes — inputs de búsqueda con warm styling, tabla limpia
 - ✅ Horarios — day cards con top strip, date inputs con warm cream, section headers con left border
 - ✅ Dashboard — "Resumen del centro" en Cormorant, KPIs y charts sin regresión
+
+---
+
+## Integración WhatsApp 2026-05-03
+
+### Resumen
+
+Notificaciones WhatsApp a pacientes vía Meta Cloud API al crear o reagendar citas, tanto desde panel admin como desde portal paciente. Sin token solo imprime en consola (`[whatsapp:dev]`). Fire-and-forget: no bloquea la operación de cita.
+
+### Nuevo archivo: `src/lib/whatsapp.ts`
+
+```
+sendAppointmentWhatsApp(params: AppointmentWhatsAppParams): Promise<void>
+```
+
+- **Parámetros**: `patientName`, `patientPhone`, `serviceName`, `professionalName`, `startTime` (ISO), `isReschedule`
+- **Sin token (dev)**: `console.log('[whatsapp:dev]', action, { patient, phone, service, professional, date, portalUrl })`
+- **Con token**: `POST https://graph.facebook.com/v22.0/{WHATSAPP_PHONE_NUMBER_ID}/messages` con `Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}`
+- **Payload WhatsApp**: `messaging_product: whatsapp`, `type: text`, `preview_url: false`, texto formateado en español
+- **`formatPhone()`**: normaliza a `34XXXXXXXXX` (quita no-dígitos, antepone `34` a números españoles de 9 dígitos)
+- **`formatDate()`**: ISO → "lunes 5 de mayo a las 17:00" (días y meses en español)
+- **`escapeWaText()`**: escapa `_`, `*`, `~`, `` ` `` para WhatsApp
+- **Fire-and-forget**: errores solo logueados (`console.error('[whatsapp] …')`), nunca lanzados
+
+### Modificaciones en rutas
+
+#### `POST /api/admin/appointments` (línea ~246)
+```ts
+const normalized = normalizeAppointmentRow(data);
+void sendWhatsAppForAppointment(normalized, false);
+```
+
+#### `PATCH /api/admin/appointments` (líneas ~383-387)
+```ts
+if (isChangingTiming) {
+    void sendWhatsAppForAppointment(updated, true);   // reagendamiento
+} else if (cleanPayload.status === 'confirmed' && currentAppt?.status !== 'confirmed') {
+    void sendWhatsAppForAppointment(updated, false);  // confirmación
+}
+```
+
+#### Helper `sendWhatsAppForAppointment()` (línea ~110)
+Resuelve datos desde las relaciones del join de Supabase:
+- `patient_name` desde `appointment.patient.first_name + last_name` o `appointment.patient_name` (fallback)
+- `patient_phone` desde `appointment.patient.phone`; si es null, no envía nada
+- `service_name` desde `appointment.service.name`
+- `professional_name` desde `appointment.professional.profile.full_name`
+
+#### `POST /api/portal/booking/appointments` (panel y portal, ~línea 174)
+Query de profesional ampliada con `profile:profiles(full_name)`. WhatsApp enviado tras insert exitoso si `patient.phone` existe.
+
+### Mensajes
+
+**Confirmación:**
+```
+Zeus Fisioterapia: Tu cita de {servicio} con {profesional} el {fecha} está confirmada.
+
+Gestiona tus citas: {PORTAL_URL}
+```
+
+**Reagendamiento:**
+```
+Zeus Fisioterapia: Tu cita de {servicio} con {profesional} se ha movido al {fecha}.
+
+Gestiona tus citas: {PORTAL_URL}
+```
+
+### Variables de entorno
+
+| Variable | Default | Uso |
+|---------|---------|-----|
+| `WHATSAPP_ACCESS_TOKEN` | (vacío) | Bearer token para Graph API |
+| `WHATSAPP_PHONE_NUMBER_ID` | (vacío) | ID del número WhatsApp en Meta |
+| `PORTAL_URL` | `http://localhost:3000/portal/mis-citas` | URL base del portal paciente |
+
+### Verificación
+- `npm run test`: 196/196 ✓
+- `npm run lint`: 0 warnings ✓
+- `npm run build`: limpio ✓
+- `NEXT_PUBLIC_SITE_URL`: eliminada (no se usaba)
+
+### Pendiente de activación
+1. Crear Meta Business App + registrar número WhatsApp clínica
+2. Configurar las 3 env vars en Vercel (`zeus-panel-three` y `zeus-portal-three`)
+3. Smoke test: crear cita → WhatsApp recibido; reagendar → mensaje de reagendamiento
+
+### Testing
+- **Número de test del destinatario**: `682 80 78 45` → normalizado `34682807845`
+- Las pruebas se harán con este número como receptor, asignado a un paciente de prueba. No se usarán pacientes reales.

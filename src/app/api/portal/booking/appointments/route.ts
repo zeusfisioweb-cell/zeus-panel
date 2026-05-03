@@ -4,12 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { assertSameOriginMutation, getAdminSupabase, ApiRouteError, handleApiError } from '@/app/api/admin/_lib';
 import { isAlignedToInterval, findConflict } from '@/lib/booking-validation';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { sendAppointmentWhatsApp } from '@/lib/whatsapp';
 
 const BookingSchema = z.object({
     service_id: z.string().uuid(),
     professional_id: z.string().uuid(),
-    start_time: z.string().datetime(),
-    end_time: z.string().datetime(),
+    start_time: z.string().datetime({ offset: true }),
+    end_time: z.string().datetime({ offset: true }),
     for_patient_id: z.string().uuid().optional(),
     notes: z.string().max(500).optional(),
     gdpr_consent: z.literal(true, { errorMap: () => ({ message: 'Consentimiento RGPD requerido' }) }),
@@ -23,6 +24,25 @@ function computeAge(birthDate: string): number {
     let age = today.getFullYear() - dob.getFullYear();
     if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
     return age;
+}
+
+function toMadridDate(iso: string): string {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(new Date(iso));
+
+    const year = parts.find((part) => part.type === 'year')?.value ?? '1970';
+    const month = parts.find((part) => part.type === 'month')?.value ?? '01';
+    const day = parts.find((part) => part.type === 'day')?.value ?? '01';
+    return `${year}-${month}-${day}`;
+}
+
+interface AvailableSlot {
+    slot_start: string;
+    slot_end: string;
 }
 
 export async function POST(request: Request) {
@@ -79,7 +99,7 @@ export async function POST(request: Request) {
         // Validate service, professional, and their link in parallel
         const [svcRes, proRes, psRes, settingsRes] = await Promise.all([
             admin.from('services').select('id, name, duration_minutes').eq('id', body.service_id).eq('is_active', true).maybeSingle(),
-            admin.from('professionals').select('id').eq('id', body.professional_id).eq('is_active', true).maybeSingle(),
+            admin.from('professionals').select('id, profile:profiles(full_name)').eq('id', body.professional_id).eq('is_active', true).maybeSingle(),
             admin.from('professional_services').select('service_id').eq('professional_id', body.professional_id).eq('service_id', body.service_id).maybeSingle(),
             admin.from('booking_settings').select('booking_advance_days, min_booking_notice_hours, slot_interval_minutes, buffer_minutes, gdpr_text, informed_consent_text').limit(1).maybeSingle(),
         ]);
@@ -105,14 +125,24 @@ export async function POST(request: Request) {
             throw new ApiRouteError(422, `Las citas requieren mínimo ${settings.min_booking_notice_hours}h de antelación`);
         }
 
-        const maxStartMs = now + settings.booking_advance_days * 86400000;
-        if (startMs > maxStartMs) {
-            throw new ApiRouteError(422, `No se puede reservar con más de ${settings.booking_advance_days} días de antelación`);
-        }
 
         if (!isAlignedToInterval(body.start_time, settings.slot_interval_minutes)) {
             throw new ApiRouteError(422, 'El horario seleccionado no coincide con el intervalo de slots configurado');
         }
+
+        const { data: availableSlots, error: availableSlotsError } = await admin.rpc('get_available_slots', {
+            p_professional_id: body.professional_id,
+            p_date: toMadridDate(body.start_time),
+            p_duration_minutes: svcRes.data.duration_minutes,
+        });
+        if (availableSlotsError) throw availableSlotsError;
+
+        const isSlotAvailable = ((availableSlots ?? []) as AvailableSlot[]).some((slot) => {
+            const slotStartMs = new Date(slot.slot_start).getTime();
+            const slotEndMs = new Date(slot.slot_end).getTime();
+            return slotStartMs === startMs && slotEndMs === expectedEndMs;
+        });
+        if (!isSlotAvailable) throw new ApiRouteError(409, 'slot_taken');
 
         // Conflict check with buffer
         const bufferMs = settings.buffer_minutes * 60000;
@@ -167,6 +197,18 @@ export async function POST(request: Request) {
         }).then(({ error }) => {
             if (error) console.error('[portal-booking] audit_log insert failed:', error.message);
         });
+
+        const professionalName = ((proRes.data?.profile) as { full_name?: string } | null | undefined)?.full_name ?? '';
+        if (patient.phone) {
+            void sendAppointmentWhatsApp({
+                patientName: `${patient.first_name} ${patient.last_name}`,
+                patientPhone: patient.phone,
+                serviceName: svcRes.data.name,
+                professionalName,
+                startTime: body.start_time,
+                isReschedule: false,
+            });
+        }
 
         return NextResponse.json({ id: apt.id, service_name: svcRes.data.name });
     } catch (error) {

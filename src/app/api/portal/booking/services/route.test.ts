@@ -25,8 +25,22 @@ vi.mock('@/app/api/admin/_lib', () => ({
 const CATEGORY_ID = '22222222-2222-2222-2222-222222222222';
 
 const SERVICE_ROWS = [
-    { id: 'svc-1', name: 'Fisioterapia', description: 'Desc', duration_minutes: 60, price: 50 },
-    { id: 'svc-2', name: 'Osteopatía', description: null, duration_minutes: 45, price: 40 },
+    {
+        id: 'svc-1',
+        name: 'Fisioterapia',
+        description: 'Desc',
+        duration_minutes: 60,
+        price: 50,
+        professional_services: [{ professional: { id: 'pro-1', is_active: true } }],
+    },
+    {
+        id: 'svc-2',
+        name: 'Osteopatía',
+        description: null,
+        duration_minutes: 45,
+        price: 40,
+        professional_services: [{ professional: { id: 'pro-2', is_active: true } }],
+    },
 ];
 
 function makeAuthClient(user: { id: string } | null = { id: 'user-1' }) {
@@ -105,6 +119,46 @@ describe('GET /api/portal/booking/services', () => {
 
         expect(response.status).toBe(200);
         expect(body.services).toEqual([]);
+    });
+
+    it('excludes services without active professionals', async () => {
+        createClientMock.mockResolvedValue(makeAuthClient());
+        getAdminSupabaseMock.mockReturnValue(
+            makeAdminClient([
+                {
+                    id: 'svc-visible',
+                    name: 'Visible',
+                    description: null,
+                    duration_minutes: 30,
+                    price: 20,
+                    professional_services: [{ professional: { id: 'pro-1', is_active: true } }],
+                },
+                {
+                    id: 'svc-hidden',
+                    name: 'Hidden',
+                    description: null,
+                    duration_minutes: 30,
+                    price: 20,
+                    professional_services: [{ professional: { id: 'pro-2', is_active: false } }],
+                },
+            ]),
+        );
+
+        const response = await GET(
+            new Request(`http://localhost/api/portal/booking/services?category_id=${CATEGORY_ID}`),
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.services).toEqual([
+            {
+                id: 'svc-visible',
+                name: 'Visible',
+                description: null,
+                duration_minutes: 30,
+                price: 20,
+            },
+        ]);
     });
 
     it('returns 500 when Supabase returns an error', async () => {
