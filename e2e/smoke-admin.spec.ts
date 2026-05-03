@@ -3,13 +3,13 @@ import { loginAsAdmin } from './helpers';
 
 const ROUTES = [
     { path: '/',               ready: '.zs-dash-header__title',  label: 'dashboard' },
-    { path: '/citas',          ready: '.zs-ch-title',            label: 'citas' },
-    { path: '/pacientes',      ready: '.zs-pac-header__title',   label: 'pacientes' },
+    { path: '/citas',          ready: '.zs-ch-wrap',             label: 'citas' },
+    { path: '/pacientes',      ready: '.zs-pac-header',          label: 'pacientes' },
     { path: '/profesionales',  ready: '.zs-pros-header__title',  label: 'profesionales' },
-    { path: '/servicios',      ready: '.zs-svc-header__title',   label: 'servicios' },
+    { path: '/servicios',      ready: '.zs-svc-header',          label: 'servicios' },
     { path: '/horarios',       ready: '.zs-hor-header__title',   label: 'horarios' },
     { path: '/analitica',      ready: 'h1',                      label: 'analitica' },
-    { path: '/configuracion',  ready: '.zs-cfg-header__title',   label: 'configuracion' },
+    { path: '/configuracion',  ready: '.zs-cfg-header',          label: 'configuracion' },
 ] as const;
 
 const VIEWPORTS = [

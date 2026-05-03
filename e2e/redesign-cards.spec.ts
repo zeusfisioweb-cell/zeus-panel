@@ -25,12 +25,12 @@ test.describe('card redesign visual smoke', () => {
         await login(page);
 
         const routes = [
-            { path: '/citas', ready: '.zs-ch-title', surface: '.zc-vcal', expected: 'flat' },
-            { path: '/pacientes', ready: '.zs-pac-header__title', surface: '.zs-pac-table-card', expected: 'flat' },
+            { path: '/citas', ready: '.zs-ch-wrap', surface: '.zc-vcal', expected: 'flat' },
+            { path: '/pacientes', ready: '.zs-pac-header', surface: '.zs-pac-table-card', expected: 'flat' },
             { path: '/profesionales', ready: '.zs-pros-header__title', surface: '.zs-pro-card', expected: 'elevated' },
-            { path: '/servicios', ready: '.zs-svc-header__title', surface: '.zs-svc-tile', expected: 'elevated' },
+            { path: '/servicios', ready: '.zs-svc-header', surface: '.zs-svc-tile', expected: 'elevated' },
             { path: '/horarios', ready: '.zs-hor-header__title', surface: '.schedule-card', expected: 'flat' },
-            { path: '/configuracion', ready: '.zs-cfg-header__title', surface: '.settings-panel', expected: 'flat' },
+            { path: '/configuracion', ready: '.zs-cfg-header', surface: '.settings-panel', expected: 'flat' },
         ] as const;
 
         for (const route of routes) {
@@ -51,9 +51,9 @@ test.describe('card redesign visual smoke', () => {
         await login(page);
 
         const routes = [
-            { path: '/citas', ready: '.zs-ch-title' },
-            { path: '/pacientes', ready: '.zs-pac-header__title' },
-            { path: '/configuracion', ready: '.zs-cfg-header__title' },
+            { path: '/citas', ready: '.zs-ch-wrap' },
+            { path: '/pacientes', ready: '.zs-pac-header' },
+            { path: '/configuracion', ready: '.zs-cfg-header' },
         ] as const;
 
         for (const route of routes) {
