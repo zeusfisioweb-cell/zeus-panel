@@ -398,8 +398,8 @@ export default function HorariosPage() {
                             <h3 className="schedule-exception-builder__title">Nueva excepción</h3>
                             <div className="form-grid-2">
                                 <div className="form-group">
-                                    <label className="form-label">Desde</label>
-                                    <input type="date" className="form-input" value={newException.start_date} onChange={(event) => setNewException({ ...newException, start_date: event.target.value })} />
+                                    <label className="form-label">Desde <span style={{ color: 'var(--color-error, red)' }}>*</span></label>
+                                    <input type="date" className="form-input" value={newException.start_date} onChange={(event) => setNewException({ ...newException, start_date: event.target.value })} required />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Hasta (opcional)</label>

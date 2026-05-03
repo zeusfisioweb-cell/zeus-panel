@@ -7,7 +7,11 @@ import type { BookingSettings } from '@/lib/types';
 
 async function readApiError(response: Response): Promise<string> {
     try {
-        const body = (await response.json()) as { error?: string };
+        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
+        if (body.details) {
+            const firstField = Object.values(body.details).flat()[0];
+            if (firstField) return firstField;
+        }
         return body.error || 'Error de servidor';
     } catch {
         return 'Error de servidor';
@@ -180,12 +184,13 @@ export default function ConfiguracionPage() {
 
                         <div className="settings-fields settings-fields--2">
                             <label className="settings-field">
-                                <span className="form-label">Nombre de la clínica</span>
+                                <span className="form-label">Nombre de la clínica <span style={{ color: 'var(--color-error, red)' }}>*</span></span>
                                 <input
                                     className="form-input"
                                     value={form.clinic_name}
                                     onChange={e => setForm({ ...form, clinic_name: e.target.value })}
                                     required
+                                    minLength={1}
                                 />
                             </label>
                             <label className="settings-field">

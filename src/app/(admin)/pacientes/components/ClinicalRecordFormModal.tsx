@@ -14,9 +14,9 @@ interface ClinicalRecordFormModalProps {
     onSubmit: (type: RecordType, recordFields: string[]) => Promise<void>;
 }
 
-export const RECORD_FIELDS: Record<RecordType, { key: string; label: string; placeholder: string }[]> = {
+export const RECORD_FIELDS: Record<RecordType, { key: string; label: string; placeholder: string; required?: boolean }[]> = {
     anamnesis: [
-        { key: 'chief_complaint', label: 'Motivo de consulta', placeholder: 'Dolor lumbar de 2 semanas de evolución...' },
+        { key: 'chief_complaint', label: 'Motivo de consulta', placeholder: 'Dolor lumbar de 2 semanas de evolución...', required: true },
         { key: 'medical_history', label: 'Antecedentes', placeholder: 'Cirugía de hernia discal en 2020...' },
         { key: 'medications', label: 'Medicación actual', placeholder: 'Ibuprofeno 600mg cada 8h...' },
         { key: 'observations', label: 'Observaciones', placeholder: 'Paciente refiere empeorar al estar sentado...' },
@@ -28,12 +28,12 @@ export const RECORD_FIELDS: Record<RecordType, { key: string; label: string; pla
         { key: 'specific_tests', label: 'Tests específicos', placeholder: 'Lasègue negativo bilateral, Slump positivo dcha...' },
     ],
     evolution: [
-        { key: 'treatment_applied', label: 'Sesión realizada', placeholder: 'Terapia manual + electroterapia zona lumbar...' },
+        { key: 'treatment_applied', label: 'Sesión realizada', placeholder: 'Terapia manual + electroterapia zona lumbar...', required: true },
         { key: 'patient_response', label: 'Respuesta del paciente', placeholder: 'Mejoría subjetiva del dolor 7/10 a 4/10...' },
         { key: 'next_session_plan', label: 'Plan de tratamiento', placeholder: 'Continuar con 2 sesiones semanales, ejercicios...' },
     ],
     report: [
-        { key: 'diagnosis', label: 'Diagnóstico fisioterapéutico', placeholder: 'Lumbociatalgia mecánica con componente miofascial...' },
+        { key: 'diagnosis', label: 'Diagnóstico fisioterapéutico', placeholder: 'Lumbociatalgia mecánica con componente miofascial...', required: true },
         { key: 'treatment_applied', label: 'Tratamiento realizado', placeholder: 'Se han realizado 8 sesiones de fisioterapia...' },
         { key: 'results', label: 'Resultados', placeholder: 'Mejoría del 80% en la escala EVA de dolor...' },
         { key: 'recommendations', label: 'Recomendaciones', placeholder: 'Mantener ejercicios domiciliarios, revisión en 3 meses...' },
@@ -108,7 +108,9 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                     <div className="space-y-4">
                         {RECORD_FIELDS[recordType].map((field, i) => (
                             <div key={`${recordType}-${i}`} className="flex flex-col gap-1.5">
-                                <label className="text-sm font-medium text-[var(--text-muted)]">{field.label}</label>
+                                <label className="text-sm font-medium text-[var(--text-muted)]">
+                                    {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
+                                </label>
                                 <textarea
                                     ref={i === 0 ? firstInputRef : null}
                                     className="w-full px-3 py-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-muted)] focus-visible:border-[var(--brand-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(173,115,50,0.22)] transition-colors text-sm font-inherit min-h-[80px]"
@@ -120,6 +122,8 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                                     }}
                                     placeholder={field.placeholder}
                                     style={{ resize: 'vertical' }}
+                                    required={field.required}
+                                    minLength={field.required ? 3 : undefined}
                                 />
                             </div>
                         ))}
