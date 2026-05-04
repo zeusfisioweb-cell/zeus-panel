@@ -13,20 +13,38 @@ const PIE_COLORS = ['#AD7332', '#C9954D', '#2563EB', '#059669', '#D97706', '#0F7
 
 function Spinner() {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+        <div className="flex items-center justify-center h-[200px]" role="status" aria-label="Cargando datos">
             <div className="spinner" />
         </div>
     );
 }
 
+function pillClasses(active: boolean): string {
+    return `py-1.5 px-3 text-[13px] font-semibold rounded-md cursor-pointer whitespace-nowrap ${
+        active
+            ? 'bg-[var(--bg-surface)] text-[var(--text-main)] border border-[var(--border-color)] shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
+            : 'bg-transparent text-[var(--text-muted)] border border-transparent'
+    }`;
+}
+
+function occPillClasses(active: boolean): string {
+    return `py-1 px-2 text-[11px] font-semibold rounded-md border cursor-pointer ${
+        active
+            ? 'bg-[var(--bg-surface)] text-[var(--text-main)] border-[var(--border-color)] shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
+            : 'bg-transparent text-[var(--text-muted)] border-transparent'
+    }`;
+}
+
+const EMPTY_CLASSES = 'flex items-center justify-center h-[200px] text-[var(--text-muted)] text-[13px] font-semibold';
+
 export default function AnaliticaPage() {
     const [globalPeriod, setGlobalPeriod] = useState<AnalyticsPeriod>('last_30_days');
     const [customStart, setCustomStart] = useState<string>('');
     const [customEnd, setCustomEnd] = useState<string>('');
-    
+
     // Solo pasamos start y end si el periodo es 'custom' y ambos están definidos
     const { data, isLoading } = useAnalytics(
-        globalPeriod, 
+        globalPeriod,
         globalPeriod === 'custom' && customStart && customEnd ? customStart : undefined,
         globalPeriod === 'custom' && customStart && customEnd ? customEnd : undefined
     );
@@ -54,7 +72,6 @@ export default function AnaliticaPage() {
     const statusDonut = [
         { name: 'Completadas', value: data?.statusBreakdown.statusCount.completed ?? 0, color: '#059669' },
         { name: 'Confirmadas', value: data?.statusBreakdown.statusCount.confirmed ?? 0, color: '#2563EB' },
-        { name: 'Pendientes',  value: data?.statusBreakdown.statusCount.pending   ?? 0, color: '#D97706' },
         { name: 'Canceladas',  value: data?.statusBreakdown.statusCount.cancelled ?? 0, color: '#DC2626' },
     ];
 
@@ -110,52 +127,35 @@ export default function AnaliticaPage() {
         <div className="content-shell section-shell animate-in fade-in duration-500">
 
             {/* ── Header ── */}
-            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
+            <div className="mb-6 flex justify-between items-end flex-wrap gap-4">
                 <div>
-                    <h1 style={{
-                        fontFamily: 'var(--font-zeus-display, serif)',
-                        fontSize: 'clamp(22px, 2.4vw, 30px)',
-                        fontWeight: 800,
-                        color: 'var(--text-main)',
-                        letterSpacing: '-0.03em',
-                        lineHeight: 1.1,
-                        marginBottom: 6,
-                    }}>
+                    <h1 className="font-[family-name:var(--font-zeus-display,serif)] text-[clamp(22px,2.4vw,30px)] font-extrabold text-[var(--text-main)] tracking-[-0.03em] leading-[1.1] mb-1.5">
                         Reporte de Negocio
                     </h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
+                    <p className="text-[13px] text-[var(--text-muted)] font-medium">
                         Mostrando datos para: <strong>{periodLabels[globalPeriod]}</strong>.
                     </p>
                 </div>
 
                 {/* Global Period Toggle & Print */}
-                <div className="print-hide" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div className="print-hide flex items-center gap-3 flex-wrap">
                     <button
+                        type="button"
                         onClick={() => window.print()}
-                        className="btn"
-                        style={{ padding: '6px 12px', height: 'auto', minHeight: 0, gap: '6px', display: 'flex', alignItems: 'center' }}
+                        className="btn !py-2 !px-4 !h-auto !min-h-0 gap-1.5"
                     >
                         <Icon name="download" size={16} />
                         Exportar a PDF
                     </button>
-                    
-                    <div style={{ display: 'flex', background: 'var(--bg-body)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border-color)', overflowX: 'auto' }}>
+
+                    <div className="flex bg-[var(--bg-body)] rounded-lg p-1 border border-[var(--border-color)] overflow-x-auto" role="group" aria-label="Seleccionar periodo de análisis">
                         {(Object.keys(periodLabels) as AnalyticsPeriod[]).map(p => (
                             <button
                                 key={p}
+                                type="button"
                                 onClick={() => setGlobalPeriod(p)}
-                                style={{ 
-                                    padding: '6px 12px', 
-                                    fontSize: 13, 
-                                    fontWeight: 600, 
-                                    borderRadius: '6px', 
-                                    background: globalPeriod === p ? 'var(--bg-surface)' : 'transparent', 
-                                    color: globalPeriod === p ? 'var(--text-main)' : 'var(--text-muted)', 
-                                    border: globalPeriod === p ? '1px solid var(--border-color)' : '1px solid transparent', 
-                                    boxShadow: globalPeriod === p ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', 
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                }}
+                                aria-pressed={globalPeriod === p}
+                                className={pillClasses(globalPeriod === p)}
                             >
                                 {periodLabels[p]}
                             </button>
@@ -166,29 +166,29 @@ export default function AnaliticaPage() {
 
             {/* Custom Date Picker Row */}
             {globalPeriod === 'custom' && (
-                <div className="print-hide animate-in slide-in-from-top-2 fade-in duration-200" style={{ marginBottom: 24, padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>Desde:</label>
-                        <input 
-                            type="date" 
-                            className="form-input" 
-                            style={{ minHeight: '32px', fontSize: 13 }}
+                <div className="print-hide animate-in slide-in-from-top-2 fade-in duration-200 mb-6 p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)] flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[13px] font-semibold text-[var(--text-muted)]" htmlFor="start-date">Desde:</label>
+                        <input
+                            id="start-date"
+                            type="date"
+                            className="form-input min-h-[32px] text-[13px]"
                             value={customStart}
                             onChange={e => setCustomStart(e.target.value)}
                         />
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>Hasta:</label>
-                        <input 
-                            type="date" 
-                            className="form-input" 
-                            style={{ minHeight: '32px', fontSize: 13 }}
+                    <div className="flex items-center gap-2">
+                        <label className="text-[13px] font-semibold text-[var(--text-muted)]" htmlFor="end-date">Hasta:</label>
+                        <input
+                            id="end-date"
+                            type="date"
+                            className="form-input min-h-[32px] text-[13px]"
                             value={customEnd}
                             onChange={e => setCustomEnd(e.target.value)}
                         />
                     </div>
                     {(!customStart || !customEnd) && (
-                        <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: 0 }}>
+                        <p className="text-xs text-[var(--text-subtle)] m-0">
                             Selecciona ambas fechas para aplicar el filtro.
                         </p>
                     )}
@@ -217,17 +217,11 @@ export default function AnaliticaPage() {
                         )}
                         {!isLoading && (
                             <div className="zs-occ-strip">
-                                <div style={{
-                                    width: 64, height: 64, borderRadius: '50%',
-                                    background: 'rgba(5,150,105,0.10)',
-                                    border: '2px solid rgba(5,150,105,0.25)',
-                                    display: 'flex', flexDirection: 'column',
-                                    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                }}>
-                                    <strong style={{ fontSize: 18, fontWeight: 800, color: '#059669', lineHeight: 1 }}>
+                                <div className="w-16 h-16 rounded-full bg-[rgba(5,150,105,0.10)] border-2 border-[rgba(5,150,105,0.25)] flex flex-col items-center justify-center shrink-0">
+                                    <strong className="text-lg font-extrabold text-[#059669] leading-none">
                                         {data?.adherence.averageVisits}
                                     </strong>
-                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                    <span className="text-[9px] font-bold text-[#059669] uppercase tracking-[0.06em]">
                                         media
                                     </span>
                                 </div>
@@ -288,7 +282,7 @@ export default function AnaliticaPage() {
                             </p>
                         </div>
                         {isLoading ? <Spinner /> : revenueBarData.length === 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+                            <div className={EMPTY_CLASSES}>
                                 Sin datos de servicios
                             </div>
                         ) : (
@@ -308,7 +302,7 @@ export default function AnaliticaPage() {
                             <p className="zs-charts-card__hint">citas completadas históricas</p>
                         </div>
                         {isLoading ? <Spinner /> : proBarData.length === 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+                            <div className={EMPTY_CLASSES}>
                                 Sin profesionales activos
                             </div>
                         ) : (
@@ -328,31 +322,34 @@ export default function AnaliticaPage() {
                     {/* Ocupación */}
                     <div className="zs-charts-card">
                         <div className="zs-charts-card__header">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                            <div className="flex justify-between items-start w-full">
                                 <div>
                                     <p className="zs-charts-card__title">Ocupación</p>
                                     <p className="zs-charts-card__hint">horas agendadas vs capacidad total</p>
                                 </div>
-                                <div className="print-hide" style={{ display: 'flex', background: 'var(--bg-body)', borderRadius: '8px', padding: '2px', border: '1px solid var(--border-color)' }}>
-                                    <button 
-                                        className="print-hide"
+                                <div className="print-hide flex bg-[var(--bg-body)] rounded-lg p-0.5 border border-[var(--border-color)]" role="group" aria-label="Vista de ocupación">
+                                    <button
+                                        type="button"
+                                        className={`print-hide ${occPillClasses(occView === 'monthly')}`}
                                         onClick={() => setOccView('monthly')}
-                                        style={{ padding: '4px 8px', fontSize: 11, fontWeight: 600, borderRadius: '6px', background: occView === 'monthly' ? 'var(--bg-surface)' : 'transparent', color: occView === 'monthly' ? 'var(--text-main)' : 'var(--text-muted)', border: occView === 'monthly' ? '1px solid var(--border-color)' : '1px solid transparent', boxShadow: occView === 'monthly' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                                        aria-pressed={occView === 'monthly'}
                                     >
                                         Mes
                                     </button>
-                                    <button 
-                                        className="print-hide"
+                                    <button
+                                        type="button"
+                                        className={`print-hide ${occPillClasses(occView === 'weekly')}`}
                                         onClick={() => setOccView('weekly')}
-                                        style={{ padding: '4px 8px', fontSize: 11, fontWeight: 600, borderRadius: '6px', background: occView === 'weekly' ? 'var(--bg-surface)' : 'transparent', color: occView === 'weekly' ? 'var(--text-main)' : 'var(--text-muted)', border: occView === 'weekly' ? '1px solid var(--border-color)' : '1px solid transparent', boxShadow: occView === 'weekly' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                                        aria-pressed={occView === 'weekly'}
                                     >
                                         Semana
                                     </button>
                                     {globalPeriod === 'custom' && customStart && customEnd && (
-                                        <button 
-                                            className="print-hide"
+                                        <button
+                                            type="button"
+                                            className={`print-hide ${occPillClasses(occView === 'custom')}`}
                                             onClick={() => setOccView('custom')}
-                                            style={{ padding: '4px 8px', fontSize: 11, fontWeight: 600, borderRadius: '6px', background: occView === 'custom' ? 'var(--bg-surface)' : 'transparent', color: occView === 'custom' ? 'var(--text-main)' : 'var(--text-muted)', border: occView === 'custom' ? '1px solid var(--border-color)' : '1px solid transparent', boxShadow: occView === 'custom' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                                            aria-pressed={occView === 'custom'}
                                         >
                                             Rango
                                         </button>
@@ -361,14 +358,14 @@ export default function AnaliticaPage() {
                             </div>
                         </div>
                         {isLoading ? <Spinner /> : (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0' }}>
-                                <div className="zs-occ-strip" style={{ gap: '20px' }}>
+                            <div className="flex items-center justify-center py-4">
+                                <div className="zs-occ-strip gap-5">
                                     <RadialRing value={occ} size={80} color={occColor} />
                                     <div className="zs-occ-strip__copy">
-                                        <p className="zs-occ-strip__title" style={{ fontSize: 16 }}>
+                                        <p className="zs-occ-strip__title text-[16px]">
                                             {occ > 75 ? 'Alta demanda' : occ > 45 ? 'Carga media' : 'Baja ocupación'}
                                         </p>
-                                        <p className="zs-occ-strip__sub" style={{ color: 'var(--text-muted)' }}>
+                                        <p className="zs-occ-strip__sub">
                                             {occData.hoursBooked}h de {occData.capacityHours}h estimadas {occView === 'monthly' ? 'este mes' : occView === 'weekly' ? 'esta semana' : 'en estas fechas'}
                                         </p>
                                     </div>
@@ -384,7 +381,7 @@ export default function AnaliticaPage() {
                             <p className="zs-charts-card__hint">sesiones completadas según día de la semana</p>
                         </div>
                         {isLoading ? <Spinner /> : dayBarData.length === 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+                            <div className={EMPTY_CLASSES}>
                                 Sin datos suficientes
                             </div>
                         ) : (
@@ -407,7 +404,7 @@ export default function AnaliticaPage() {
                             <p className="zs-charts-card__hint">estimación mensual basada en citas completadas x precio</p>
                         </div>
                         {isLoading ? <Spinner /> : revenueTrendBarData.length === 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+                            <div className={EMPTY_CLASSES}>
                                 Sin datos suficientes
                             </div>
                         ) : (
@@ -437,17 +434,12 @@ export default function AnaliticaPage() {
                         )}
                         {!isLoading && (
                             <div className="zs-occ-strip">
-                                <div style={{
-                                    width: 48, height: 48, borderRadius: '50%',
-                                    background: 'rgba(5,150,105,0.10)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                    color: '#059669',
-                                }}>
+                                <div className="w-12 h-12 rounded-full bg-[rgba(5,150,105,0.10)] flex items-center justify-center shrink-0 text-[#059669]">
                                     <Icon name="globe" size={24} />
                                 </div>
                                 <div className="zs-occ-strip__copy">
                                     <p className="zs-occ-strip__title">{data?.bookingSources.web ?? 0} desde la Web</p>
-                                    <p className="zs-occ-strip__sub" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="zs-occ-strip__sub">
                                         Reservas captadas de forma autónoma
                                     </p>
                                 </div>
@@ -463,7 +455,7 @@ export default function AnaliticaPage() {
                         <p className="zs-charts-card__hint">número de sesiones completadas agrupadas por hora de inicio</p>
                     </div>
                     {isLoading ? <Spinner /> : peakHoursBarData.length === 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+                        <div className={EMPTY_CLASSES}>
                             Sin datos suficientes
                         </div>
                     ) : (
@@ -478,7 +470,7 @@ export default function AnaliticaPage() {
 
                 {/* ── CTA ── */}
                 <div className="zs-charts-actions">
-                    <Link href="/pacientes" className="btn btn--primary" style={{ width: '100%', textAlign: 'center' }}>
+                    <Link href="/pacientes" className="btn btn--primary w-full text-center">
                         Ver todos los pacientes
                     </Link>
                 </div>
