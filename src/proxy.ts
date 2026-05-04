@@ -10,7 +10,7 @@ function buildCsp(nonce: string): string {
 
     const styleSrc = isDevelopment
         ? "style-src 'self' 'unsafe-inline'"
-        : "style-src 'self'";
+        : "style-src 'self' 'unsafe-inline'";
 
     return [
         "default-src 'self'",
