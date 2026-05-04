@@ -262,7 +262,7 @@ describe('admin professionals route DELETE', () => {
         }));
     });
 
-    it('detaches future appointments before disabling a professional', async () => {
+    it('cancels future appointments before disabling a professional', async () => {
         const updateUserById = vi.fn().mockResolvedValue({ error: null });
         getAdminSupabaseMock.mockReturnValue({ auth: { admin: { updateUserById } } });
 
@@ -280,7 +280,7 @@ describe('admin professionals route DELETE', () => {
             in: vi.fn().mockReturnThis(),
             gte: vi.fn().mockResolvedValue({ count: 2, error: null }),
         };
-        const detachAppointments = {
+        const cancelAppointments = {
             update: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
@@ -305,7 +305,7 @@ describe('admin professionals route DELETE', () => {
                 if (table === 'appointments') {
                     return appointmentCount.select.mock.calls.length === 0
                         ? appointmentCount
-                        : detachAppointments;
+                        : cancelAppointments;
                 }
                 if (table === 'schedule_slots') return deleteSlots;
                 throw new Error(`Unexpected table ${table}`);
@@ -320,15 +320,18 @@ describe('admin professionals route DELETE', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, reassignedAppointments: 2 });
+        expect(body).toEqual({ success: true, cancelledAppointments: 2 });
         expect(requirePanelAccessMock).toHaveBeenCalledWith({ ownerOnly: true });
-        expect(detachAppointments.update).toHaveBeenCalledWith({ professional_id: null });
-        expect(detachAppointments.eq).toHaveBeenCalledWith('professional_id', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
+        expect(cancelAppointments.update).toHaveBeenCalledWith({
+            status: 'cancelled',
+            cancellation_reason: 'Profesional dado de baja',
+        });
+        expect(cancelAppointments.eq).toHaveBeenCalledWith('professional_id', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
         expect(disableProfessional.update).toHaveBeenCalledWith({ is_active: false });
         expect(disableProfessional.eq).toHaveBeenCalledWith('id', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
         expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
             details: expect.objectContaining({
-                reassigned_appointments: 2,
+                cancelled_appointments: 2,
                 auth_banned: true,
                 auth_ban_error: null,
             }),

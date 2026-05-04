@@ -14,7 +14,6 @@ import type {
 interface DashboardRpcStats {
     totalPatients: number;
     weekCount: number;
-    pendingCount: number;
     totalGlobalAppointments: number;
     estimatedRevenue: number;
     sessionBreakdown: DashboardSessionBreakdownItem[];
@@ -70,13 +69,12 @@ export async function getDashboardData(
                 todayCount: 0,
                 weekCount: 0,
                 totalPatients: 0,
-                pendingCount: 0,
             },
             globalStats: {
                 estimatedRevenue: 0,
                 totalGlobalAppointments: 0,
                 sessionBreakdown: [],
-                globalStatus: { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
+                globalStatus: { confirmed: 0, completed: 0, cancelled: 0 },
             },
             services: [],
             professionals: [],
@@ -126,8 +124,7 @@ export async function getDashboardData(
     const statsData: DashboardRpcStats = (statsRes.data as DashboardRpcStats | null) || {
         totalPatients: 0,
         weekCount: 0,
-        pendingCount: 0,
-        globalStatus: { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
+        globalStatus: { confirmed: 0, completed: 0, cancelled: 0 },
         totalGlobalAppointments: 0,
         estimatedRevenue: 0,
         sessionBreakdown: [],
@@ -137,7 +134,7 @@ export async function getDashboardData(
         estimatedRevenue: statsData.estimatedRevenue || 0,
         totalGlobalAppointments: statsData.totalGlobalAppointments || 0,
         sessionBreakdown: statsData.sessionBreakdown || [],
-        globalStatus: statsData.globalStatus || { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
+        globalStatus: statsData.globalStatus || { confirmed: 0, completed: 0, cancelled: 0 },
     };
 
     const services = isOwner
@@ -152,7 +149,6 @@ export async function getDashboardData(
             todayCount: (appointmentsRes.data || []).filter((a: Appointment) => a.status !== 'cancelled').length,
             weekCount: statsData.weekCount || 0,
             totalPatients: statsData.totalPatients || 0,
-            pendingCount: statsData.pendingCount || 0,
         },
         globalStats,
         services,

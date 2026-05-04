@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { ScheduleSlot, ScheduleException } from '@/lib/types';
+import { readApiError } from '@/lib/api-helpers';
 
 export const HORARIOS_QUERY_KEY = 'horario';
 
@@ -33,18 +34,6 @@ export const ApplyDefaultScheduleSchema = z.object({
 });
 
 // --- HELPER ---
-async function readApiError(response: Response): Promise<string> {
-    try {
-        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
-        if (body.details) {
-            const firstField = Object.values(body.details).flat()[0];
-            if (firstField) return firstField;
-        }
-        return body.error || 'Error de servidor';
-    } catch {
-        return 'Error de servidor';
-    }
-}
 
 // --- QUERIES ---
 export function useHorario(professionalId: string | null) {

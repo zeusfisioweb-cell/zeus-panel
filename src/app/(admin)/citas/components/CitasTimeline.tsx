@@ -208,16 +208,16 @@ export function CitasTimeline({
             if (profFilter === 'unassigned') { if (a.professional_id) return false; }
             else if (profFilter !== 'all' && a.professional_id !== profFilter) return false;
 
-            if (statusFilter === 'active') return a.status === 'pending' || a.status === 'confirmed';
+            if (statusFilter === 'active') return a.status === 'confirmed';
             if (statusFilter !== 'all' && a.status !== statusFilter) return false;
             return true;
         });
     }, [dayApts, profFilter, statusFilter]);
 
     // ── Status counts ─────────────────────────────────────────────────────────
-    const counts = useMemo(() => dayApts.reduce<Record<AppointmentStatus, number>>(
-        (acc, a) => { acc[a.status]++; return acc; },
-        { pending: 0, confirmed: 0, completed: 0, cancelled: 0 }
+    const counts = useMemo(() => dayApts.reduce<Partial<Record<AppointmentStatus, number>>>(
+        (acc, a) => { acc[a.status] = (acc[a.status] ?? 0) + 1; return acc; },
+        { confirmed: 0, completed: 0, cancelled: 0 }
     ), [dayApts]);
 
     // ── Now indicator ─────────────────────────────────────────────────────────
@@ -346,7 +346,6 @@ export function CitasTimeline({
                             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}>
                                 <option value="all">Todos</option>
                                 <option value="active">Activas</option>
-                                <option value="pending">Pendientes</option>
                                 <option value="confirmed">Confirmadas</option>
                                 <option value="completed">Completadas</option>
                                 <option value="cancelled">Canceladas</option>
@@ -378,20 +377,16 @@ export function CitasTimeline({
                     </div>
                     <div className="zc-vcal__metric is-confirmed">
                         <span>Confirmadas</span>
-                        <strong>{counts.confirmed}</strong>
-                    </div>
-                    <div className="zc-vcal__metric is-pending">
-                        <span>Pendientes</span>
-                        <strong>{counts.pending}</strong>
+                        <strong>{counts.confirmed ?? 0}</strong>
                     </div>
                     <div className="zc-vcal__metric is-muted">
                         <span>Completadas</span>
                         <strong>{counts.completed}</strong>
                     </div>
-                    {counts.cancelled > 0 && (
+                    {(counts.cancelled ?? 0) > 0 && (
                         <div className="zc-vcal__metric is-cancelled">
                             <span>Canceladas</span>
-                            <strong>{counts.cancelled}</strong>
+                            <strong>{counts.cancelled ?? 0}</strong>
                         </div>
                     )}
                 </div>

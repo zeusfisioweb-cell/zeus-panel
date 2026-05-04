@@ -59,7 +59,6 @@ export function CitasFilters({
                     >
                         <option value="all">Todas las citas</option>
                         <option value="upcoming">Proximas</option>
-                        <option value="pending">Pendientes</option>
                         <option value="confirmed">Confirmadas</option>
                         <option value="completed">Completadas</option>
                         <option value="cancelled">Canceladas</option>

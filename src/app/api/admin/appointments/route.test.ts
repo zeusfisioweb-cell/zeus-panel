@@ -17,6 +17,7 @@ const resolveScopedProfessionalIdMock = vi.hoisted(() =>
     vi.fn((role: string, professionalId: string | null) => (role === 'professional' ? professionalId : null))
 );
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
+const sendAppointmentWhatsAppMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
@@ -35,6 +36,10 @@ vi.mock('../_lib', () => ({
     },
 }));
 
+vi.mock('@/lib/whatsapp', () => ({
+    sendAppointmentWhatsApp: sendAppointmentWhatsAppMock,
+}));
+
 function createJsonRequest(body: unknown): Request {
     return new Request('http://localhost/api/admin/appointments', {
         method: 'POST',
@@ -49,9 +54,10 @@ describe('admin appointments route RBAC', () => {
         requirePanelAccessMock.mockReset();
         resolveScopedProfessionalIdMock.mockClear();
         writeAuditLogMock.mockReset();
+        sendAppointmentWhatsAppMock.mockReset();
     });
 
-    it('requires existing patient access when a professional creates a linked appointment', async () => {
+    it('allows a professional to create an appointment linked to any patient without prior relationship', async () => {
         const single = vi.fn().mockResolvedValue({
             data: { id: '66666666-6666-6666-6666-666666666666', status: 'pending', professional: null },
             error: null,
@@ -93,7 +99,6 @@ describe('admin appointments route RBAC', () => {
             userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
             professionalId: '33333333-3333-3333-3333-333333333333',
         });
-        ensurePatientAccessMock.mockResolvedValue(undefined);
 
         const response = await POST(createJsonRequest({
             patient_id: '11111111-1111-1111-1111-111111111111',
@@ -105,12 +110,7 @@ describe('admin appointments route RBAC', () => {
         }));
 
         expect(response.status).toBe(200);
-        expect(ensurePatientAccessMock).toHaveBeenCalledWith({
-            supabase,
-            role: 'professional',
-            professionalId: '33333333-3333-3333-3333-333333333333',
-            patientId: '11111111-1111-1111-1111-111111111111',
-        });
+        expect(ensurePatientAccessMock).not.toHaveBeenCalled();
         expect(insert).toHaveBeenCalledWith([
             expect.objectContaining({
                 patient_id: '11111111-1111-1111-1111-111111111111',
@@ -263,6 +263,7 @@ describe('admin appointments route GET', () => {
     beforeEach(() => {
         requirePanelAccessMock.mockReset();
         resolveScopedProfessionalIdMock.mockClear();
+        sendAppointmentWhatsAppMock.mockReset();
     });
 
     it('returns appointments for owner without professional filter', async () => {
@@ -357,25 +358,101 @@ describe('admin appointments route PATCH owner success', () => {
         resolveScopedProfessionalIdMock.mockClear();
         getBookingSettingsMock.mockReset();
         writeAuditLogMock.mockReset();
+        sendAppointmentWhatsAppMock.mockReset();
+    });
+
+    it('professional updates own appointment status successfully', async () => {
+        const currentAppt = {
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            professional_id: '33333333-3333-3333-3333-333333333333',
+            start_time: '2026-04-16T09:00:00.000Z',
+            end_time: '2026-04-16T10:00:00.000Z',
+            status: 'pending',
+        };
+        const maybeSingle = vi.fn().mockResolvedValue({ data: currentAppt, error: null });
+        const updateMaybeSingle = vi.fn().mockResolvedValue({
+            data: { ...currentAppt, status: 'confirmed', professional: null },
+            error: null,
+        });
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle };
+                }
+                return {
+                    update: vi.fn().mockReturnThis(),
+                    eq: vi.fn().mockReturnThis(),
+                    select: vi.fn().mockReturnValue({ maybeSingle: updateMaybeSingle }),
+                };
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+
+        const response = await PATCH(new Request('http://localhost/api/admin/appointments', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+            }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.status).toBe('confirmed');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'UPDATE',
+            tableName: 'appointments',
+        }));
     });
 
     it('owner can update appointment status without timing checks', async () => {
-        // Status-only update: no scopedProfessionalId, not cancelling, no timing change
-        // So currentAppt is NOT fetched — only one DB call (the update).
+        const currentAppt = {
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            professional_id: '33333333-3333-3333-3333-333333333333',
+            start_time: '2026-04-16T09:00:00.000Z',
+            end_time: '2026-04-16T10:00:00.000Z',
+            status: 'pending',
+        };
+        const fetchCurrentAppt = vi.fn().mockResolvedValue({ data: currentAppt, error: null });
         const maybeSingle = vi.fn().mockResolvedValue({
             data: {
                 id: '66666666-6666-6666-6666-666666666666',
                 status: 'confirmed',
-                professional: null,
+                start_time: '2026-04-16T09:00:00.000Z',
+                professional: { profile: { full_name: 'Dra. Vega' } },
+                patient: { first_name: 'Ana', last_name: 'López', phone: '600111222' },
+                service: { name: 'Fisioterapia' },
             },
             error: null,
         });
+        let callCount = 0;
         const supabase = {
-            from: vi.fn(() => ({
-                update: vi.fn().mockReturnThis(),
-                eq: vi.fn().mockReturnThis(),
-                select: vi.fn().mockReturnValue({ maybeSingle }),
-            })),
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: fetchCurrentAppt,
+                    };
+                }
+                return {
+                    update: vi.fn().mockReturnThis(),
+                    eq: vi.fn().mockReturnThis(),
+                    select: vi.fn().mockReturnValue({ maybeSingle }),
+                };
+            }),
         };
 
         requirePanelAccessMock.mockResolvedValue({
@@ -401,6 +478,68 @@ describe('admin appointments route PATCH owner success', () => {
             action: 'UPDATE',
             tableName: 'appointments',
         }));
+        expect(sendAppointmentWhatsAppMock).toHaveBeenCalledWith(expect.objectContaining({
+            isReschedule: false,
+        }));
+    });
+
+    it('does not send confirmation WhatsApp when appointment was already confirmed', async () => {
+        const currentAppt = {
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            professional_id: '33333333-3333-3333-3333-333333333333',
+            start_time: '2026-04-16T09:00:00.000Z',
+            end_time: '2026-04-16T10:00:00.000Z',
+            status: 'confirmed',
+        };
+        const fetchCurrentAppt = vi.fn().mockResolvedValue({ data: currentAppt, error: null });
+        const maybeSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+                professional: null,
+                patient: null,
+                service: null,
+            },
+            error: null,
+        });
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: fetchCurrentAppt,
+                    };
+                }
+                return {
+                    update: vi.fn().mockReturnThis(),
+                    eq: vi.fn().mockReturnThis(),
+                    select: vi.fn().mockReturnValue({ maybeSingle }),
+                };
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await PATCH(new Request('http://localhost/api/admin/appointments', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+            }),
+        }));
+
+        expect(response.status).toBe(200);
+        expect(sendAppointmentWhatsAppMock).not.toHaveBeenCalled();
     });
 
     it('owner can reschedule an appointment (timing change path)', async () => {
@@ -469,6 +608,143 @@ describe('admin appointments route PATCH owner success', () => {
 
         expect(response.status).toBe(200);
         expect(body.start_time).toBe('2026-04-17T09:00:00.000Z');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'UPDATE',
+            tableName: 'appointments',
+        }));
+    });
+
+    it('reject re-confirming a cancelled appointment when another confirmed appointment occupies the same slot', async () => {
+        const cancelledAppt = {
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            professional_id: '33333333-3333-3333-3333-333333333333',
+            start_time: '2026-04-16T09:00:00.000Z',
+            end_time: '2026-04-16T10:00:00.000Z',
+            status: 'cancelled',
+        };
+        const fetchCurrentAppt = vi.fn().mockResolvedValue({ data: cancelledAppt, error: null });
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: fetchCurrentAppt,
+                    };
+                }
+                if (callCount === 2) {
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        gt: vi.fn().mockReturnThis(),
+                        lt: vi.fn().mockResolvedValue({ data: [{ id: 'other', start_time: '2026-04-16T09:00:00.000Z', end_time: '2026-04-16T09:30:00.000Z', status: 'confirmed' }], error: null }),
+                    };
+                }
+                return {
+                    update: vi.fn().mockReturnThis(),
+                    eq: vi.fn().mockReturnThis(),
+                    select: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+                };
+            }),
+        };
+
+        getBookingSettingsMock.mockResolvedValue({
+            buffer_minutes: 0,
+            slot_interval_minutes: 30,
+        });
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await PATCH(new Request('http://localhost/api/admin/appointments', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+            }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(422);
+        expect(body.error).toContain('El horario solicitado no está disponible');
+    });
+
+    it('allow re-confirming a cancelled appointment when the slot is free', async () => {
+        const cancelledAppt = {
+            id: '66666666-6666-6666-6666-666666666666',
+            patient_id: '11111111-1111-1111-1111-111111111111',
+            professional_id: '33333333-3333-3333-3333-333333333333',
+            start_time: '2026-04-16T09:00:00.000Z',
+            end_time: '2026-04-16T10:00:00.000Z',
+            status: 'cancelled',
+        };
+        const fetchCurrentAppt = vi.fn().mockResolvedValue({ data: cancelledAppt, error: null });
+        const updatedData = {
+            id: '66666666-6666-6666-6666-666666666666',
+            status: 'confirmed',
+            start_time: '2026-04-16T09:00:00.000Z',
+            professional: { profile: { full_name: 'Dra. Vega' } },
+            patient: { first_name: 'Ana', last_name: 'López', phone: '600111222' },
+            service: { name: 'Fisioterapia' },
+        };
+        const maybeSingle = vi.fn().mockResolvedValue({ data: updatedData, error: null });
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) {
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        maybeSingle: fetchCurrentAppt,
+                    };
+                }
+                if (callCount === 2) {
+                    return {
+                        select: vi.fn().mockReturnThis(),
+                        eq: vi.fn().mockReturnThis(),
+                        gt: vi.fn().mockReturnThis(),
+                        lt: vi.fn().mockResolvedValue({ data: [], error: null }),
+                    };
+                }
+                return {
+                    update: vi.fn().mockReturnThis(),
+                    eq: vi.fn().mockReturnThis(),
+                    select: vi.fn().mockReturnValue({ maybeSingle }),
+                };
+            }),
+        };
+
+        getBookingSettingsMock.mockResolvedValue({
+            buffer_minutes: 0,
+            slot_interval_minutes: 30,
+        });
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await PATCH(new Request('http://localhost/api/admin/appointments', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '66666666-6666-6666-6666-666666666666',
+                status: 'confirmed',
+            }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.status).toBe('confirmed');
         expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
             action: 'UPDATE',
             tableName: 'appointments',

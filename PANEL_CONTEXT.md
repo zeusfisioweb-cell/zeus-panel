@@ -54,7 +54,32 @@ Registro operativo:
 - 2026-05-02: ajuste de UX/hardening en portal: booking público deriva a login con `portal_required` para completar reserva autenticada; rate-limit en rutas portal usa llaves estables (`user.id` autenticado, `ip + document_id` normalizado en público), mensaje 429 unificado y fallback en memoria cuando no hay Upstash para evitar bloqueo total por configuración.
 - 2026-05-02: normalización de identidad reforzada en portal (`document_id`, `phone`, `first_name/last_name`) y `complete-profile` devuelve `identity_mismatch` (409) con copy guiado cuando los datos no cuadran con clínica tras normalización.
 - 2026-05-03: integración WhatsApp vía Meta Cloud API para notificaciones de citas. Nuevo `src/lib/whatsapp.ts` (fire-and-forget, modo dev sin token, normalización de teléfono, fechas en español). Modificados `POST/PATCH /api/admin/appointments` y `POST /api/portal/booking/appointments` para enviar WhatsApp al confirmar o reagendar. Ver bloque "Integración WhatsApp 2026-05-03" abajo para detalle completo.
-- 2026-05-03: eliminado el limite de antelacion maxima para reservas (`booking_advance_days`). Se quito validacion `maxStartMs` en `POST /api/portal/booking/appointments` (panel), `POST /api/portal/booking/appointments` (portal) y `POST /api/public/booking/appointments` (portal). Se quito restriccion `maxDate` en calendarios cliente de `web/js/booking.js`, `panel/src/app/portal/reservar/ReservarClient.tsx` y `portal/src/app/portal/reservar/ReservarClient.tsx`. La navegacion de meses ya no tiene tope hacia adelante.
+- 2026-05-04: hardening WhatsApp en `PATCH /api/admin/appointments`: lectura explícita de estado previo también para confirmaciones y bloqueo de duplicados en `confirmed -> confirmed`; tests ampliados en panel y portal para cubrir transición y no-regresión.
+- 2026-05-04: fix de RBAC profesional — desbloqueados 3 endpoints (`professionals/[id]/schedule`, `professionals/[id]/exceptions`, `audit`) que usaban `ownerOnly: true`. Tests: 282 → 293 (44 archivos, 13 archivos ampliados/creados). Ver `../production-readiness/2026-05-04/errores_para_arreglar.md` para detalle completo.
+- 2026-05-04: hardening post-revisión global de código (8 issues corregidos):
+  - CRITICAL: CI roto (`panel-ci.yml` tenia `cd name:` en vez de `name:`), API key de Supabase hardcodeada en `web/js/booking.js` eliminada (ahora exige `ZEUS_BOOKING_CONFIG` sin fallback), `logAuditEvent()` no fail-closed eliminado junto con endpoint `POST /api/admin/audit` sin uso.
+  - HIGH: credenciales GCP en `scripts/check_favicon_index.js`, `get_gsc_data.js` y `request_indexing.js` migradas de ruta hardcodeada a `GOOGLE_APPLICATION_CREDENTIALS`.
+  - MEDIUM: `style-src 'unsafe-inline'` restringido a dev en `proxy.ts` (panel + portal), nonce CSP corregido con `Buffer.from(bytes).toString('base64')`, cancelación de citas futuras al eliminar profesional (`status: 'cancelled'` + `cancellation_reason`) en vez de `professional_id: null`.
+  - Verificación: 290/290 tests, lint 0 errors, build OK.
+- 2026-05-04: notificaciones de citas en panel elevadas a listener global en layout admin. Nuevo `src/components/AppointmentRealtimeNotifications.tsx` suscrito a `appointments` vía realtime; dispara toast en reservas nuevas (`INSERT`) y en cancelaciones (`UPDATE` con transición a `cancelled`) para cualquier vista del panel.
+- 2026-05-04: helper aislado `src/lib/appointment-notifications.ts` para parseo robusto de payload realtime (source/status válidos, formato fecha Europe/Madrid, deduplicación de cancelado->cancelado) + tests unitarios `src/lib/appointment-notifications.test.ts`.
+- 2026-05-04: se elimina listener duplicado de dashboard (`src/app/(admin)/page.tsx`) para evitar toasts repetidos al coexistir con el listener global.
+- 2026-05-04: verificación post-cambio: `npm run test` = 44 archivos / 294 tests OK, `npm run build` OK.
+- 2026-05-04: notificaciones push móvil añadidas al panel (PWA). Componentes nuevos: `src/app/manifest.ts`, `public/push-sw.js`, `src/components/PushNotificationsBootstrap.tsx`, `src/app/api/admin/push-subscriptions/route.ts` y helper `src/lib/push-notifications.ts`.
+- 2026-05-04: la activación push en iPhone requiere instalar el panel en pantalla de inicio (standalone); el bootstrap muestra aviso guiado cuando detecta iOS fuera de standalone.
+- 2026-05-04: `POST/PATCH /api/admin/appointments` ahora dispara push de "Nueva cita" y "Cita cancelada" a suscriptores activos. Cobertura portal añadida para eventos externos: `portal/src/app/api/portal/booking/appointments/route.ts` y `portal/src/app/api/portal/appointments/cancel-confirm/route.ts`.
+- 2026-05-04: ficha clínica visible para pacientes desde portal (`/portal/mi-ficha`). Solo lectura. Migración RLS `20260504180000_portal_clinical_records_select` aplicada en Supabase. Panel no requiere cambios — ya usa `service_role` para clinical_records.
+- 2026-05-04: migración `supabase/migrations/20260504170000_add_push_subscriptions.sql` aplicada en Supabase remoto. Tabla `push_subscriptions` operativa con RLS por `auth.uid()`.
+- 2026-05-04: verificación bloque push: `panel` (`npm run test`, `npm run lint`, `npm run build`) y `portal` (`npm run test`, `npm run build`) en verde.
+- 2026-05-04: rediseño portal (logo Zeus real, cards premium, calendario con flechas SVG, fix reprogramar). Suite e2e portal: 6 archivos, 44 tests. E2E panel: 9 archivos, 35 tests (3 fallos preexistentes en booking público).
+- 2026-05-03: eliminado el limite de antelacion maxima para reservas (`booking_advance_days`). Se quito validacion `maxStartMs` en `POST /api/portal/booking/appointments` (panel), `POST /api/portal/booking/appointments` (portal) y `POST /api/public/booking/appointments` (portal). Se quito restriccion `maxDate` en calendarios cliente de `web/js/booking.js` y `portal/src/app/portal/reservar/ReservarClient.tsx`. La navegacion de meses ya no tiene tope hacia adelante.
+- 2026-05-04: deduplicacion definitiva. Eliminados `panel/src/app/portal/**`, `panel/src/app/api/portal/**` y `panel/src/app/auth/**`. El portal vive exclusivamente en `../portal/`. Proxy y auth-context limpios de referencias a portal. **Regla: panel = solo admin, portal = solo portal.**
+- 2026-05-04: hardening ronda 2 — `readApiError` extraído a `src/lib/api-helpers.ts` desde 11 archivos duplicados (hooks `use{Profesionales,Citas,Horarios,Settings,Pacientes,Servicios}`, páginas admin `{profesionales,pacientes,servicios,configuracion}/page.tsx`). Refactorizados todos los call sites.
+- 2026-05-04: `ErrorBoundary` (`src/components/ErrorBoundary.tsx`) creado e integrado en `(admin)/layout.tsx` para contención de errores en página admin completa.
+- 2026-05-04: arreglado test `cancel/route.test.ts` (preexistente) — la ruta se modificó para cancelación directa pero el test mockeaba `signCancelToken` y `sendCancellationRequestEmail` que ya no se usan. Scope de `callCount` corregido en mocks de `adminClient.from`.
+- 2026-05-04: hardening ronda 6 — limpieza final. Lint panel: 0 warnings (variable `currentStatus` sin usar en e2e eliminada). Lint portal: 0 warnings (6 `<img>` → `next/Image` con `width={0} height={0} sizes`). E2E public-booking: 3 tests obsoletos marcados `.skip` — `web/citas.html` ya no carga `booking.js` tras migración a portal. npm audit: `resend` 6.12.2→6.1.3 en panel y portal (elimina dependencia `svix→uuid<14.0.0`). API usada (`new Resend()`, `emails.send()`) estable desde v1, sin riesgo de breaking. 0 vulnerabilidades en ambos proyectos.
+- 2026-05-04: fix PATCH appointments — re-confirmar cita cancelada ahora ejecuta `findConflict`. Nueva variable `isReconfirmingCancelled = isConfirming && currentAppt.status === 'cancelled'`. Tests: `reject re-confirming a cancelled appointment when another confirmed appointment occupies the same slot` (422) + `allow re-confirming a cancelled appointment when the slot is free` (200).
+- 2026-05-04: verificación final: panel 246/246 tests (34 archivos), lint 0 errors 0 warnings, build OK, audit 0 vulnerabilities. Portal 61/61 tests (14 archivos), lint 0 errors 0 warnings, build OK, audit 0 vulnerabilities.
 - 2026-05-03: antelacion minima de reserva (`min_booking_notice_hours`) bajada de 2h a 1h por defecto en `configuracion/page.tsx` (admin form), `panel/portal/src/app/portal/reservar/ReservarClient.tsx` (fallback cliente) y valor en BD.
 - 2026-05-03: hardening booking portal (local): `POST /api/portal/booking/appointments` valida disponibilidad real contra `get_available_slots` antes de insertar (devuelve `409 slot_taken` si el rango no existe en agenda efectiva) y `GET /api/portal/booking/services` filtra servicios sin profesionales activos asignados para evitar selección de servicios sin opciones de profesional.
 - 2026-04-30: continuidad de sesión documentada en `production-readiness/2026-04-30/01-next-session-handoff.md` con checklist de deploy/smoke y cierre DB pendiente.
@@ -212,9 +237,11 @@ Anadido bloque entre 960px y 640px: padding reducido (12px 14px 10px), font-size
 
 ## Verificacion Actual
 
-Ultima verificacion local ejecutada el 2026-04-28 (sesion bugfixes):
-- `npx vitest run` → 185 tests en verde (30 archivos).
+Ultima verificacion local ejecutada el 2026-05-04 (fix RBAC profesional):
+- `npx vitest run` → 293 tests en verde (44 archivos).
 - `npx tsc --noEmit` → 0 errores.
+- `npm run lint` → 0 errors, 5 warnings preexistentes.
+- `npm run build` → limpio.
 
 Ultima verificacion local ejecutada el 2026-04-26 (sesion producto/UX):
 
@@ -543,9 +570,11 @@ void sendWhatsAppForAppointment(normalized, false);
 
 #### `PATCH /api/admin/appointments` (líneas ~383-387)
 ```ts
+const isConfirming = cleanPayload.status === 'confirmed';
+
 if (isChangingTiming) {
     void sendWhatsAppForAppointment(updated, true);   // reagendamiento
-} else if (cleanPayload.status === 'confirmed' && currentAppt?.status !== 'confirmed') {
+} else if (isConfirming && currentAppt && currentAppt.status !== 'confirmed') {
     void sendWhatsAppForAppointment(updated, false);  // confirmación
 }
 ```
@@ -590,6 +619,13 @@ Gestiona tus citas: {PORTAL_URL}
 - `npm run build`: limpio ✓
 - `NEXT_PUBLIC_SITE_URL`: eliminada (no se usaba)
 
+### Ajuste 2026-05-04 (anti-duplicado)
+- `PATCH /api/admin/appointments`: `currentAppt` ahora también se consulta cuando `status='confirmed'` para evaluar transición real de estado.
+- Se evita reenvío de confirmación WhatsApp en updates idempotentes (`confirmed -> confirmed`).
+- Nuevos tests:
+  - `panel/src/app/api/admin/appointments/route.test.ts`: confirma envío en `pending -> confirmed` y ausencia de envío en `confirmed -> confirmed`.
+  - `portal/src/app/api/portal/booking/appointments/route.test.ts`: valida trigger de WhatsApp en alta exitosa con teléfono de paciente.
+
 ### Pendiente de activación
 1. Crear Meta Business App + registrar número WhatsApp clínica
 2. Configurar las 3 env vars en Vercel (`zeus-panel-three` y `zeus-portal-three`)
@@ -598,3 +634,69 @@ Gestiona tus citas: {PORTAL_URL}
 ### Testing
 - **Número de test del destinatario**: `682 80 78 45` → normalizado `34682807845`
 - Las pruebas se harán con este número como receptor, asignado a un paciente de prueba. No se usarán pacientes reales.
+
+---
+
+## Push Notifications PWA (panel) 2026-05-04
+
+### Resumen
+
+Notificaciones push nativas en móviles del jefe y profesionales cuando entra o se cancela una cita. Usa Web Push API (PWA) — mismo comportamiento que una notificación de WhatsApp pero nativa del navegador. Sin apps externas.
+
+### Archivos nuevos en panel
+
+| Archivo | Propósito |
+|---------|-----------|
+| `src/app/manifest.ts` | PWA manifest: nombre "Zeus Panel", standalone, icono 192/512, theme canela |
+| `public/push-sw.js` | Service Worker: recibe push → `showNotification()` → click navega a `/citas` |
+| `src/components/PushNotificationsBootstrap.tsx` | UI de suscripción: registra SW, pide permiso Notification, guarda endpoint en BD. Muestra toast "Activa notificaciones" con botón. En iOS guía instalar en pantalla de inicio |
+| `src/app/api/admin/push-subscriptions/route.ts` | API CRUD: POST (upsert por endpoint), DELETE (soft-disable), GET (verifica si hay activas). Same-origin + Zod + auditoría |
+| `src/lib/push-notifications.ts` | `sendPanelAppointmentPush()` → consulta profiles owner/professional → busca suscripciones activas → `webpush.sendNotification()` a cada una. `Promise.allSettled` fire-and-forget. Deshabilita suscripciones 404/410. Marca `last_success_at` en entregas exitosas |
+| `src/components/AppointmentRealtimeNotifications.tsx` | Listener Supabase Realtime global en layout admin: INSERT → "Nueva cita/reserva", UPDATE a cancelled → "Cita cancelada" |
+| `src/lib/appointment-notifications.ts` | Helper puro: parsea source/status, formatea fecha Europe/Madrid, deduplica cancelado→cancelado |
+| `src/lib/appointment-notifications.test.ts` | 4 tests: web insert, cancel transition, cancel dedup, non-cancel update |
+
+### Archivos modificados en panel
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/app/(admin)/layout.tsx` | Importa y renderiza `<AppointmentRealtimeNotifications />` + `<PushNotificationsBootstrap />` + `<Toaster />` |
+| `src/app/api/admin/appointments/route.ts` | POST: `void sendPanelAppointmentPush({ kind: 'created' })`. PATCH: `void sendPanelAppointmentPush({ kind: 'cancelled' })` cuando hay transición real a cancelled |
+| `src/app/(admin)/page.tsx` | Eliminado listener realtime duplicado (ahora solo en layout) |
+
+### Réplica en portal
+
+`portal/src/lib/push-notifications.ts` contiene `sendPanelAppointmentPush()` con su propio `getAdminSupabase()` inline (crea cliente service_role directo de env vars). Disparado desde:
+- `portal/src/app/api/portal/booking/appointments/route.ts` → created
+- `portal/src/app/api/portal/appointments/cancel-confirm/route.ts` → cancelled
+
+### VAPID keys (2026-05-04)
+
+```
+Public:  BAboAULapjCAfolPxJl71VJCMRlElt2B8apHnNfSIn1aMgSA3Io_gPCB2bQ8Ty7CRWI6TSX60jSYWCBN1LeghvY
+Private: 2YUcrLh9U01tQPVRWxgdG4rJ39KezFl2DzoUrtNRILw
+```
+
+### Variables de entorno en Vercel
+
+```
+NEXT_PUBLIC_PUSH_VAPID_PUBLIC_KEY=BAboAULapjCAfolPxJl71VJCMRlElt2B8apHnNfSIn1aMgSA3Io_gPCB2bQ8Ty7CRWI6TSX60jSYWCBN1LeghvY
+PUSH_VAPID_PRIVATE_KEY=2YUcrLh9U01tQPVRWxgdG4rJ39KezFl2DzoUrtNRILw
+PUSH_VAPID_SUBJECT=mailto:admin@zeusfisioterapia.com
+```
+
+Deben configurarse en ambos proyectos Vercel: `zeus-panel-three` y `zeus-portal-three`.
+
+### BD
+
+Migración `20260504170000_add_push_subscriptions` aplicada en Supabase remoto. Tabla `push_subscriptions` con:
+- `endpoint` UNIQUE, `p256dh`, `auth` (claves de suscripción Web Push)
+- `user_id` FK → `auth.users`, CASCADE on delete
+- `last_success_at`, `disabled_at` para gestión de ciclo de vida
+- RLS: solo `auth.uid() = user_id`
+- Índices: `user_id` y `(user_id, disabled_at)`
+
+### Verificación
+
+- Panel: 244/244 tests, lint 0 errors, build OK
+- Portal: 61/61 tests, build OK

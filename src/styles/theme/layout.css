@@ -28,7 +28,7 @@
 
 .panel-topbar {
   position: sticky;
-  top: 12px;
+  top: calc(12px + var(--safe-top));
   width: 100%;
   z-index: 120;
   height: 64px;
@@ -137,6 +137,10 @@
   left: 0;
   width: var(--sidebar-width);
   height: 100vh;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
   background: #0a0a0b; /* Deep sophisticated dark */
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
@@ -160,8 +164,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 92px;
-  padding: 20px 18px 12px;
+  min-height: 76px;
+  padding: 14px 18px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   z-index: 1;
@@ -176,10 +180,10 @@
 .sidebar__close-mobile {
   display: none;
   position: absolute;
-  top: 16px;
+  top: calc(16px + var(--safe-top));
   right: 14px;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
@@ -192,11 +196,11 @@
 .sidebar__overview {
   position: relative;
   z-index: 1;
-  padding: 12px 14px;
+  padding: 8px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .sidebar__overview-label {
@@ -298,6 +302,7 @@
   z-index: 1;
   padding: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .sidebar__user {
@@ -337,8 +342,8 @@
 
 .sidebar__logout-icon {
   margin-left: auto;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -357,12 +362,12 @@
 
 .sidebar-mobile-toggle {
   position: fixed;
-  top: 16px;
-  left: 14px;
+  top: calc(16px + var(--safe-top));
+  left: calc(14px + var(--safe-left));
   z-index: 230;
   display: none;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.92);
@@ -375,6 +380,10 @@
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
+  top: var(--safe-top);
+  bottom: var(--safe-bottom);
+  left: var(--safe-left);
+  right: var(--safe-right);
   z-index: 210;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
@@ -384,6 +393,9 @@
   display: grid;
   grid-template-columns: minmax(340px, 1fr) minmax(420px, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
   background: var(--bg-base);
 }
 
@@ -537,7 +549,7 @@
 @media (max-width: 1120px) {
   .main-content {
     margin-left: 0;
-    padding: 10px 14px 26px;
+    padding: calc(10px + var(--safe-top)) calc(14px + var(--safe-right)) calc(26px + var(--safe-bottom)) calc(14px + var(--safe-left));
   }
 
   .panel-topbar {
@@ -569,7 +581,7 @@
   }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 767px) {
   .login-split {
     grid-template-columns: 1fr;
   }

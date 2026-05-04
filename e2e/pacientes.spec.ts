@@ -1,0 +1,190 @@
+import { expect, test } from '@playwright/test';
+import { loginAsAdmin } from './helpers';
+
+test.describe('pacientes — patient management', () => {
+    test.skip(
+        !process.env.PANEL_E2E_EMAIL || !process.env.PANEL_E2E_PASSWORD,
+        'Set PANEL_E2E_EMAIL and PANEL_E2E_PASSWORD to run authenticated tests.',
+    );
+
+    test.beforeEach(async ({ page }) => {
+        await loginAsAdmin(page);
+    });
+
+    test('patients list renders with header and KPI strip', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator('.zs-pac-kpi-strip')).toBeVisible();
+        await expect(page.getByRole('button', { name: /Nuevo paciente/i })).toBeVisible();
+    });
+
+    test('create new patient — happy path', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        // Open new patient modal
+        await page.getByRole('button', { name: /Nuevo paciente/i }).click();
+
+        // Modal should appear
+        await expect(page.getByRole('heading', { name: /Añadir Nuevo Paciente/i })).toBeVisible({ timeout: 8_000 });
+
+        // Fill required fields — use name attribute to avoid ambiguity with phone on search bar
+        const timestamp = Date.now();
+        const firstName = `TestNombre${timestamp}`;
+        const lastName = `TestApellido${timestamp}`;
+        const email = `test${timestamp}@e2e-test.com`;
+
+        await page.getByLabel('Nombre', { exact: true }).fill(firstName);
+        await page.getByLabel('Apellidos', { exact: true }).fill(lastName);
+        await page.getByLabel('Email').fill(email);
+        // Use name attribute to target the phone input inside the modal
+        await page.locator('input[name="phone"]').fill('+34 600 000 001');
+        await page.locator('input[name="birth_date"]').fill('1990-06-15');
+
+        // Accept GDPR (required for new patient) — first checkbox in modal
+        await page.locator('input[name="gdpr_consent"]').check();
+
+        await page.screenshot({ path: 'test-results/paciente-form-filled.png' });
+
+        // Submit
+        await page.getByRole('button', { name: /Guardar paciente/i }).click();
+
+        // Modal should close
+        await expect(page.getByRole('heading', { name: /Añadir Nuevo Paciente/i })).not.toBeVisible({ timeout: 10_000 });
+
+        // Search for the new patient using the search bar (by label aria-label)
+        await page.waitForTimeout(800);
+        const searchInput = page.locator('#patients-table-search');
+        await expect(searchInput).toBeVisible({ timeout: 5_000 });
+        await searchInput.fill(firstName);
+        await page.waitForTimeout(700); // debounce
+
+        await page.screenshot({ path: 'test-results/paciente-created.png' });
+        await expect(page.getByText(firstName)).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('search patient by name filters results', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        // Wait for the table to load
+        await expect(page.locator('.zs-pac-table')).toBeVisible({ timeout: 10_000 });
+
+        const searchInput = page.locator('#patients-table-search');
+        await expect(searchInput).toBeVisible();
+        await searchInput.fill('Ana');
+        await page.waitForTimeout(700); // allow debounce
+
+        await page.screenshot({ path: 'test-results/paciente-search.png' });
+
+        // After search either rows or the empty-state text appears
+        const rows = page.locator('.zs-pac-table tbody tr');
+        const emptyMsg = page.getByText(/sin resultados|no hay pacientes|0 registrados/i);
+        const hasRows = (await rows.count()) > 0;
+        const hasEmpty = await emptyMsg.isVisible({ timeout: 3_000 }).catch(() => false);
+        expect(hasRows || hasEmpty).toBeTruthy();
+    });
+
+    test('open patient detail panel and verify tabs', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        // Wait for at least one patient row
+        const firstRow = page.locator('.zs-pac-table tbody tr').first();
+        await expect(firstRow).toBeVisible({ timeout: 10_000 });
+
+        // Click "Ver ficha" button on first row
+        const fichaBtn = firstRow.locator('.zs-pac-ficha-btn');
+        await expect(fichaBtn).toBeVisible({ timeout: 5_000 });
+        await fichaBtn.click();
+
+        // The drawer (detail panel) should open
+        await expect(page.locator('.zs-drawer')).toBeVisible({ timeout: 8_000 });
+
+        await page.screenshot({ path: 'test-results/paciente-detail.png' });
+
+        // Verify tabs are present: Datos, Citas, Fichas
+        await expect(page.locator('.zs-drawer__tabs')).toBeVisible();
+        await expect(page.locator('.zs-drawer__tab').filter({ hasText: /Datos/i })).toBeVisible();
+        await expect(page.locator('.zs-drawer__tab').filter({ hasText: /Citas/i })).toBeVisible();
+        await expect(page.locator('.zs-drawer__tab').filter({ hasText: /Fichas/i })).toBeVisible();
+    });
+
+    test('create clinical record (anamnesis) for patient', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        // Open first patient drawer
+        const firstRow = page.locator('.zs-pac-table tbody tr').first();
+        await expect(firstRow).toBeVisible({ timeout: 10_000 });
+        await firstRow.locator('.zs-pac-ficha-btn').click();
+        await expect(page.locator('.zs-drawer')).toBeVisible({ timeout: 8_000 });
+
+        // Click the "Fichas" tab
+        await page.locator('.zs-drawer__tab').filter({ hasText: /Fichas/i }).click();
+        await page.waitForTimeout(300);
+
+        // The clinical tab renders the patient-record-add buttons (record type buttons)
+        await expect(page.locator('.patient-clinical__actions')).toBeVisible({ timeout: 5_000 });
+
+        // Click the first record-type button (Anamnesis / the first type)
+        const firstRecordTypeBtn = page.locator('.patient-record-add').first();
+        await expect(firstRecordTypeBtn).toBeVisible({ timeout: 3_000 });
+        await firstRecordTypeBtn.click();
+
+        // A modal should appear (ClinicalRecordFormModal)
+        await expect(page.locator('[role="dialog"]').first()).toBeVisible({ timeout: 8_000 });
+        await page.screenshot({ path: 'test-results/paciente-clinical-record-modal.png' });
+
+        // Fill in first textarea
+        const textArea = page.locator('[role="dialog"] textarea').first();
+        if (await textArea.isVisible({ timeout: 3_000 }).catch(() => false)) {
+            await textArea.fill('Motivo de consulta: dolor lumbar crónico. Prueba E2E.');
+        }
+
+        // Submit the record
+        const submitBtn = page.locator('[role="dialog"]').getByRole('button', { name: /guardar|crear|aceptar/i });
+        await expect(submitBtn).toBeVisible({ timeout: 3_000 });
+        await submitBtn.click();
+
+        // Modal closes
+        await expect(page.locator('[role="dialog"]').first()).not.toBeVisible({ timeout: 8_000 });
+        await page.screenshot({ path: 'test-results/paciente-clinical-record-saved.png' });
+    });
+
+    test('export patient data button triggers download without error', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        // Open first patient drawer
+        const firstRow = page.locator('.zs-pac-table tbody tr').first();
+        await expect(firstRow).toBeVisible({ timeout: 10_000 });
+        await firstRow.locator('.zs-pac-ficha-btn').click();
+        await expect(page.locator('.zs-drawer')).toBeVisible({ timeout: 8_000 });
+
+        // The drawer "Datos" tab is active by default — scroll to see export buttons
+        const exportGdprBtn = page.getByRole('button', { name: /Exportar datos/i });
+        const exportCsvBtn = page.getByRole('button', { name: /Exportar CSV/i });
+
+        // Verify export buttons are present in the drawer
+        await expect(exportGdprBtn).toBeVisible({ timeout: 5_000 });
+        await expect(exportCsvBtn).toBeVisible({ timeout: 5_000 });
+
+        // Listen for download event (the button triggers a file download)
+        const downloadPromise = page.waitForEvent('download', { timeout: 8_000 }).catch(() => null);
+        await exportGdprBtn.click();
+        const download = await downloadPromise;
+
+        await page.screenshot({ path: 'test-results/paciente-export.png' });
+
+        // If a download started, that confirms the export works
+        // If no download (e.g., API error), check that no error toast appeared
+        const errorToast = page.locator('.sonner-toast[data-type="error"], [class*="toast-error"]');
+        const hasErrorToast = await errorToast.isVisible({ timeout: 2_000 }).catch(() => false);
+
+        if (!download && hasErrorToast) {
+            const toastText = await errorToast.textContent();
+            throw new Error(`Export failed with error toast: ${toastText}`);
+        }
+    });
+});

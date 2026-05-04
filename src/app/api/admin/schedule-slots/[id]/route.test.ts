@@ -84,6 +84,7 @@ describe('admin schedule slot delete route', () => {
 
         expect(response.status).toBe(403);
         expect(body).toEqual({ error: 'Forbidden: owner role required' });
+        expect(requirePanelAccessMock).toHaveBeenCalledWith({ ownerOnly: true });
         expect(writeAuditLogMock).not.toHaveBeenCalled();
     });
 

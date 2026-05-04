@@ -12,7 +12,8 @@ vi.mock('@/app/api/admin/_lib', () => ({
     writeAuditLog: writeAuditLogMock,
     handleApiError: (error: unknown) => {
         if (error instanceof Error) {
-            return Response.json({ error: error.message }, { status: 500 });
+            const status = 'status' in error ? Number((error as { status: unknown }).status) : 500;
+            return Response.json({ error: error.message }, { status: Number.isNaN(status) ? 500 : status });
         }
         return Response.json({ error: 'Internal Server Error' }, { status: 500 });
     },
@@ -35,11 +36,6 @@ function makeContext(patientId = PATIENT_ID) {
 }
 
 function makeSupabase(updateError: unknown = null) {
-    const is = vi.fn().mockReturnThis();
-    const eq = vi.fn().mockReturnThis();
-    const update = vi.fn().mockReturnValue({ eq, is: vi.fn().mockResolvedValue({ error: updateError }) });
-
-    // chain: .from('patients').update(...).eq(...).is(...)
     const chain = {
         update: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
@@ -65,7 +61,7 @@ describe('POST /api/admin/patients/[id]/unlink-portal', () => {
         );
 
         const response = await POST(makeRequest(), makeContext());
-        expect(response.status).toBe(500);
+        expect(response.status).toBe(401);
     });
 
     it('returns 400 for invalid UUID param', async () => {
@@ -86,6 +82,7 @@ describe('POST /api/admin/patients/[id]/unlink-portal', () => {
 
         expect(response.status).toBe(200);
         expect(body).toEqual({ ok: true });
+        expect(requirePanelAccessMock).toHaveBeenCalledWith({ ownerOnly: true });
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 action: 'UPDATE',

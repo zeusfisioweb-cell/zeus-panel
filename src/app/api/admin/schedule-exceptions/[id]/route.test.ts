@@ -15,12 +15,14 @@ const ApiRouteErrorMock = vi.hoisted(
 
 const assertSameOriginMutationMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const resolveScopedProfessionalIdMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
     assertSameOriginMutation: assertSameOriginMutationMock,
     requirePanelAccess: requirePanelAccessMock,
+    resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
     writeAuditLog: writeAuditLogMock,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
@@ -35,20 +37,25 @@ describe('admin schedule exception delete route', () => {
     beforeEach(() => {
         assertSameOriginMutationMock.mockReset();
         requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockReset();
         writeAuditLogMock.mockReset();
     });
 
-    it('deletes schedule exception and writes audit log', async () => {
+    it('owner deletes schedule exception and writes audit log', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnThis(),
+            error: undefined,
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),
         };
         requirePanelAccessMock.mockResolvedValue({
             supabase,
+            role: 'owner',
             userId: 'owner-1',
+            professionalId: null,
         });
 
         const response = await DELETE(
@@ -71,7 +78,73 @@ describe('admin schedule exception delete route', () => {
         );
     });
 
-    it('returns 403 for non-owner access', async () => {
+    it('professional deletes their own exception', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+        const deleteQuery = {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            error: undefined,
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(deleteQuery),
+        };
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+
+        const response = await DELETE(
+            new Request('http://localhost/api/admin/schedule-exceptions/pro-exception-1', { method: 'DELETE' }),
+            { params: Promise.resolve({ id: '99999999-9999-9999-9999-999999999999' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ success: true });
+        expect(deleteQuery.eq).toHaveBeenCalledWith('id', '99999999-9999-9999-9999-999999999999');
+        expect(deleteQuery.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'pro-user-1',
+                action: 'DELETE',
+                tableName: 'schedule_exceptions',
+                recordId: '99999999-9999-9999-9999-999999999999',
+            })
+        );
+    });
+
+    it('professional cannot delete another professional exception (DB filter blocks)', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+        const deleteQuery = {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            error: undefined,
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(deleteQuery),
+        };
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+
+        const response = await DELETE(
+            new Request('http://localhost/api/admin/schedule-exceptions/other-exception', { method: 'DELETE' }),
+            { params: Promise.resolve({ id: '88888888-8888-8888-8888-888888888888' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ success: true });
+        expect(deleteQuery.eq).toHaveBeenCalledWith('id', '88888888-8888-8888-8888-888888888888');
+        expect(deleteQuery.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+    });
+
+    it('returns 403 for non-owner non-professional access', async () => {
         requirePanelAccessMock.mockRejectedValue(
             new ApiRouteErrorMock(403, 'Forbidden: owner role required')
         );
@@ -97,8 +170,11 @@ describe('admin schedule exception delete route', () => {
         };
         requirePanelAccessMock.mockResolvedValue({
             supabase,
+            role: 'owner',
             userId: 'owner-1',
+            professionalId: null,
         });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
 
         const response = await DELETE(
             new Request('http://localhost/api/admin/schedule-exceptions/exception-1', { method: 'DELETE' }),

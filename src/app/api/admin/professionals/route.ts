@@ -191,14 +191,17 @@ export async function DELETE(request: Request) {
         if (countError) throw countError;
 
         if ((count ?? 0) > 0) {
-            const { error: updateAppointmentsError } = await supabase
+            const { error: cancelAppointmentsError } = await supabase
                 .from('appointments')
-                .update({ professional_id: null })
+                .update({
+                    status: 'cancelled',
+                    cancellation_reason: 'Profesional dado de baja',
+                })
                 .eq('professional_id', id)
                 .in('status', ['pending', 'confirmed'])
                 .gte('start_time', nowIso);
 
-            if (updateAppointmentsError) throw updateAppointmentsError;
+            if (cancelAppointmentsError) throw cancelAppointmentsError;
         }
 
         const { error: deleteSlotsError } = await supabase
@@ -234,7 +237,7 @@ export async function DELETE(request: Request) {
             tableName: 'professionals',
             recordId: id,
             details: {
-                reassigned_appointments: count ?? 0,
+                cancelled_appointments: count ?? 0,
                 auth_banned: authBanError === null,
                 auth_ban_error: authBanError,
             },
@@ -242,7 +245,7 @@ export async function DELETE(request: Request) {
 
         return NextResponse.json({
             success: true,
-            reassignedAppointments: count ?? 0,
+            cancelledAppointments: count ?? 0,
             ...(authBanError ? { warning: 'Auth account could not be banned' } : {}),
         });
     } catch (error: unknown) {

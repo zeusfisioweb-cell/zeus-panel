@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import { AuthProvider } from '@/lib/auth-context';
 import './globals.css';
@@ -6,6 +6,12 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Zeus Admin - Panel de Gestión',
   description: 'Panel de administración para Zeus Fisioterapia y Psicología',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Zeus Panel',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -13,6 +19,13 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/zeus-favicon.png' }],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#ad7332',
 };
 
 import Providers from './providers';

@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import Icon from '@/components/Icon';
-import type { RecordType } from '@/lib/types';
+import type { Professional, RecordType, UserRole } from '@/lib/types';
 import { RECORD_TYPE_LABELS, RECORD_TYPE_COLORS } from '@/lib/types';
 
 interface ClinicalRecordFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialType: RecordType;
-    onSubmit: (type: RecordType, recordFields: string[]) => Promise<void>;
+    onSubmit: (type: RecordType, recordFields: string[], professionalId?: string) => Promise<void>;
+    userRole?: UserRole;
+    professionals?: Professional[];
 }
 
 export const RECORD_FIELDS: Record<RecordType, { key: string; label: string; placeholder: string; required?: boolean }[]> = {
@@ -40,11 +42,18 @@ export const RECORD_FIELDS: Record<RecordType, { key: string; label: string; pla
     ],
 };
 
-export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit }: ClinicalRecordFormModalProps) {
+export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit, userRole, professionals }: ClinicalRecordFormModalProps) {
     const [recordType, setRecordType] = useState<RecordType>(initialType);
     const [recordFields, setRecordFields] = useState<string[]>([]);
     const [savingRecord, setSavingRecord] = useState(false);
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
     const firstInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const activeProfessionals = useMemo(
+        () => professionals?.filter(p => p.is_active) ?? [],
+        [professionals]
+    );
+    const isOwner = userRole === 'owner';
 
     useEffect(() => {
         if (isOpen) {
@@ -56,11 +65,17 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
         }
     }, [isOpen, initialType]);
 
+    useEffect(() => {
+        if (isOwner && activeProfessionals.length > 0 && !selectedProfessionalId) {
+            setSelectedProfessionalId(activeProfessionals[0].id);
+        }
+    }, [isOwner, activeProfessionals, selectedProfessionalId]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSavingRecord(true);
         try {
-            await onSubmit(recordType, recordFields);
+            await onSubmit(recordType, recordFields, isOwner ? selectedProfessionalId : undefined);
             onClose();
         } catch {
             // Handled by parent
@@ -105,6 +120,26 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                         ))}
                     </div>
 
+                    {isOwner && activeProfessionals.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-[var(--text-muted)]">
+                                Profesional <span className="text-red-500 ml-0.5">*</span>
+                            </label>
+                            <select
+                                className="w-full px-3 py-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-main)] focus-visible:border-[var(--brand-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(173,115,50,0.22)] transition-colors text-sm"
+                                value={selectedProfessionalId}
+                                onChange={e => setSelectedProfessionalId(e.target.value)}
+                                required
+                            >
+                                {activeProfessionals.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.profile?.full_name ?? p.id}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="space-y-4">
                         {RECORD_FIELDS[recordType].map((field, i) => (
                             <div key={`${recordType}-${i}`} className="flex flex-col gap-1.5">
@@ -113,7 +148,7 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                                 </label>
                                 <textarea
                                     ref={i === 0 ? firstInputRef : null}
-                                    className="w-full px-3 py-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-muted)] focus-visible:border-[var(--brand-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(173,115,50,0.22)] transition-colors text-sm font-inherit min-h-[80px]"
+                                    className="w-full px-3 py-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-muted)] focus-visible:border-[var(--brand-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(173,115,50,0.22)] transition-colors text-sm font-inherit min-h-[80px] resize-y"
                                     value={recordFields[i] || ''}
                                     onChange={e => {
                                         const updated = [...recordFields];
@@ -121,7 +156,6 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                                         setRecordFields(updated);
                                     }}
                                     placeholder={field.placeholder}
-                                    style={{ resize: 'vertical' }}
                                     required={field.required}
                                     minLength={field.required ? 3 : undefined}
                                 />
@@ -134,7 +168,14 @@ export function ClinicalRecordFormModal({ isOpen, onClose, initialType, onSubmit
                     <Button type="button" variant="secondary" onClick={onClose} disabled={savingRecord}>
                         Cancelar
                     </Button>
-                    <Button type="submit" variant="primary" disabled={savingRecord} isLoading={savingRecord} leftIcon={<Icon name="save" size={14} />}>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={savingRecord || (isOwner && activeProfessionals.length === 0)}
+                        isLoading={savingRecord}
+                        leftIcon={<Icon name="save" size={14} />}
+                        title={isOwner && activeProfessionals.length === 0 ? 'No hay profesionales activos para asignar' : undefined}
+                    >
                         Guardar ficha
                     </Button>
                 </div>

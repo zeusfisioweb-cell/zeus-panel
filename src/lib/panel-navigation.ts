@@ -2,7 +2,7 @@ export type PanelRole = 'owner' | 'professional' | 'client' | null | undefined;
 
 export type PanelNavItem =
   | { section: string }
-  | { href: string; icon: string; label: string; showBadge?: boolean; ownerOnly?: boolean };
+  | { href: string; icon: string; label: string; ownerOnly?: boolean };
 
 export const PROFESSIONAL_RESTRICTED_PATHS = [
   '/profesionales',
@@ -15,7 +15,7 @@ export const PROFESSIONAL_RESTRICTED_PATHS = [
 export const PANEL_NAV_ITEMS: PanelNavItem[] = [
   { section: 'Panel' },
   { href: '/', icon: 'dashboard', label: 'Resumen' },
-  { href: '/citas', icon: 'calendar', label: 'Citas', showBadge: true },
+  { href: '/citas', icon: 'calendar', label: 'Citas' },
   { section: 'Gestión' },
   { href: '/profesionales', icon: 'doctor', label: 'Profesionales', ownerOnly: true },
   { href: '/servicios', icon: 'spa', label: 'Servicios', ownerOnly: true },

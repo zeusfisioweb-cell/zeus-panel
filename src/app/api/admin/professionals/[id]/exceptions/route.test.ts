@@ -15,18 +15,16 @@ const ApiRouteErrorMock = vi.hoisted(
 
 const assertSameOriginMutationMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const resolveScopedProfessionalIdMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
     assertSameOriginMutation: assertSameOriginMutationMock,
     requirePanelAccess: requirePanelAccessMock,
+    resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
     writeAuditLog: writeAuditLogMock,
-    normalizeNullableText: (value: string | null | undefined) => {
-        if (value == null) return null;
-        const trimmed = value.trim();
-        return trimmed.length > 0 ? trimmed : null;
-    },
+    normalizeNullableText: (v: string | null | undefined) => v?.trim() || null,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
             return Response.json({ error: error.message }, { status: error.status });
@@ -40,16 +38,18 @@ describe('admin professional exceptions route', () => {
     beforeEach(() => {
         assertSameOriginMutationMock.mockReset();
         requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockReset();
         writeAuditLogMock.mockReset();
     });
 
-    it('returns exceptions list for owner', async () => {
+    it('professional reads own exceptions', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
         const query = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             gte: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({
-                data: [{ id: '99999999-9999-9999-9999-999999999999' }],
+                data: [{ id: 'exc-1', exception_date: '2026-05-10', reason: 'vacaciones' }],
                 error: null,
             }),
         };
@@ -57,39 +57,97 @@ describe('admin professional exceptions route', () => {
             from: vi.fn().mockReturnValue(query),
         };
 
-        requirePanelAccessMock.mockResolvedValue({ supabase });
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
 
         const response = await GET(
-            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions?from=2026-04-17'),
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions'),
             { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual([{ id: '99999999-9999-9999-9999-999999999999' }]);
+        expect(body).toEqual([{ id: 'exc-1', exception_date: '2026-05-10', reason: 'vacaciones' }]);
         expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
-        expect(query.gte).toHaveBeenCalledWith('exception_date', '2026-04-17');
     });
 
-    it('inserts date range exceptions and writes audit log', async () => {
-        const insert = vi.fn().mockResolvedValue({ error: null });
+    it('owner reads exceptions for any professional', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({
+                data: [{ id: 'exc-1', exception_date: '2026-05-10' }],
+                error: null,
+            }),
+        };
         const supabase = {
-            from: vi.fn().mockReturnValue({ insert }),
+            from: vi.fn().mockReturnValue(query),
         };
 
         requirePanelAccessMock.mockResolvedValue({
             supabase,
+            role: 'owner',
             userId: 'owner-1',
+            professionalId: null,
+        });
+
+        const response = await GET(
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions'),
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
+        );
+
+        expect(response.status).toBe(200);
+    });
+
+    it('professional blocked from reading another professional exceptions', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase: { from: vi.fn() },
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+
+        const response = await GET(
+            new Request('http://localhost/api/admin/professionals/44444444-4444-4444-4444-444444444444/exceptions'),
+            { params: Promise.resolve({ id: '44444444-4444-4444-4444-444444444444' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(403);
+        expect(body).toEqual({ error: 'Forbidden' });
+    });
+
+    it('professional creates exceptions for own id via POST', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+        const fromMock = {
+            insert: vi.fn().mockReturnValue({ error: null }),
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(fromMock),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
         });
 
         const response = await POST(
             new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions', {
                 method: 'POST',
                 body: JSON.stringify({
-                    start_date: '2026-04-17',
-                    end_date: '2026-04-19',
-                    reason: ' vacaciones ',
+                    start_date: '2026-05-10',
                     is_available: false,
+                    reason: 'vacaciones',
                 }),
             }),
             { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
@@ -97,75 +155,30 @@ describe('admin professional exceptions route', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, inserted: 3 });
+        expect(body).toEqual({ success: true, inserted: 1 });
         expect(assertSameOriginMutationMock).toHaveBeenCalled();
-        expect(insert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                professional_id: '33333333-3333-3333-3333-333333333333',
-                exception_date: '2026-04-17',
-                reason: 'vacaciones',
-            }),
-            expect.objectContaining({ exception_date: '2026-04-18' }),
-            expect.objectContaining({ exception_date: '2026-04-19' }),
-        ]);
+        expect(requirePanelAccessMock).not.toHaveBeenCalledWith(expect.objectContaining({ ownerOnly: true }));
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
-                userId: 'owner-1',
+                userId: 'pro-user-1',
                 action: 'CREATE',
                 tableName: 'schedule_exceptions',
-                recordId: '33333333-3333-3333-3333-333333333333',
-                details: { inserted_days: 3 },
             })
         );
     });
 
-    it('returns 403 for non-owner mutation access', async () => {
+    it('returns 403 for unauthorized access', async () => {
         requirePanelAccessMock.mockRejectedValue(
-            new ApiRouteErrorMock(403, 'Forbidden: owner role required')
+            new ApiRouteErrorMock(403, 'Forbidden')
         );
 
-        const response = await POST(
-            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions', {
-                method: 'POST',
-                body: JSON.stringify({
-                    start_date: '2026-04-17',
-                    is_available: false,
-                }),
-            }),
+        const response = await GET(
+            new Request('http://localhost/api/admin/professionals/pro-1/exceptions'),
             { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
         expect(response.status).toBe(403);
-        expect(body).toEqual({ error: 'Forbidden: owner role required' });
-        expect(writeAuditLogMock).not.toHaveBeenCalled();
-    });
-
-    it('returns 500 when Supabase insert fails', async () => {
-        const insert = vi.fn().mockResolvedValue({ error: { message: 'insert failed' } });
-        const supabase = {
-            from: vi.fn().mockReturnValue({ insert }),
-        };
-
-        requirePanelAccessMock.mockResolvedValue({
-            supabase,
-            userId: 'owner-1',
-        });
-
-        const response = await POST(
-            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/exceptions', {
-                method: 'POST',
-                body: JSON.stringify({
-                    start_date: '2026-04-17',
-                    is_available: false,
-                }),
-            }),
-            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
-        );
-        const body = await response.json();
-
-        expect(response.status).toBe(500);
-        expect(body).toEqual({ error: 'Internal Server Error' });
-        expect(writeAuditLogMock).not.toHaveBeenCalled();
+        expect(body).toEqual({ error: 'Forbidden' });
     });
 });

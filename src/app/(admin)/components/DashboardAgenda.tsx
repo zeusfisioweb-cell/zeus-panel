@@ -43,7 +43,7 @@ export function DashboardAgenda({
                 <div>
                     <h2 className="summary-v5-panel__title">Agenda de hoy</h2>
                     <p className="summary-v5-panel__hint">
-                        {todayAppointments.length} de {totalActionableCount} citas accionables
+                        {todayAppointments.length} de {totalActionableCount} citas confirmadas hoy
                     </p>
                 </div>
                 <Link href="/citas" className="btn btn--ghost btn--sm">
@@ -64,7 +64,7 @@ export function DashboardAgenda({
                         </svg>
                     </div>
                     <p className="zs-agenda-empty__title">Día libre de citas</p>
-                    <p className="zs-agenda-empty__text">Sin sesiones pendientes para hoy.</p>
+                    <p className="zs-agenda-empty__text">Sin sesiones confirmadas para hoy.</p>
                     <button className="btn btn--primary btn--sm" type="button" onClick={onNewAppointmentClick}>
                         Crear nueva cita
                     </button>
@@ -146,8 +146,8 @@ export function DashboardAgenda({
                         );
                     })}
                     {todayAppointments.length < totalActionableCount && (
-                        <li className="summary-v5-timeline__more" style={{ marginTop: '4px' }}>
-                            <Link href="/citas" className="btn btn--ghost btn--sm" style={{ width: '100%', justifyContent: 'center' }}>
+                        <li className="summary-v5-timeline__more mt-1">
+                            <Link href="/citas" className="btn btn--ghost btn--sm w-full justify-center">
                                 Ver las {totalActionableCount - todayAppointments.length} citas restantes
                             </Link>
                         </li>

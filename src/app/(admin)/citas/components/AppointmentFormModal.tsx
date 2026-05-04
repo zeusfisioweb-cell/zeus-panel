@@ -196,18 +196,18 @@ export function AppointmentFormModal({
             bodyClassName="modal__body--appointment"
         >
             <form onSubmit={hookFormSubmit(onValidSubmit)} className="appointment-form">
-                <div className="appointment-form__content" style={{ padding: '24px 32px' }}>
-                    <section className="appointment-form__section" style={{ border: 'none', background: 'transparent', padding: 0, marginBottom: 32 }}>
-                        <header className="appointment-form__section-head" style={{ marginBottom: 16 }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--brand-main)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                <div className="appointment-form__content p-6 px-8">
+                    <section className="appointment-form__section border-none bg-transparent p-0 mb-8">
+                        <header className="appointment-form__section-head mb-4">
+                            <h4 className="text-sm font-extrabold text-[var(--brand-main)] uppercase tracking-[0.05em] !m-0 mb-1">
                                 Paciente
                             </h4>
-                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+                            <p className="text-[13px] text-[var(--text-muted)] !m-0">
                                 Busca uno existente o completa los datos básicos.
                             </p>
                         </header>
 
-                        <div className="appointment-form__field appointment-form__field--search" style={{ marginBottom: 20 }}>
+                        <div className="appointment-form__field appointment-form__field--search mb-5">
                             <label className="appointment-form__label" htmlFor={patientSearchId}>
                                 Buscar paciente
                             </label>
@@ -258,7 +258,7 @@ export function AppointmentFormModal({
                             )}
                         </div>
 
-                        <div className="appointment-form__grid appointment-form__grid--2" style={{ gap: '16px' }}>
+                        <div className="appointment-form__grid appointment-form__grid--2 gap-4">
                             <div>
                                 <Input
                                     label="DNI/NIE *"
@@ -298,14 +298,14 @@ export function AppointmentFormModal({
                         </div>
                     </section>
 
-                    <section className="appointment-form__section" style={{ border: 'none', background: 'transparent', padding: 0, marginBottom: 32 }}>
-                        <header className="appointment-form__section-head" style={{ marginBottom: 16 }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--brand-main)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                    <section className="appointment-form__section border-none bg-transparent p-0 mb-8">
+                        <header className="appointment-form__section-head mb-4">
+                            <h4 className="text-sm font-extrabold text-[var(--brand-main)] uppercase tracking-[0.05em] !m-0 mb-1">
                                 Servicio y Profesional
                             </h4>
                         </header>
 
-                        <div className="appointment-form__grid appointment-form__grid--2" style={{ gap: '16px' }}>
+                        <div className="appointment-form__grid appointment-form__grid--2 gap-4">
                             <div>
                                 <label className="appointment-form__label" htmlFor={serviceSelectId}>
                                     Servicio *
@@ -343,17 +343,17 @@ export function AppointmentFormModal({
                         </div>
                     </section>
 
-                    <section className="appointment-form__section" style={{ border: 'none', background: 'transparent', padding: 0 }}>
-                        <header className="appointment-form__section-head" style={{ marginBottom: 16 }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--brand-main)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px 0' }}>
+                    <section className="appointment-form__section border-none bg-transparent p-0">
+                        <header className="appointment-form__section-head mb-4">
+                            <h4 className="text-sm font-extrabold text-[var(--brand-main)] uppercase tracking-[0.05em] !m-0 mb-1">
                                 Horario y Notas
                             </h4>
-                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+                            <p className="text-[13px] text-[var(--text-muted)] !m-0">
                                 {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'short' })} | ajusta hora y notas.
                             </p>
                         </header>
 
-                        <div className="appointment-form__grid appointment-form__grid--2" style={{ gap: '16px' }}>
+                        <div className="appointment-form__grid appointment-form__grid--2 gap-4">
                             <div>
                                 <label className="appointment-form__label" htmlFor={dateInputId}>
                                     Fecha *
@@ -370,7 +370,7 @@ export function AppointmentFormModal({
                                 {errors.time && <span className="appointment-form__error">{errors.time.message}</span>}
                             </div>
 
-                            <div style={{ gridColumn: '1 / -1' }}>
+                            <div className="col-span-full">
                                 <label className="appointment-form__label" htmlFor={notesInputId}>
                                     Notas
                                 </label>
@@ -385,7 +385,7 @@ export function AppointmentFormModal({
                     </section>
                 </div>
 
-                <div className="modal__footer" style={{ padding: '16px 32px' }}>
+                <div className="modal__footer py-4 px-8">
                     <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
                         Cancelar
                     </Button>

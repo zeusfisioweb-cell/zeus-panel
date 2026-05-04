@@ -4,8 +4,6 @@ import { NextResponse, type NextRequest } from 'next/server'
 function isPublicPath(pathname: string): boolean {
     return pathname.startsWith('/auth')
         || pathname === '/login'
-        || pathname === '/portal/login'
-        || pathname === '/portal/cancel-confirm'
 }
 
 export async function updateSession(request: NextRequest) {
@@ -45,9 +43,7 @@ export async function updateSession(request: NextRequest) {
 
     if (!user && !isPublicPath(request.nextUrl.pathname)) {
         const url = request.nextUrl.clone()
-        url.pathname = request.nextUrl.pathname.startsWith('/portal')
-            ? '/portal/login'
-            : '/login'
+        url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 

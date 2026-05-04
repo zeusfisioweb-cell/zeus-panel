@@ -31,7 +31,7 @@ function MetricCard({
     badge?: { text: string; color: string };
 }) {
     return (
-        <Link href={href} className="zs-kpi-link" style={{ textDecoration: 'none' }}>
+        <Link href={href} className="zs-kpi-link no-underline">
             <article className={`zs-kpi zs-kpi--${tone}`}>
                 <div className="zs-kpi__top">
                     <p className="zs-kpi__label">{label}</p>
@@ -40,17 +40,10 @@ function MetricCard({
                 <p className="zs-kpi__value">{value}</p>
                 {badge ? (
                     <p className="zs-kpi__hint">
-                        <span style={{
-                            display: 'inline-block',
-                            padding: '1px 7px',
-                            borderRadius: '999px',
-                            fontSize: 10,
-                            fontWeight: 800,
-                            letterSpacing: '0.05em',
-                            background: badge.color,
-                            color: '#fff',
-                            marginRight: 5,
-                        }}>{badge.text}</span>
+                        <span
+                            className="inline-block py-px px-[7px] rounded-full text-[10px] font-extrabold tracking-[0.05em] text-white mr-[5px]"
+                            style={{ background: badge.color }}
+                        >{badge.text}</span>
                         {hint}
                     </p>
                 ) : (
@@ -70,14 +63,13 @@ export function DashboardStats({ stats, globalStats, todayAppointments }: Dashbo
     // Derived today metrics (exclude cancelled from totals)
     const totalToday = todayAppointments.filter((a) => a.status !== 'cancelled').length;
     const completedToday = todayAppointments.filter((a) => a.status === 'completed').length;
-    const pendingToday = todayAppointments.filter((a) => a.status === 'pending').length;
     const remainingToday = todayAppointments.filter(
-        (a) => (a.status === 'pending' || a.status === 'confirmed') && new Date(a.end_time) > now
+        (a) => a.status === 'confirmed' && new Date(a.end_time) > now
     ).length;
 
     // Next upcoming appointment
     const nextApt = todayAppointments
-        .filter((a) => (a.status === 'pending' || a.status === 'confirmed') && new Date(a.start_time) > now)
+        .filter((a) => a.status === 'confirmed' && new Date(a.start_time) > now)
         .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
 
     const nextTime = nextApt
@@ -86,9 +78,6 @@ export function DashboardStats({ stats, globalStats, todayAppointments }: Dashbo
 
     // Progress % of today
     const progressPct = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
-
-    // Global pending needing attention
-    const globalPending = globalStats.globalStatus.pending;
 
     return (
         <section className="summary-v5-kpis" aria-label="Indicadores del día">
@@ -154,21 +143,16 @@ export function DashboardStats({ stats, globalStats, todayAppointments }: Dashbo
                     />
                 )}
 
-                {/* 4 — Alertas: pendientes de confirmar */}
+                {/* 4 — Esta semana */}
                 <MetricCard
-                    tone={globalPending > 0 ? 'warning' : 'success'}
-                    label={globalPending > 0 ? 'Sin confirmar' : 'Todo confirmado'}
-                    value={globalPending > 0 ? globalPending : '✓'}
-                    hint={
-                        globalPending > 0
-                            ? 'solicitudes esperando tu acción'
-                            : `${pendingToday === 0 ? 'ninguna' : pendingToday} sin resolver hoy`
-                    }
-                    href="/citas?status=pending"
-                    badge={globalPending > 5 ? { text: 'URGENTE', color: '#dc2626' } : undefined}
+                    tone="info"
+                    label="Esta semana"
+                    value={stats.weekCount}
+                    hint="citas programadas"
+                    href="/citas"
                     icon={
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/>
                         </svg>
                     }
                 />
@@ -177,8 +161,8 @@ export function DashboardStats({ stats, globalStats, todayAppointments }: Dashbo
 
             <p className="summary-v5-context-inline">
                 {isOwner
-                    ? `Hoy: ${totalToday} citas · ${completedToday} completadas · ${globalPending} sin confirmar · ${stats.totalPatients} pacientes.`
-                    : `Tienes ${remainingToday} citas pendientes de atender hoy y ${globalPending} solicitudes por confirmar.`}
+                    ? `Hoy: ${totalToday} citas · ${completedToday} completadas · ${stats.totalPatients} pacientes.`
+                    : `Tienes ${remainingToday} citas confirmadas por atender hoy.`}
             </p>
         </section>
     );

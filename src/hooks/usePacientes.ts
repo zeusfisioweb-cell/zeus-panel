@@ -1,20 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Patient } from '@/lib/types';
+import { readApiError } from '@/lib/api-helpers';
 
 export const PATIENTS_QUERY_KEY = ['pacientes'];
 
-async function readApiError(response: Response): Promise<string> {
-    try {
-        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
-        if (body.details) {
-            const firstField = Object.values(body.details).flat()[0];
-            if (firstField) return firstField;
-        }
-        return body.error || 'Error de servidor';
-    } catch {
-        return 'Error de servidor';
-    }
-}
 
 export function usePacientes(options?: { searchTerm?: string; page?: number; pageSize?: number }) {
     const { searchTerm = '', page = 1, pageSize = 50 } = options || {};

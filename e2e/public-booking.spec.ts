@@ -30,7 +30,11 @@ async function mockSupabaseRest(
   });
 }
 
-test.describe('public booking flow', () => {
+// NOTE: These tests are skipped because the public booking flow has been migrated
+// to the portal Next.js app (/portal/reservar). The web/citas.html page no longer
+// includes the interactive booking widget (booking.js). These tests need to be
+// rewritten to target the portal booking flow instead.
+test.describe.skip('public booking flow', () => {
   test('does not show fallback professionals when a service has no linked professional', async ({ page }) => {
     let professionalsRequests = 0;
 

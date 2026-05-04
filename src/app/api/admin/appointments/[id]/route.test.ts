@@ -36,6 +36,48 @@ describe('admin appointment delete route RBAC', () => {
         writeAuditLogMock.mockReset();
     });
 
+    it('owner deletes appointment without professional_id filter', async () => {
+        const query = {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: '66666666-6666-6666-6666-666666666666' },
+                error: null,
+            }),
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(query),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await DELETE(
+            new Request('http://localhost/api/admin/appointments/appointment-1', { method: 'DELETE' }),
+            { params: Promise.resolve({ id: '66666666-6666-6666-6666-666666666666' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ success: true });
+        expect(query.eq).toHaveBeenCalledWith('id', '66666666-6666-6666-6666-666666666666');
+        expect(query.eq).not.toHaveBeenCalledWith('professional_id', expect.anything());
+        expect(writeAuditLogMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'owner-1',
+                action: 'DELETE',
+                tableName: 'appointments',
+                recordId: '66666666-6666-6666-6666-666666666666',
+            })
+        );
+    });
+
     it('filters delete by professional_id when requester is professional', async () => {
         const query = {
             delete: vi.fn().mockReturnThis(),

@@ -4,7 +4,6 @@ import { AppointmentInsertSchema, AppointmentUpdateSchema } from '@/lib/schemas'
 import {
     assertSameOriginMutation,
     ApiRouteError,
-    ensurePatientAccess,
     getBookingSettings,
     handleApiError,
     requirePanelAccess,
@@ -13,13 +12,14 @@ import {
 } from '../_lib';
 import { isAlignedToInterval, findConflict, canCancel } from '@/lib/booking-validation';
 import { sendAppointmentWhatsApp } from '@/lib/whatsapp';
+import { sendPanelAppointmentPush } from '@/lib/push-notifications';
 import type { Appointment } from '@/lib/types';
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Invalid date format' });
 
 const getAppointmentsQuerySchema = z.object({
-    start_date: z.union([z.string().datetime(), isoDateSchema]).optional(),
-    end_date: z.union([z.string().datetime(), isoDateSchema]).optional(),
+    start_date: z.union([z.string().datetime({ offset: true }), isoDateSchema]).optional(),
+    end_date: z.union([z.string().datetime({ offset: true }), isoDateSchema]).optional(),
 });
 
 const updateAppointmentSchema = AppointmentUpdateSchema.extend({
@@ -170,15 +170,6 @@ export async function POST(request: Request) {
         const rawBody = await request.json();
         const parsed = AppointmentInsertSchema.parse(rawBody);
 
-        if (scopedProfessionalId && parsed.patient_id) {
-            await ensurePatientAccess({
-                supabase,
-                role,
-                professionalId: scopedProfessionalId,
-                patientId: parsed.patient_id,
-            });
-        }
-
         if (scopedProfessionalId) {
             await ensureProfessionalServiceAccess(supabase, scopedProfessionalId, parsed.service_id);
         }
@@ -235,6 +226,12 @@ export async function POST(request: Request) {
 
         const normalized = normalizeAppointmentRow(data);
         void sendWhatsAppForAppointment(normalized, false);
+        void sendPanelAppointmentPush({
+            kind: 'created',
+            patientName: normalized.patient_name ?? '',
+            serviceName: normalized.service?.name ?? '',
+            startTime: normalized.start_time,
+        });
 
         return NextResponse.json(normalized);
     } catch (error: unknown) {
@@ -264,6 +261,7 @@ export async function PATCH(request: Request) {
         }
 
         const isCancelling = cleanPayload.status === 'cancelled';
+        const isConfirming = cleanPayload.status === 'confirmed';
         const isChangingTiming = 'start_time' in cleanPayload || 'end_time' in cleanPayload || 'professional_id' in cleanPayload;
 
         type CurrentAppt = {
@@ -277,7 +275,7 @@ export async function PATCH(request: Request) {
 
         let currentAppt: CurrentAppt | null = null;
 
-        if (scopedProfessionalId || isCancelling || isChangingTiming) {
+        if (scopedProfessionalId || isCancelling || isConfirming || isChangingTiming) {
             const { data: curr, error: currErr } = await supabase
                 .from('appointments')
                 .select('id, patient_id, professional_id, start_time, end_time, status')
@@ -310,11 +308,18 @@ export async function PATCH(request: Request) {
             }
         }
 
-        if (isChangingTiming && currentAppt) {
+        const isReconfirmingCancelled = isConfirming && currentAppt && currentAppt.status === 'cancelled';
+        const needsConflictCheck = isChangingTiming || isReconfirmingCancelled;
+
+        if (needsConflictCheck && currentAppt) {
             const settings = await getBookingSettings(supabase);
-            const effectiveStart = (cleanPayload.start_time as string | undefined) ?? currentAppt.start_time;
-            const effectiveEnd = (cleanPayload.end_time as string | undefined) ?? currentAppt.end_time;
-            const effectiveProfId = ('professional_id' in cleanPayload)
+            const effectiveStart = isChangingTiming
+                ? ((cleanPayload.start_time as string | undefined) ?? currentAppt.start_time)
+                : currentAppt.start_time;
+            const effectiveEnd = isChangingTiming
+                ? ((cleanPayload.end_time as string | undefined) ?? currentAppt.end_time)
+                : currentAppt.end_time;
+            const effectiveProfId = isChangingTiming && 'professional_id' in cleanPayload
                 ? (cleanPayload.professional_id as string | null)
                 : currentAppt.professional_id;
 
@@ -373,8 +378,16 @@ export async function PATCH(request: Request) {
 
         if (isChangingTiming) {
             void sendWhatsAppForAppointment(updated, true);
-        } else if (cleanPayload.status === 'confirmed' && currentAppt?.status !== 'confirmed') {
+        } else if (isConfirming && currentAppt && currentAppt.status !== 'confirmed') {
             void sendWhatsAppForAppointment(updated, false);
+        }
+        if (isCancelling && currentAppt && currentAppt.status !== 'cancelled') {
+            void sendPanelAppointmentPush({
+                kind: 'cancelled',
+                patientName: updated.patient_name ?? '',
+                serviceName: updated.service?.name ?? '',
+                startTime: updated.start_time,
+            });
         }
 
         return NextResponse.json(updated);

@@ -96,4 +96,82 @@ describe('admin schedule exceptions route RBAC', () => {
             })
         );
     });
+
+    it('owner GET returns all exceptions without filtering by professional_id', async () => {
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            lte: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            data: [{ id: 'exc-1', professional_id: '11111111-1111-1111-1111-111111111111' }, { id: 'exc-2', professional_id: '22222222-2222-2222-2222-222222222222' }],
+            error: null,
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(query),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await GET(
+            new Request('http://localhost/api/admin/schedule-exceptions')
+        );
+
+        expect(response.status).toBe(200);
+        const body = await response.json();
+        expect(body).toHaveLength(2);
+        expect(query.eq).not.toHaveBeenCalled();
+    });
+
+    it('owner POST creates exception with requested professional_id', async () => {
+        const single = vi.fn().mockResolvedValue({
+            data: { id: '99999999-9999-9999-9999-999999999999', professional_id: '44444444-4444-4444-4444-444444444444' },
+            error: null,
+        });
+        const select = vi.fn().mockReturnValue({ single });
+        const insert = vi.fn().mockReturnValue({ select });
+        const supabase = {
+            from: vi.fn().mockReturnValue({ insert }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'owner',
+            userId: 'owner-1',
+            professionalId: null,
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+
+        const response = await POST(
+            new Request('http://localhost/api/admin/schedule-exceptions', {
+                method: 'POST',
+                body: JSON.stringify({
+                    professional_id: '44444444-4444-4444-4444-444444444444',
+                    exception_date: '2026-04-17',
+                    is_available: false,
+                    reason: 'vacaciones',
+                }),
+            })
+        );
+
+        expect(response.status).toBe(200);
+        expect(insert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                professional_id: '44444444-4444-4444-4444-444444444444',
+            })
+        );
+        expect(writeAuditLogMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'owner-1',
+                action: 'CREATE',
+                tableName: 'schedule_exceptions',
+            })
+        );
+    });
 });

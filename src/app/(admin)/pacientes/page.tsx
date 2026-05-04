@@ -11,19 +11,8 @@ import { PacientesHeader } from './components/PacientesHeader';
 import { PacientesTable } from './components/PacientesTable';
 import { PatientDetailsPanel } from './components/PatientDetailsPanel';
 import { PatientFormData, PatientFormModal } from './components/PatientFormModal';
+import { readApiError } from '@/lib/api-helpers';
 
-async function readApiError(response: Response): Promise<string> {
-    try {
-        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
-        if (body.details) {
-            const firstField = Object.values(body.details).flat()[0];
-            if (firstField) return firstField;
-        }
-        return body.error || 'Error de servidor';
-    } catch {
-        return 'Error de servidor';
-    }
-}
 
 export default function PacientesPage() {
     const [search, setSearch] = useState('');
@@ -237,7 +226,7 @@ export default function PacientesPage() {
 
     if (isLoadingPatients) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+            <div className="flex items-center justify-center min-h-[400px]">
                 <div className="spinner" />
             </div>
         );

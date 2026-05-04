@@ -93,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [profile]);
 
     const fetchProfile = useCallback(async (userId: string) => {
+        const shouldBlockUI = !profileRef.current;
+
         // If there's already an in-flight request for this user, reuse it
         if (fetchProfileRef.current) {
             await fetchProfileRef.current;
@@ -104,7 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const callId = ++fetchCallIdRef.current;
         // Only block the whole app while bootstrapping.
         // If a profile is already present, refresh in background to avoid full-screen flicker.
-        const shouldBlockUI = !profileRef.current;
         if (shouldBlockUI) {
             setLoading(true);
         }
@@ -159,6 +160,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 const { data, error } = result;
                 if (error || !data) {
+                    // 403 Forbidden is expected for portal-only users (no admin access).
+                    // Treat as "no profile" instead of an error to avoid noise.
+                    if (error?.message?.includes('403') || error?.message?.includes('Forbidden')) {
+                        if (!profileRef.current) {
+                            setProfile(null);
+                            setProfileError(false);
+                        }
+                        return;
+                    }
                     console.error('Error fetching profile:', error?.message);
                     if (!profileRef.current) {
                         setProfile(null);

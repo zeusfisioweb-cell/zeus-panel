@@ -4,6 +4,9 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AppointmentRealtimeNotifications } from '@/components/AppointmentRealtimeNotifications';
+import { PushNotificationsBootstrap } from '@/components/PushNotificationsBootstrap';
 import { Toaster } from 'sonner';
 import { getPanelSectionTitle, isRestrictedForProfessional } from '@/lib/panel-navigation';
 
@@ -70,10 +73,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         if (loadingStuck) {
             return (
                 <div className="loading-page">
-                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+                    <p className="text-sm text-[var(--text-muted)] mb-3">
                         La carga del panel esta tardando demasiado.
                     </p>
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div className="flex gap-2.5">
                         <button
                             onClick={() => {
                                 setLoadingStuck(false);
@@ -100,7 +103,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Cargando panel...</p>
+                <p className="text-[13px] text-[var(--text-muted)]">Cargando panel...</p>
             </div>
         );
     }
@@ -109,7 +112,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Redirigiendo...</p>
+                <p className="text-[13px] text-[var(--text-muted)]">Redirigiendo...</p>
             </div>
         );
     }
@@ -117,10 +120,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (!profile && profileError) {
         return (
             <div className="loading-page">
-                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+                <p className="text-sm text-[var(--text-muted)] mb-3">
                     Error al cargar el perfil de usuario.
                 </p>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div className="flex gap-2.5">
                     <button
                         onClick={() => {
                             void refreshProfile();
@@ -147,10 +150,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         if (profileStuck) {
             return (
                 <div className="loading-page">
-                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+                    <p className="text-sm text-[var(--text-muted)] mb-3">
                         No se pudo cargar el perfil. Vuelve a iniciar sesión.
                     </p>
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div className="flex gap-2.5">
                         <button
                             onClick={() => {
                                 void refreshProfile();
@@ -176,7 +179,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Cargando perfil...</p>
+                <p className="text-[13px] text-[var(--text-muted)]">Cargando perfil...</p>
             </div>
         );
     }
@@ -185,7 +188,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         return (
             <div className="loading-page">
                 <div className="spinner" />
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin permisos. Redirigiendo...</p>
+                <p className="text-[13px] text-[var(--text-muted)]">Sin permisos. Redirigiendo...</p>
             </div>
         );
     }
@@ -195,7 +198,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             return (
                 <div className="loading-page">
                     <div className="spinner" />
-                    <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Area restringida. Volviendo al inicio...</p>
+                    <p className="text-[13px] text-[var(--text-muted)]">Area restringida. Volviendo al inicio...</p>
                 </div>
             );
         }
@@ -231,7 +234,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         </div>
                     </div>
                 )}
-                {children}
+                <ErrorBoundary>{children}</ErrorBoundary>
             </main>
             <Toaster
                 position="top-right"
@@ -245,6 +248,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     className: 'font-sans',
                 }}
             />
+            <AppointmentRealtimeNotifications />
+            <PushNotificationsBootstrap />
         </div>
     );
 }

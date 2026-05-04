@@ -23,7 +23,6 @@ interface StatusBreakdownItem {
 interface DashboardChartsProps {
     sessionBreakdown: SessionBreakdownItem[];
     statusBreakdown: StatusBreakdownItem[];
-    pendingCount: number;
     totalActionableCount: number;
     globalTotalSessions: number;
 }
@@ -31,7 +30,6 @@ interface DashboardChartsProps {
 export function DashboardCharts({
     sessionBreakdown,
     statusBreakdown,
-    pendingCount,
     totalActionableCount,
     globalTotalSessions,
 }: DashboardChartsProps) {
@@ -88,32 +86,20 @@ export function DashboardCharts({
             </div>
 
             {/* Row 2: Patients growth — full width, same card style */}
-            <div className="zs-charts-card" style={{ padding: '24px' }}>
+            <div className="zs-charts-card p-6">
                 <PatientsGrowthChart />
             </div>
 
-            {/* Alert / CTA */}
-            {pendingCount > 0 ? (
-                <Link href="/citas?status=pending" style={{ textDecoration: 'none' }}>
-                    <div className="zs-alert zs-alert--warning zs-alert--interactive">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                        <span>{pendingCount} citas pendientes de confirmación</span>
-                        <span className="zs-alert__cta">ver →</span>
-                    </div>
-                </Link>
-            ) : (
-                <div className="zs-alert zs-alert--ok">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <span>Operación estable — {totalActionableCount} citas en seguimiento</span>
-                </div>
-            )}
+            {/* Status summary */}
+            <div className="zs-alert zs-alert--ok">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Operación estable — {totalActionableCount} citas en seguimiento</span>
+            </div>
 
             <div className="zs-charts-actions">
-                <Link href="/citas" className="btn btn--primary" style={{ width: '100%', textAlign: 'center' }}>
+                <Link href="/citas" className="btn btn--primary w-full text-center">
                     Abrir agenda completa
                 </Link>
             </div>

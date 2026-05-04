@@ -109,7 +109,7 @@ export default function ConfirmModal({
                 tabIndex={-1}
             >
                 <div className="modal__header">
-                    <h3 id={titleId} className="modal__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 id={titleId} className="modal__title flex items-center gap-2">
                         <Icon name={VARIANT_ICON[variant]} size={18} style={{ color: VARIANT_COLOR[variant] }} />
                         {title}
                     </h3>
@@ -118,7 +118,7 @@ export default function ConfirmModal({
                     </button>
                 </div>
                 <div className="modal__body">
-                    <p id={descriptionId} style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    <p id={descriptionId} className="text-sm text-[var(--text-muted)] leading-relaxed">
                         {message}
                     </p>
                 </div>

@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { GET, PATCH, POST } from './route';
 
 const getProfessionalPatientIdsMock = vi.hoisted(() => vi.fn());
+const ensurePatientAccessMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 const resolveScopedProfessionalIdMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
 const getAdminSupabaseMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../_lib', () => ({
-    ensurePatientAccess: vi.fn(),
+    ensurePatientAccess: ensurePatientAccessMock,
     getProfessionalPatientIds: getProfessionalPatientIdsMock,
     handleApiError: (error: unknown) => {
         if (error instanceof z.ZodError) {
@@ -28,6 +29,7 @@ vi.mock('../_lib', () => ({
 describe('admin patients route RBAC', () => {
     beforeEach(() => {
         getProfessionalPatientIdsMock.mockReset();
+        ensurePatientAccessMock.mockReset();
         requirePanelAccessMock.mockReset();
         resolveScopedProfessionalIdMock.mockReset();
         writeAuditLogMock.mockReset();
@@ -330,5 +332,46 @@ describe('admin patients route RBAC', () => {
         expect(body).toEqual({ error: 'Debe proporcionar al menos un correo o número de teléfono' });
         expect(update).not.toHaveBeenCalled();
         expect(writeAuditLogMock).not.toHaveBeenCalled();
+    });
+
+    it('professional patches assigned patient successfully', async () => {
+        const single = vi.fn().mockResolvedValue({
+            data: { id: '11111111-1111-1111-1111-111111111111', first_name: 'Updated' },
+            error: null,
+        });
+        const supabase = {
+            from: vi.fn((table: string) => {
+                if (table !== 'patients') throw new Error(`Unexpected table ${table}`);
+                return { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnValue({ single }) };
+            }),
+        };
+
+        ensurePatientAccessMock.mockResolvedValue(undefined);
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+
+        const response = await PATCH(new Request('http://localhost/api/admin/patients', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                id: '11111111-1111-1111-1111-111111111111',
+                first_name: 'Updated',
+            }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.first_name).toBe('Updated');
+        expect(ensurePatientAccessMock).toHaveBeenCalledWith(expect.objectContaining({
+            patientId: '11111111-1111-1111-1111-111111111111',
+        }));
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'UPDATE',
+            tableName: 'patients',
+        }));
     });
 });

@@ -15,24 +15,17 @@ export default function PacientesError({
     }, [error]);
 
     return (
-        <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', padding: '80px 24px', gap: 16
-        }}>
-            <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: 'var(--danger-bg)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center'
-            }}>
+        <div className="flex flex-col items-center justify-center py-20 px-6 gap-4">
+            <div className="w-14 h-14 rounded-full bg-[var(--danger-bg)] flex items-center justify-center">
                 <Icon name="alert-triangle" size={24} className="text-red-500" />
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+            <h2 className="text-lg font-semibold text-[var(--text-main)] !m-0">
                 Error al cargar pacientes
             </h2>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0, textAlign: 'center' }}>
+            <p className="text-sm text-[var(--text-muted)] !m-0 text-center">
                 {error.message || 'Ocurrió un error inesperado. Inténtalo de nuevo.'}
             </p>
-            <button onClick={reset} className="btn btn--primary" style={{ marginTop: 8 }}>
+            <button onClick={reset} className="btn btn--primary mt-2">
                 Reintentar
             </button>
         </div>

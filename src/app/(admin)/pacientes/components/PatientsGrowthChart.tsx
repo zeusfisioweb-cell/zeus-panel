@@ -116,7 +116,7 @@ export function PatientsGrowthChart() {
 
             {isLoading ? (
                 <div className="zs-pgc__loading">
-                    <div className="spinner" style={{ width: 24, height: 24 }} />
+                    <div className="spinner w-6 h-6" />
                 </div>
             ) : points.length === 0 ? (
                 <div className="zs-pgc__empty">Sin datos suficientes para este periodo</div>

@@ -150,7 +150,6 @@ export interface DashboardSessionBreakdownItem {
 }
 
 export interface DashboardGlobalStatus {
-    pending: number;
     confirmed: number;
     completed: number;
     cancelled: number;
@@ -160,7 +159,6 @@ export interface DashboardStatsSummary {
     todayCount: number;
     weekCount: number;
     totalPatients: number;
-    pendingCount: number;
 }
 
 export interface DashboardGlobalStats {

@@ -122,4 +122,58 @@ describe('admin clinical record delete RBAC', () => {
             recordId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         }));
     });
+
+    it('professional deletes own clinical record successfully', async () => {
+        const maybeSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                patient_id: '11111111-1111-1111-1111-111111111111',
+                professional_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            },
+            error: null,
+        });
+        const recordQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle,
+        };
+        const deleteEq = vi.fn().mockReturnThis();
+        const deleteQuery = {
+            delete: vi.fn().mockReturnThis(),
+            eq: deleteEq,
+            error: undefined,
+        };
+        let callCount = 0;
+        const supabase = {
+            from: vi.fn(() => {
+                callCount++;
+                if (callCount === 1) return recordQuery;
+                return deleteQuery;
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+            professionalId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+        });
+        ensurePatientAccessMock.mockResolvedValue(undefined);
+
+        const response = await DELETE(
+            new Request('http://localhost/api/admin/clinical-records/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+            { params: Promise.resolve({ id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ success: true });
+        expect(deleteEq).toHaveBeenCalledWith('id', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+        expect(deleteEq).toHaveBeenCalledWith('professional_id', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'DELETE',
+            tableName: 'clinical_records',
+            recordId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        }));
+    });
 });

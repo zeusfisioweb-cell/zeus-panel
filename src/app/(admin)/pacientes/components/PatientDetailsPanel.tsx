@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import type { Patient, Appointment, ClinicalRecord, RecordType } from '@/lib/types';
+import type { Patient, Appointment, ClinicalRecord, RecordType, UserRole } from '@/lib/types';
 import { RECORD_TYPE_LABELS, RECORD_TYPE_COLORS, STATUS_LABELS } from '@/lib/types';
 
 type DetailTab = 'datos' | 'citas' | 'clinico';
@@ -37,6 +37,7 @@ interface PatientDetailsPanelProps {
     onNewRecord: (type: RecordType) => void;
     onDeleteRecord: (id: string) => void;
     onUnlinkPortal?: (id: string) => void;
+    userRole?: UserRole;
 }
 
 function getAge(birthDate: string): number {
@@ -57,7 +58,9 @@ export function PatientDetailsPanel({
     onNewRecord,
     onDeleteRecord,
     onUnlinkPortal,
+    userRole,
 }: PatientDetailsPanelProps) {
+    const isOwner = userRole === 'owner';
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
     const [exporting, setExporting] = useState(false);
     const [exportingCsv, setExportingCsv] = useState(false);
@@ -185,50 +188,54 @@ export function PatientDetailsPanel({
             </div>
 
             <div className="patient-detail-danger">
-                {hasPortalAccount && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleUnlinkPortal}
-                        disabled={unlinking}
-                        isLoading={unlinking}
-                        leftIcon={<Icon name="close" size={14} />}
-                    >
-                        Desvincular cuenta portal
-                    </Button>
+                {isOwner && (
+                    <>
+                        {hasPortalAccount && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleUnlinkPortal}
+                                disabled={unlinking}
+                                isLoading={unlinking}
+                                leftIcon={<Icon name="close" size={14} />}
+                            >
+                                Desvincular cuenta portal
+                            </Button>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleExportGdpr}
+                            disabled={exporting}
+                            leftIcon={<Icon name="download" size={14} />}
+                            isLoading={exporting}
+                        >
+                            Exportar datos (RGPD)
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleExportCsv}
+                            disabled={exportingCsv}
+                            leftIcon={<Icon name="download" size={14} />}
+                            isLoading={exportingCsv}
+                        >
+                            Exportar CSV
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => onDelete(patient.id)}
+                            leftIcon={<Icon name="trash" size={14} />}
+                        >
+                            Eliminar permanentemente
+                        </Button>
+                        <p>
+                            Cumplimiento RGPD: exporta o elimina los datos identificables del paciente.
+                        </p>
+                    </>
                 )}
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleExportGdpr}
-                    disabled={exporting}
-                    leftIcon={<Icon name="download" size={14} />}
-                    isLoading={exporting}
-                >
-                    Exportar datos (RGPD)
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleExportCsv}
-                    disabled={exportingCsv}
-                    leftIcon={<Icon name="download" size={14} />}
-                    isLoading={exportingCsv}
-                >
-                    Exportar CSV
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => onDelete(patient.id)}
-                    leftIcon={<Icon name="trash" size={14} />}
-                >
-                    Eliminar permanentemente
-                </Button>
-                <p>
-                    Cumplimiento RGPD: exporta o elimina los datos identificables del paciente.
-                </p>
             </div>
         </div>
     );

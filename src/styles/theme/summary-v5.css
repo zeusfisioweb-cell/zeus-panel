@@ -357,7 +357,7 @@
 
 .admin-shell--modern.admin-shell--summary .summary-v5__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(380px, 1fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }

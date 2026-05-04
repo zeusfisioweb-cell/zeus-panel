@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays, addDays } from 'date-fns';
@@ -46,7 +45,6 @@ function hasProfessionalOverlap(
 }
 
 export default function DashboardPage() {
-    const [supabase] = useState(() => createClient());
     const queryClient = useQueryClient();
     const { profile } = useAuth();
 
@@ -84,13 +82,12 @@ export default function DashboardPage() {
         todayCount: 0,
         weekCount: 0,
         totalPatients: 0,
-        pendingCount: 0,
     };
     const defaultGlobalStats: DashboardGlobalStats = {
         estimatedRevenue: 0,
         totalGlobalAppointments: 0,
         sessionBreakdown: [],
-        globalStatus: { pending: 0, confirmed: 0, completed: 0, cancelled: 0 },
+        globalStatus: { confirmed: 0, completed: 0, cancelled: 0 },
     };
 
     const {
@@ -114,43 +111,6 @@ export default function DashboardPage() {
         };
     }, []);
     const { data: todayAllAppointments = [] } = useCitas(todayIso, tomorrowIso);
-
-    useEffect(() => {
-        if (!profile) return;
-
-        const channel = supabase
-            .channel('dashboard-appointments')
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'appointments' },
-                () => {
-                    toast.success('Nueva cita recibida', {
-                        description: 'Se acaba de reservar una nueva cita.',
-                        duration: 5000,
-                    });
-                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-                }
-            )
-            .on(
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'appointments' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-                }
-            )
-            .on(
-                'postgres_changes',
-                { event: 'DELETE', schema: 'public', table: 'appointments' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [queryClient, supabase, profile]);
 
     const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
         try {
@@ -237,7 +197,7 @@ export default function DashboardPage() {
     const now = new Date();
     const isTodaySelected = dateRange.start.toDateString() === now.toDateString();
     const actionableAppointments = todayAppointments
-        .filter((apt) => apt.status === 'pending' || apt.status === 'confirmed')
+        .filter((apt) => apt.status === 'confirmed')
         .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
     const upcomingBase = isTodaySelected
         ? actionableAppointments.filter((apt) => new Date(apt.end_time).getTime() >= now.getTime())
@@ -252,7 +212,6 @@ export default function DashboardPage() {
     }));
 
     const statusMeta = [
-        { key: 'pending', label: 'Pendientes', color: '#D97706' },
         { key: 'confirmed', label: 'Confirmadas', color: '#059669' },
         { key: 'completed', label: 'Finalizadas', color: '#2563EB' },
         { key: 'cancelled', label: 'Canceladas', color: '#DC2626' },
@@ -340,7 +299,6 @@ export default function DashboardPage() {
                     <DashboardCharts
                         sessionBreakdown={sessionBreakdown}
                         statusBreakdown={statusBreakdown}
-                        pendingCount={stats.pendingCount}
                         totalActionableCount={actionableAppointments.length}
                         globalTotalSessions={globalStats.totalGlobalAppointments}
                     />

@@ -15,36 +15,18 @@ export default function AdminError({
     }, [error]);
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '60vh',
-            gap: '16px',
-            textAlign: 'center',
-            padding: '32px',
-        }}>
-            <div style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: 'var(--danger-bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 24,
-            }}>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+            <div className="w-14 h-14 rounded-full bg-[var(--danger-bg)] flex items-center justify-center text-2xl">
                 ⚠️
             </div>
-            <h2 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+            <h2 className="text-xl font-semibold text-[var(--text-main)] !m-0">
                 Algo salió mal
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 380, margin: 0 }}>
+            <p className="text-sm text-[var(--text-muted)] max-w-[380px] !m-0">
                 {error.message || 'Se produjo un error inesperado. Por favor, inténtalo de nuevo.'}
             </p>
             {error.digest && (
-                <p style={{ color: 'var(--text-muted)', fontSize: 11, fontFamily: 'monospace' }}>
+                <p className="text-[11px] font-mono text-[var(--text-muted)]">
                     Código: {error.digest}
                 </p>
             )}

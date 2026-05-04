@@ -55,7 +55,7 @@ describe('admin clinical records route RBAC', () => {
         writeAuditLogMock.mockReset();
     });
 
-    it('stores the scoped professional id when professional creates a record', async () => {
+    it('stores the scoped professional id when professional creates a record without prior patient relationship', async () => {
         const single = vi.fn().mockResolvedValue({
             data: { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' },
             error: null,
@@ -73,7 +73,6 @@ describe('admin clinical records route RBAC', () => {
             professionalId: '33333333-3333-3333-3333-333333333333',
         });
         resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
-        ensurePatientAccessMock.mockResolvedValue(undefined);
 
         const response = await POST(createJsonRequest({
             patient_id: '11111111-1111-1111-1111-111111111111',
@@ -82,12 +81,7 @@ describe('admin clinical records route RBAC', () => {
         }));
 
         expect(response.status).toBe(200);
-        expect(ensurePatientAccessMock).toHaveBeenCalledWith({
-            supabase,
-            role: 'professional',
-            professionalId: '33333333-3333-3333-3333-333333333333',
-            patientId: '11111111-1111-1111-1111-111111111111',
-        });
+        expect(ensurePatientAccessMock).not.toHaveBeenCalled();
         expect(insert).toHaveBeenCalledWith(
             expect.objectContaining({
                 patient_id: '11111111-1111-1111-1111-111111111111',

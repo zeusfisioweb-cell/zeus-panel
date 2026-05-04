@@ -62,7 +62,7 @@ export default function LoginPage() {
 
                     {loading && (
                         <div className="login-info" role="status" aria-live="polite">
-                            <div className="spinner" style={{ width: 14, height: 14 }} />
+                            <div className="spinner w-3.5 h-3.5" />
                             Verificando sesión...
                         </div>
                     )}
@@ -88,7 +88,7 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        <div className="form-group" style={{ marginBottom: 32 }}>
+                        <div className="form-group mb-8">
                             <label className="form-label" htmlFor="login-password">Contraseña</label>
                             <input
                                 id="login-password"
@@ -104,13 +104,12 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            className="btn btn--primary btn--lg"
-                            style={{ width: '100%' }}
+                            className="btn btn--primary btn--lg w-full"
                             disabled={isBusy}
                         >
                             {isBusy ? (
                                 <>
-                                    <div className="spinner" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
+                                    <div className="spinner w-3.5 h-3.5 [border-color:rgba(255,255,255,0.3)] [border-top-color:#fff]" />
                                     {loading ? 'Preparando...' : 'Verificando...'}
                                 </>
                             ) : (

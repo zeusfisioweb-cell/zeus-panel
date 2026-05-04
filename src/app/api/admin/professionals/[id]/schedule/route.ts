@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../../../_lib';
+import { ApiRouteError, assertSameOriginMutation, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../../../_lib';
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const paramsSchema = z.object({
@@ -25,8 +25,13 @@ export async function GET(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { supabase } = await requirePanelAccess({ ownerOnly: true });
+        const { supabase, role, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const { id } = paramsSchema.parse(await context.params);
+
+        if (scopedProfessionalId && id !== scopedProfessionalId) {
+            throw new ApiRouteError(403, 'Forbidden');
+        }
 
         const { data, error } = await supabase
             .from('schedule_slots')
@@ -47,8 +52,13 @@ export async function PUT(
 ) {
     try {
         assertSameOriginMutation(request);
-        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+        const { supabase, role, userId, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
         const { id } = paramsSchema.parse(await context.params);
+
+        if (scopedProfessionalId && id !== scopedProfessionalId) {
+            throw new ApiRouteError(403, 'Forbidden');
+        }
         const rawBody = await request.json();
         const parsed = upsertScheduleSchema.parse(rawBody);
 

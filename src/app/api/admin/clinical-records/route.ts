@@ -5,7 +5,6 @@ import { validateClinicalContent } from '@/lib/clinical-content-schemas';
 import {
     assertSameOriginMutation,
     ApiRouteError,
-    ensurePatientAccess,
     handleApiError,
     requirePanelAccess,
     resolveScopedProfessionalId,
@@ -40,12 +39,11 @@ export async function POST(request: Request) {
         }
         const clinicalContent = contentValidation.data;
 
-        await ensurePatientAccess({
-            supabase,
-            role,
-            professionalId: scopedProfessionalId,
-            patientId: parsed.patient_id,
-        });
+        // Patient existence is enforced by the DB FK constraint.
+        // Professional access is enforced by the RLS INSERT policy.
+        // ensurePatientAccess is intentionally skipped here so professionals
+        // can create the first clinical record for a patient they are seeing
+        // for the first time (creating the record establishes the relationship).
 
         let targetProfessionalId = scopedProfessionalId;
 

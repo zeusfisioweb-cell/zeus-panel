@@ -3,21 +3,10 @@ import { useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Appointment, AppointmentStatus, ScheduleException } from '@/lib/types';
 import { AppointmentInsertSchema, AppointmentUpdateSchema, ScheduleExceptionSchema } from '@/lib/schemas';
+import { readApiError } from '@/lib/api-helpers';
 
 export const APPOINTMENTS_QUERY_KEY = ['citas'];
 
-async function readApiError(response: Response): Promise<string> {
-    try {
-        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
-        if (body.details) {
-            const firstField = Object.values(body.details).flat()[0];
-            if (firstField) return firstField;
-        }
-        return body.error || 'Error de servidor';
-    } catch {
-        return 'Error de servidor';
-    }
-}
 
 export function useCitas(start_date?: string, end_date?: string) {
     // Stable reference: createClient() uses an internal singleton, but wrapping in useMemo

@@ -231,7 +231,7 @@ export default function HorariosPage() {
                             onClick={applyDefaultSchedule}
                             disabled={applyDefaultM.isPending}
                         >
-                            {applyDefaultM.isPending ? <div className="spinner" style={{width:14,height:14}}/> : <Icon name="refresh-cw" size={14} />}
+                            {applyDefaultM.isPending ? <div className="spinner w-3.5 h-3.5"/> : <Icon name="refresh-cw" size={14} />}
                             Aplicar horario base
                         </button>
                     </div>
@@ -348,7 +348,7 @@ export default function HorariosPage() {
                                 onClick={addSlot}
                                 disabled={createSlotM.isPending}
                             >
-                                {createSlotM.isPending ? <div className="spinner" style={{width: 14, height: 14, borderColor:'white', borderBottomColor: 'transparent'}}/> : <Icon name="plus" size={14} />}
+                                {createSlotM.isPending ? <div className="spinner w-3.5 h-3.5 [border-color:white] !border-b-transparent"/> : <Icon name="plus" size={14} />}
                                 Añadir franja
                             </button>
                         </div>
@@ -398,7 +398,7 @@ export default function HorariosPage() {
                             <h3 className="schedule-exception-builder__title">Nueva excepción</h3>
                             <div className="form-grid-2">
                                 <div className="form-group">
-                                    <label className="form-label">Desde <span style={{ color: 'var(--color-error, red)' }}>*</span></label>
+                                    <label className="form-label">Desde <span className="text-[var(--color-error,red)]">*</span></label>
                                     <input type="date" className="form-input" value={newException.start_date} onChange={(event) => setNewException({ ...newException, start_date: event.target.value })} required />
                                 </div>
                                 <div className="form-group">
@@ -424,7 +424,7 @@ export default function HorariosPage() {
                                 onClick={addException}
                                 disabled={createExceptionM.isPending}
                             >
-                                {createExceptionM.isPending ? <div className="spinner" style={{width: 14, height: 14, borderColor:'white', borderBottomColor: 'transparent'}}/> : <Icon name="plus" size={14} />}
+                                {createExceptionM.isPending ? <div className="spinner w-3.5 h-3.5 [border-color:white] !border-b-transparent"/> : <Icon name="plus" size={14} />}
                                 Añadir excepción
                             </button>
                         </div>

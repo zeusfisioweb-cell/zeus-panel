@@ -4,19 +4,8 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Icon from '@/components/Icon';
 import { toast } from 'sonner';
 import type { BookingSettings } from '@/lib/types';
+import { readApiError } from '@/lib/api-helpers';
 
-async function readApiError(response: Response): Promise<string> {
-    try {
-        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
-        if (body.details) {
-            const firstField = Object.values(body.details).flat()[0];
-            if (firstField) return firstField;
-        }
-        return body.error || 'Error de servidor';
-    } catch {
-        return 'Error de servidor';
-    }
-}
 
 export default function ConfiguracionPage() {
     const [settings, setSettings] = useState<BookingSettings | null>(null);
@@ -184,7 +173,7 @@ export default function ConfiguracionPage() {
 
                         <div className="settings-fields settings-fields--2">
                             <label className="settings-field">
-                                <span className="form-label">Nombre de la clínica <span style={{ color: 'var(--color-error, red)' }}>*</span></span>
+                                <span className="form-label">Nombre de la clínica <span className="text-[var(--color-error,red)]">*</span></span>
                                 <input
                                     className="form-input"
                                     value={form.clinic_name}

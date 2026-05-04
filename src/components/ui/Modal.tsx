@@ -121,7 +121,7 @@ export function Modal({
             >
                 {/* Header */}
                 <div className="modal__header">
-                    <h3 id={titleId} className="modal__title" style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>
+                    <h3 id={titleId} className="modal__title text-[15px] font-semibold !m-0">
                         {title}
                     </h3>
                     <button

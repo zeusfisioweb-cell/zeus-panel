@@ -11,19 +11,8 @@ import ConfirmModal from '@/components/ConfirmModal';
 import { ProfesionalesHeader } from './components/ProfesionalesHeader';
 import { ProfessionalFormData, ProfessionalFormModal, ScheduleMap } from './components/ProfessionalFormModal';
 import { ProfesionalesTable } from './components/ProfesionalesTable';
+import { readApiError } from '@/lib/api-helpers';
 
-async function readApiError(response: Response): Promise<string> {
-    try {
-        const body = (await response.json()) as { error?: string; details?: Record<string, string[]> };
-        if (body.details) {
-            const firstField = Object.values(body.details).flat()[0];
-            if (firstField) return firstField;
-        }
-        return body.error || 'Error de servidor';
-    } catch {
-        return 'Error de servidor';
-    }
-}
 
 export default function ProfesionalesPage() {
     const { data: professionals = [], isLoading: isLoadingPros, refetch: refetchPros } = useProfesionales();
@@ -221,7 +210,7 @@ export default function ProfesionalesPage() {
 
     if (isLoading) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+            <div className="flex items-center justify-center min-h-[400px]">
                 <div className="spinner" />
             </div>
         );

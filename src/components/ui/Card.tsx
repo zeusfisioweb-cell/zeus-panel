@@ -7,8 +7,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Card({ className = '', children, ...props }: CardProps) {
     return (
         <div
-            className={`card ${className}`}
-            style={{ marginBottom: 0 }}
+            className={`card mb-0 ${className}`}
             {...props}
         >
             {children}

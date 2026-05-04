@@ -71,7 +71,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     const { data: upcomingApts } = await supabase
         .from('appointments')
         .select('patient_id')
-        .in('status', ['pending', 'confirmed'])
+        .in('status', ['confirmed'])
         .gte('start_time', now)
         .not('patient_id', 'is', null);
 

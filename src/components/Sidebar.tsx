@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
-import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
 import Icon from '@/components/Icon';
 import {
     PANEL_NAV_ITEMS,
@@ -17,40 +16,7 @@ import {
 export default function Sidebar() {
     const pathname = usePathname();
     const { profile, signOut } = useAuth();
-    const [pendingCount, setPendingCount] = useState(0);
-    const [supabase] = useState(() => createClient());
     const [mobileOpen, setMobileOpen] = useState(false);
-
-    const loadPending = useCallback(async () => {
-        const response = await fetch('/api/admin/appointments/pending-count', {
-            method: 'GET',
-            credentials: 'same-origin',
-        });
-
-        if (!response.ok) return;
-
-        const payload = (await response.json()) as { count?: number };
-        setPendingCount(payload.count ?? 0);
-    }, []);
-
-    useEffect(() => {
-        // Initial load
-        loadPending();
-
-        // Real-time subscription instead of polling — updates instantly on any appointment change
-        const channel = supabase
-            .channel('sidebar-pending')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
-                void loadPending();
-            })
-            .subscribe();
-
-        return () => {
-            void supabase.removeChannel(channel);
-        };
-    // loadPending and supabase are stable (useCallback + useState)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     useEffect(() => {
         setMobileOpen(false);
@@ -114,12 +80,12 @@ export default function Sidebar() {
                     </button>
                 </div>
 
-                <div className="sidebar__overview" style={{ background: 'rgba(173, 115, 50, 0.05)', margin: '0 12px 20px', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(173, 115, 50, 0.12)' }}>
-                    <span className="sidebar__overview-label" style={{ color: 'var(--brand-main)', fontWeight: 800 }}>ESTADO</span>
-                    <strong className="sidebar__overview-title" style={{ fontSize: '13px' }}>Fisioterapia Zeus</strong>
-                    <span className="sidebar__overview-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: pendingCount > 0 ? 'var(--warning-main)' : 'var(--success-main)' }} />
-                        {pendingCount > 0 ? `${pendingCount} citas pendientes` : 'Al día'}
+                <div className="sidebar__overview bg-[rgba(173,115,50,0.05)] mx-3 mb-5 p-3 rounded-xl border border-[rgba(173,115,50,0.12)]">
+                    <span className="sidebar__overview-label text-[var(--brand-main)] font-extrabold">ESTADO</span>
+                    <strong className="sidebar__overview-title text-[13px]">Fisioterapia Zeus</strong>
+                    <span className="sidebar__overview-meta flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--success-main)]" />
+                        Clínica activa
                     </span>
                 </div>
 
@@ -137,7 +103,6 @@ export default function Sidebar() {
 
                         if (isPanelNavLink(item)) {
                             const active = isActive(item.href);
-                            const hasBadge = Boolean(item.showBadge && pendingCount > 0);
 
                             return (
                                 <Link
@@ -149,11 +114,6 @@ export default function Sidebar() {
                                         <Icon name={item.icon} size={18} />
                                     </span>
                                     <span className="sidebar__link-label">{item.label}</span>
-                                    {hasBadge && (
-                                        <span className="sidebar__badge" aria-label={`${pendingCount} citas pendientes`}>
-                                            {pendingCount > 9 ? '9+' : pendingCount}
-                                        </span>
-                                    )}
                                 </Link>
                             );
                         }

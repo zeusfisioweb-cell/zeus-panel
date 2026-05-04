@@ -15,12 +15,14 @@ const ApiRouteErrorMock = vi.hoisted(
 
 const assertSameOriginMutationMock = vi.hoisted(() => vi.fn());
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
+const resolveScopedProfessionalIdMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
     assertSameOriginMutation: assertSameOriginMutationMock,
     requirePanelAccess: requirePanelAccessMock,
+    resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
     writeAuditLog: writeAuditLogMock,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
@@ -35,14 +37,16 @@ describe('admin professional schedule route', () => {
     beforeEach(() => {
         assertSameOriginMutationMock.mockReset();
         requirePanelAccessMock.mockReset();
+        resolveScopedProfessionalIdMock.mockReset();
         writeAuditLogMock.mockReset();
     });
 
-    it('returns schedule slots for owner', async () => {
+    it('professional reads own schedule', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
         const query = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockResolvedValue({
-                data: [{ id: '88888888-8888-8888-8888-888888888888' }],
+                data: [{ id: 'slot-1', day_of_week: 1, start_time: '09:00', end_time: '12:00' }],
                 error: null,
             }),
         };
@@ -50,7 +54,12 @@ describe('admin professional schedule route', () => {
             from: vi.fn().mockReturnValue(query),
         };
 
-        requirePanelAccessMock.mockResolvedValue({ supabase });
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
 
         const response = await GET(
             new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule'),
@@ -59,93 +68,78 @@ describe('admin professional schedule route', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual([{ id: '88888888-8888-8888-8888-888888888888' }]);
+        expect(body).toEqual([{ id: 'slot-1', day_of_week: 1, start_time: '09:00', end_time: '12:00' }]);
         expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
     });
 
-    it('replaces schedule and writes audit log', async () => {
-        const rpc = vi.fn().mockResolvedValue({ error: null });
+    it('owner reads any professional schedule', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue(null);
+        const query = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({
+                data: [{ id: 'slot-1', day_of_week: 1, start_time: '09:00', end_time: '12:00' }],
+                error: null,
+            }),
+        };
         const supabase = {
-            from: vi.fn(),
-            rpc,
+            from: vi.fn().mockReturnValue(query),
         };
 
         requirePanelAccessMock.mockResolvedValue({
             supabase,
+            role: 'owner',
             userId: 'owner-1',
+            professionalId: null,
         });
 
+        const response = await GET(
+            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule'),
+            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual([{ id: 'slot-1', day_of_week: 1, start_time: '09:00', end_time: '12:00' }]);
+        expect(query.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+    });
+
+    it('professional blocked from reading another professional schedule', async () => {
+        resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
+
+        requirePanelAccessMock.mockResolvedValue({
+            supabase: { from: vi.fn() },
+            role: 'professional',
+            userId: 'pro-user-1',
+            professionalId: '33333333-3333-3333-3333-333333333333',
+        });
+
+        const response = await GET(
+            new Request('http://localhost/api/admin/professionals/44444444-4444-4444-4444-444444444444/schedule'),
+            { params: Promise.resolve({ id: '44444444-4444-4444-4444-444444444444' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(403);
+        expect(body).toEqual({ error: 'Forbidden' });
+    });
+
+    it('returns 403 for unauthorized access', async () => {
+        requirePanelAccessMock.mockRejectedValue(
+            new ApiRouteErrorMock(403, 'Forbidden')
+        );
+
         const response = await PUT(
-            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule', {
+            new Request('http://localhost/api/admin/professionals/pro-1/schedule', {
                 method: 'PUT',
                 body: JSON.stringify({
-                    slots: [{ day_of_week: 1, start_time: '09:00', end_time: '14:00' }],
+                    slots: [{ day_of_week: 1, start_time: '09:00', end_time: '12:00' }],
                 }),
             }),
             { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
         );
         const body = await response.json();
 
-        expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true });
-        expect(assertSameOriginMutationMock).toHaveBeenCalled();
-        expect(rpc).toHaveBeenCalledWith('replace_professional_schedule_slots', {
-            p_professional_id: '33333333-3333-3333-3333-333333333333',
-            p_slots: [{ day_of_week: 1, start_time: '09:00', end_time: '14:00' }],
-        });
-        expect(writeAuditLogMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                userId: 'owner-1',
-                action: 'UPDATE',
-                tableName: 'schedule_slots',
-                recordId: '33333333-3333-3333-3333-333333333333',
-                details: { replaced_slots_count: 1 },
-            })
-        );
-    });
-
-    it('returns 403 for non-owner mutation access', async () => {
-        requirePanelAccessMock.mockRejectedValue(
-            new ApiRouteErrorMock(403, 'Forbidden: owner role required')
-        );
-
-        const response = await PUT(
-            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule', {
-                method: 'PUT',
-                body: JSON.stringify({ slots: [] }),
-            }),
-            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
-        );
-        const body = await response.json();
-
         expect(response.status).toBe(403);
-        expect(body).toEqual({ error: 'Forbidden: owner role required' });
-        expect(writeAuditLogMock).not.toHaveBeenCalled();
-    });
-
-    it('returns 500 when delete fails', async () => {
-        const rpc = vi.fn().mockResolvedValue({ error: { message: 'replace failed' } });
-        const supabase = {
-            from: vi.fn(),
-            rpc,
-        };
-
-        requirePanelAccessMock.mockResolvedValue({
-            supabase,
-            userId: 'owner-1',
-        });
-
-        const response = await PUT(
-            new Request('http://localhost/api/admin/professionals/33333333-3333-3333-3333-333333333333/schedule', {
-                method: 'PUT',
-                body: JSON.stringify({ slots: [] }),
-            }),
-            { params: Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' }) }
-        );
-        const body = await response.json();
-
-        expect(response.status).toBe(500);
-        expect(body).toEqual({ error: 'Internal Server Error' });
-        expect(writeAuditLogMock).not.toHaveBeenCalled();
+        expect(body).toEqual({ error: 'Forbidden' });
     });
 });

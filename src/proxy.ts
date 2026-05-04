@@ -4,10 +4,18 @@ import { updateSession } from '@/lib/supabase/proxy'
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 function buildCsp(nonce: string): string {
+    const scriptSrc = isDevelopment
+        ? `script-src 'self' 'nonce-${nonce}' 'unsafe-eval' 'unsafe-inline'`
+        : `script-src 'self' 'nonce-${nonce}'`;
+
+    const styleSrc = isDevelopment
+        ? "style-src 'self' 'unsafe-inline'"
+        : "style-src 'self'";
+
     return [
         "default-src 'self'",
-        `script-src 'self' 'nonce-${nonce}'${isDevelopment ? " 'unsafe-eval' 'unsafe-inline'" : ""}`,
-        "style-src 'self' 'unsafe-inline'",
+        scriptSrc,
+        styleSrc,
         "img-src 'self' data: blob:",
         "font-src 'self'",
         "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
@@ -17,13 +25,7 @@ function buildCsp(nonce: string): string {
 
 function createNonce(): string {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
-    let binary = '';
-
-    bytes.forEach((byte) => {
-        binary += String.fromCharCode(byte);
-    });
-
-    return btoa(binary);
+    return Buffer.from(bytes).toString('base64');
 }
 
 export async function proxy(request: NextRequest) {
