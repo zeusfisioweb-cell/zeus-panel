@@ -162,7 +162,7 @@ export default function PacientesPage() {
         setShowRecordModal(true);
     };
 
-    const handleSaveRecord = async (type: RecordType, recordFields: string[]) => {
+    const handleSaveRecord = async (type: RecordType, recordFields: string[], professionalId?: string) => {
         if (!selectedPatient) return;
 
         try {
@@ -173,15 +173,20 @@ export default function PacientesPage() {
                 content[field.key] = recordFields[index] || '';
             });
 
+            const body: Record<string, unknown> = {
+                patient_id: selectedPatient.id,
+                type,
+                content,
+            };
+            if (professionalId) {
+                body.professional_id = professionalId;
+            }
+
             const response = await fetch('/api/admin/clinical-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
-                body: JSON.stringify({
-                    patient_id: selectedPatient.id,
-                    type,
-                    content,
-                }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
