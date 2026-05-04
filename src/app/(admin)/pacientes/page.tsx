@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { Appointment, ClinicalRecord, Patient, RecordType } from '@/lib/types';
+import { useAuth } from '@/lib/auth-context';
 import { useCreatePaciente, useDeletePaciente, usePacientes, useUpdatePaciente } from '@/hooks/usePacientes';
+import { useProfesionales } from '@/hooks/useProfesionales';
 
 import ConfirmModal from '@/components/ConfirmModal';
 import { ClinicalRecordFormModal } from './components/ClinicalRecordFormModal';
@@ -27,6 +29,9 @@ export default function PacientesPage() {
     });
     const patients = result?.data || [];
     const totalCount = result?.count || 0;
+
+    const { profile } = useAuth();
+    const { data: professionals = [] } = useProfesionales();
 
     const createPaciente = useCreatePaciente();
     const updatePaciente = useUpdatePaciente();
@@ -266,6 +271,7 @@ export default function PacientesPage() {
                             patient={selectedPatient}
                             appointments={patientAppointments}
                             records={clinicalRecords}
+                            userRole={profile?.role}
                             onClose={() => setSelectedPatient(null)}
                             onEdit={() => setEditingPatient(selectedPatient)}
                             onDelete={handleDeletePatientConfirm}
@@ -299,6 +305,8 @@ export default function PacientesPage() {
                     onClose={() => setShowRecordModal(false)}
                     initialType={recordType}
                     onSubmit={handleSaveRecord}
+                    userRole={profile?.role}
+                    professionals={professionals}
                 />
             )}
 
