@@ -325,11 +325,9 @@ describe('assertSameOriginMutation', () => {
         )).toThrowError('Forbidden');
     });
 
-    it('allows preview deployment origin when APP_URL points to production', () => {
+    it('allows request origin when APP_URL points to another domain', () => {
         const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const prevVercelEnv = process.env.VERCEL_ENV;
         process.env.NEXT_PUBLIC_APP_URL = 'https://zeus-panel.vercel.app';
-        process.env.VERCEL_ENV = 'preview';
 
         try {
             expect(() => assertSameOriginMutation(
@@ -343,16 +341,12 @@ describe('assertSameOriginMutation', () => {
         } finally {
             if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
             else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
-            if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV;
-            else process.env.VERCEL_ENV = prevVercelEnv;
         }
     });
 
-    it('keeps rejecting foreign origins in preview', () => {
+    it('keeps rejecting foreign origins when APP_URL is set', () => {
         const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const prevVercelEnv = process.env.VERCEL_ENV;
         process.env.NEXT_PUBLIC_APP_URL = 'https://zeus-panel.vercel.app';
-        process.env.VERCEL_ENV = 'preview';
 
         try {
             expect(() => assertSameOriginMutation(
@@ -366,8 +360,6 @@ describe('assertSameOriginMutation', () => {
         } finally {
             if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
             else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
-            if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV;
-            else process.env.VERCEL_ENV = prevVercelEnv;
         }
     });
 });

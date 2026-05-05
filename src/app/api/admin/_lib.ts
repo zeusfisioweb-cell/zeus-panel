@@ -75,21 +75,12 @@ export function assertSameOriginMutation(request: Request): void {
 
     const requestOrigin = new URL(request.url).origin.toLowerCase();
 
-    // Prefer env-pinned APP_URL. In preview, also allow the deployment URL origin
-    // to prevent false 403 when NEXT_PUBLIC_APP_URL points to production.
+    // Always allow the current request origin. Keep APP_URL as an additional
+    // allowed origin to support aliases/custom domains that hit the same app.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    const allowedOrigins = new Set<string>();
+    const allowedOrigins = new Set<string>([requestOrigin]);
     if (appUrl) {
         allowedOrigins.add(new URL(appUrl).origin.toLowerCase());
-        if (process.env.VERCEL_ENV === 'preview') {
-            allowedOrigins.add(requestOrigin);
-        }
-    } else {
-        if (process.env.NODE_ENV === 'production') {
-            throw new ApiRouteError(500, 'App URL not configured');
-        }
-
-        allowedOrigins.add(requestOrigin);
     }
 
     if (!allowedOrigins.has(originUrl.origin.toLowerCase())) {
