@@ -324,6 +324,52 @@ describe('assertSameOriginMutation', () => {
             })
         )).toThrowError('Forbidden');
     });
+
+    it('allows preview deployment origin when APP_URL points to production', () => {
+        const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+        const prevVercelEnv = process.env.VERCEL_ENV;
+        process.env.NEXT_PUBLIC_APP_URL = 'https://zeus-panel.vercel.app';
+        process.env.VERCEL_ENV = 'preview';
+
+        try {
+            expect(() => assertSameOriginMutation(
+                new Request('https://zeus-panel-testing-abc.vercel.app/api/admin/services', {
+                    method: 'POST',
+                    headers: {
+                        origin: 'https://zeus-panel-testing-abc.vercel.app',
+                    },
+                })
+            )).not.toThrow();
+        } finally {
+            if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+            else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
+            if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV;
+            else process.env.VERCEL_ENV = prevVercelEnv;
+        }
+    });
+
+    it('keeps rejecting foreign origins in preview', () => {
+        const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+        const prevVercelEnv = process.env.VERCEL_ENV;
+        process.env.NEXT_PUBLIC_APP_URL = 'https://zeus-panel.vercel.app';
+        process.env.VERCEL_ENV = 'preview';
+
+        try {
+            expect(() => assertSameOriginMutation(
+                new Request('https://zeus-panel-testing-abc.vercel.app/api/admin/services', {
+                    method: 'POST',
+                    headers: {
+                        origin: 'https://evil.test',
+                    },
+                })
+            )).toThrowError('Forbidden');
+        } finally {
+            if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+            else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
+            if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV;
+            else process.env.VERCEL_ENV = prevVercelEnv;
+        }
+    });
 });
 
 describe('requirePanelAccess', () => {

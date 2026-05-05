@@ -73,26 +73,26 @@ export function assertSameOriginMutation(request: Request): void {
         throw new ApiRouteError(403, 'Forbidden');
     }
 
-    // Prefer env-pinned APP_URL to avoid host-header injection via x-forwarded-host
+    const requestOrigin = new URL(request.url).origin.toLowerCase();
+
+    // Prefer env-pinned APP_URL. In preview, also allow the deployment URL origin
+    // to prevent false 403 when NEXT_PUBLIC_APP_URL points to production.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    let expectedOrigin: string;
+    const allowedOrigins = new Set<string>();
     if (appUrl) {
-        expectedOrigin = new URL(appUrl).origin.toLowerCase();
+        allowedOrigins.add(new URL(appUrl).origin.toLowerCase());
+        if (process.env.VERCEL_ENV === 'preview') {
+            allowedOrigins.add(requestOrigin);
+        }
     } else {
         if (process.env.NODE_ENV === 'production') {
             throw new ApiRouteError(500, 'App URL not configured');
         }
 
-        const requestUrl = new URL(request.url);
-        const host = request.headers.get('x-forwarded-host')
-            ?? request.headers.get('host')
-            ?? requestUrl.host;
-        const protocol = request.headers.get('x-forwarded-proto')
-            ?? requestUrl.protocol.replace(':', '');
-        expectedOrigin = `${protocol}://${host}`.toLowerCase();
+        allowedOrigins.add(requestOrigin);
     }
 
-    if (originUrl.origin.toLowerCase() !== expectedOrigin) {
+    if (!allowedOrigins.has(originUrl.origin.toLowerCase())) {
         throw new ApiRouteError(403, 'Forbidden');
     }
 }
