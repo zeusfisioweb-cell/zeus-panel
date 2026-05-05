@@ -20,6 +20,33 @@ const deleteSchema = z.object({
     endpoint: z.string().url().max(2000),
 });
 
+type SupabaseLikeError = {
+    code?: string;
+    message?: string;
+    details?: string;
+};
+
+function isPushSubscriptionsInfraError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const typed = error as SupabaseLikeError;
+    const code = (typed.code ?? '').toUpperCase();
+    const message = `${typed.message ?? ''} ${typed.details ?? ''}`.toLowerCase();
+
+    if (code === '42P01' || code === '42703' || code === 'PGRST205') {
+        return true;
+    }
+
+    if (!message.includes('push_subscriptions')) {
+        return false;
+    }
+
+    return (
+        message.includes('does not exist')
+        || message.includes('not found')
+        || message.includes('schema cache')
+    );
+}
+
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
@@ -43,7 +70,13 @@ export async function POST(request: Request) {
                 { onConflict: 'endpoint' }
             );
 
-        if (error) throw error;
+        if (error) {
+            if (isPushSubscriptionsInfraError(error)) {
+                console.warn('[push-subscriptions] Infra not ready, skipping subscribe sync:', error);
+                return NextResponse.json({ ok: false, degraded: true }, { status: 202 });
+            }
+            throw error;
+        }
 
         await writeAuditLog({
             supabase,
@@ -72,7 +105,13 @@ export async function DELETE(request: Request) {
             .eq('user_id', userId)
             .eq('endpoint', parsed.endpoint);
 
-        if (error) throw error;
+        if (error) {
+            if (isPushSubscriptionsInfraError(error)) {
+                console.warn('[push-subscriptions] Infra not ready, skipping unsubscribe sync:', error);
+                return NextResponse.json({ ok: false, degraded: true }, { status: 202 });
+            }
+            throw error;
+        }
 
         await writeAuditLog({
             supabase,
@@ -98,7 +137,13 @@ export async function GET() {
             .eq('user_id', userId)
             .is('disabled_at', null);
 
-        if (error) throw error;
+        if (error) {
+            if (isPushSubscriptionsInfraError(error)) {
+                console.warn('[push-subscriptions] Infra not ready, returning disabled state:', error);
+                return NextResponse.json({ enabled: false, degraded: true }, { status: 200 });
+            }
+            throw error;
+        }
 
         return NextResponse.json({ enabled: (data ?? []).length > 0 });
     } catch (error) {
@@ -108,4 +153,3 @@ export async function GET() {
         return handleApiError(error);
     }
 }
-

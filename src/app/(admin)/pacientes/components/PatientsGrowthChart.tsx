@@ -122,7 +122,7 @@ export function PatientsGrowthChart() {
                 <div className="zs-pgc__empty">Sin datos suficientes para este periodo</div>
             ) : (
                 <div className="zs-pgc__chart">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <AreaChart data={points} margin={{ top: 8, right: 4, bottom: 0, left: -24 }}>
                             <defs>
                                 <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">

@@ -13,8 +13,18 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const origin = window.location.origin;
-            setBookingUrl(`${origin}/citas.html`);
+            const portalBase = process.env.NEXT_PUBLIC_PORTAL_URL?.trim().replace(/\/+$/, '');
+
+            if (portalBase) {
+                setBookingUrl(`${portalBase}/portal/reservar`);
+                return;
+            }
+
+            const current = new URL(window.location.origin);
+            if (current.hostname.includes('panel')) {
+                current.hostname = current.hostname.replace('panel', 'portal');
+            }
+            setBookingUrl(`${current.origin}/portal/reservar`);
         }
     }, []);
 
