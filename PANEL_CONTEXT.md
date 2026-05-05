@@ -84,7 +84,7 @@ Registro operativo:
   - `POST/DELETE/GET /api/admin/push-subscriptions` ahora degradan de forma controlada cuando falta infraestructura (`push_subscriptions` no existe o schema cache incompleta), evitando 500 globales en preview.
   - `QRModal` deja de usar `/citas.html`; ahora genera QR a `/portal/reservar` usando `NEXT_PUBLIC_PORTAL_URL` y fallback por inferencia de host `panel -> portal`.
   - `PatientsGrowthChart` añade `minWidth={0}` en `ResponsiveContainer` para reducir warnings de dimensiones intermitentes.
-  - nueva migración local `supabase/migrations/20260505190000_booking_settings_update_owner_policy.sql` para habilitar `UPDATE` owner en `booking_settings` vía RLS (sin bypass `service_role` en ruta).
+  - nueva migración local `supabase/migrations/20260505190000_booking_settings_update_owner_policy.sql` para habilitar `UPDATE` owner en `booking_settings` vía RLS (sin bypass `service_role` en ruta), aplicada en remoto el 2026-05-05 junto con reconciliación de ledger.
   - verificación local posterior: `panel` (`npm run test`, `npm run lint`, `npm run build`) en verde (249 tests).
 - 2026-05-03: antelacion minima de reserva (`min_booking_notice_hours`) bajada de 2h a 1h por defecto en `configuracion/page.tsx` (admin form), `panel/portal/src/app/portal/reservar/ReservarClient.tsx` (fallback cliente) y valor en BD.
 - 2026-05-03: hardening booking portal (local): `POST /api/portal/booking/appointments` valida disponibilidad real contra `get_available_slots` antes de insertar (devuelve `409 slot_taken` si el rango no existe en agenda efectiva) y `GET /api/portal/booking/services` filtra servicios sin profesionales activos asignados para evitar selección de servicios sin opciones de profesional.
