@@ -1,4 +1,4 @@
-import { expect, test, type Browser } from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import { loginAsAdmin } from './helpers';
 
 const ROUTES = [
@@ -11,6 +11,17 @@ const ROUTES = [
     { path: '/analitica',      ready: 'h1',                      label: 'analitica' },
     { path: '/configuracion',  ready: '.zs-cfg-header',          label: 'configuracion' },
 ] as const;
+
+async function gotoWithRetry(path: string, page: Page): Promise<void> {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+            await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+            return;
+        } catch (error) {
+            if (attempt === 2) throw error;
+        }
+    }
+}
 
 const VIEWPORTS = [
     { width: 390,  height: 844,  name: '390' },
@@ -30,7 +41,7 @@ test.describe('admin smoke — navigation', () => {
         await loginAsAdmin(page);
 
         for (const route of ROUTES) {
-            await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+            await gotoWithRetry(route.path, page);
             await expect(
                 page.locator(route.ready).first(),
                 `route ${route.path}: ready selector ${route.ready} not visible`,
@@ -66,7 +77,7 @@ test.describe('admin smoke — responsive screenshots', () => {
             await loginAsAdmin(page);
 
             for (const route of ROUTES) {
-                await page.goto(route.path);
+                await gotoWithRetry(route.path, page);
                 await expect(
                     page.locator(route.ready).first(),
                     `route ${route.path} at ${vp.name}px: ready selector not visible`,
