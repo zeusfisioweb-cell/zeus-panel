@@ -362,6 +362,30 @@ describe('assertSameOriginMutation', () => {
             else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
         }
     });
+
+    it('ignores invalid APP_URL and still allows same request origin', () => {
+        const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        process.env.NEXT_PUBLIC_APP_URL = 'not-a-valid-url';
+
+        try {
+            expect(() => assertSameOriginMutation(
+                new Request('https://zeus-panel-testing-abc.vercel.app/api/admin/services', {
+                    method: 'POST',
+                    headers: {
+                        origin: 'https://zeus-panel-testing-abc.vercel.app',
+                    },
+                })
+            )).not.toThrow();
+            expect(warnSpy).toHaveBeenCalledWith(
+                '[admin-api] Ignoring invalid NEXT_PUBLIC_APP_URL in assertSameOriginMutation'
+            );
+        } finally {
+            warnSpy.mockRestore();
+            if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+            else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
+        }
+    });
 });
 
 describe('requirePanelAccess', () => {

@@ -80,7 +80,11 @@ export function assertSameOriginMutation(request: Request): void {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     const allowedOrigins = new Set<string>([requestOrigin]);
     if (appUrl) {
-        allowedOrigins.add(new URL(appUrl).origin.toLowerCase());
+        try {
+            allowedOrigins.add(new URL(appUrl).origin.toLowerCase());
+        } catch {
+            console.warn('[admin-api] Ignoring invalid NEXT_PUBLIC_APP_URL in assertSameOriginMutation');
+        }
     }
 
     if (!allowedOrigins.has(originUrl.origin.toLowerCase())) {
