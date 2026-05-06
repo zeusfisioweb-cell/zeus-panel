@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+// These tests verify unauthenticated behavior — clear storageState
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test('redirects unauthenticated users from dashboard to login', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/login$/);
