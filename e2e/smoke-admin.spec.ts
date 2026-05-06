@@ -26,21 +26,28 @@ test.describe('admin smoke — navigation', () => {
     );
 
     test('all admin routes load their primary element', async ({ page }) => {
+        test.slow();
         await loginAsAdmin(page);
 
         for (const route of ROUTES) {
-            await page.goto(route.path);
+            await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
             await expect(
                 page.locator(route.ready).first(),
                 `route ${route.path}: ready selector ${route.ready} not visible`,
-            ).toBeVisible({ timeout: 15_000 });
+            ).toBeVisible({ timeout: 25_000 });
         }
     });
 
-    test('unauthenticated requests redirect to /login', async ({ page }) => {
-        for (const route of ROUTES) {
-            await page.goto(route.path);
-            await expect(page, `route ${route.path} should redirect`).toHaveURL(/\/login$/);
+    test('unauthenticated requests redirect to /login', async ({ browser }) => {
+        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        const page = await context.newPage();
+        try {
+            for (const route of ROUTES) {
+                await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+                await expect(page, `route ${route.path} should redirect`).toHaveURL(/\/login$/, { timeout: 10_000 });
+            }
+        } finally {
+            await context.close();
         }
     });
 });

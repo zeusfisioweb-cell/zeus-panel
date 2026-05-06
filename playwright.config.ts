@@ -1,5 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
+import fs from 'node:fs';
+
+function loadDotEnvLocal(): void {
+    const envPath = path.join(__dirname, '.env.local');
+    if (!fs.existsSync(envPath)) return;
+    const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq <= 0) continue;
+        const key = trimmed.slice(0, eq).trim();
+        const value = trimmed.slice(eq + 1).trim();
+        if (!process.env[key]) process.env[key] = value;
+    }
+}
+
+loadDotEnvLocal();
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 const vercelBypass = process.env.VERCEL_BYPASS_SECRET;
