@@ -176,8 +176,15 @@ export function CitasTimeline({
         professionals.forEach(p => {
             m.set(p.id, p.profile?.full_name || 'Profesional');
         });
+        // Fill gaps from appointments' own nested professional data
+        appointments.forEach(a => {
+            if (a.professional_id && !m.has(a.professional_id)) {
+                const name = (a.professional as { profile?: { full_name?: string | null } } | null)?.profile?.full_name;
+                if (name) m.set(a.professional_id, name);
+            }
+        });
         return m;
-    }, [professionals]);
+    }, [professionals, appointments]);
 
     // ── Week strip (7 days centered on today) ─────────────────────────────────
     const weekDays = useMemo(() => {
