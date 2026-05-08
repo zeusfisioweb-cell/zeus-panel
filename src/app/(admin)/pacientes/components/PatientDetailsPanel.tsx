@@ -18,6 +18,7 @@ interface PatientDetailsPanelProps {
     onEdit: () => void;
     onDelete: (id: string) => void;
     onEditDocument: (document: PatientDocument) => void;
+    onNewDocument: () => void;
     onUnlinkPortal?: (id: string) => void;
     userRole?: UserRole;
 }
@@ -38,6 +39,7 @@ export function PatientDetailsPanel({
     onEdit,
     onDelete,
     onEditDocument,
+    onNewDocument,
     onUnlinkPortal,
     userRole,
 }: PatientDetailsPanelProps) {
@@ -310,81 +312,121 @@ export function PatientDetailsPanel({
         );
     };
 
-    const renderClinico = () => (
-        <div className="patient-clinical">
-            {documents.length === 0 ? (
-                <div className="patient-empty-box">
-                    <Icon name="clipboard" size={22} className="opacity-50" />
-                    <p>Sin documentos clínico-legales</p>
-                </div>
-            ) : (
-                <div className="patient-record-list">
-                    {documents.map((document) => (
-                        <article key={document.id} className="patient-record-item">
-                            <div className="patient-record-item__head">
-                                <div>
-                                    <span>{PATIENT_DOCUMENT_TYPE_LABELS[document.document_type]}</span>
-                                    <small>
-                                        Última actualización:{' '}
-                                        {new Date(document.updated_at).toLocaleDateString('es-ES', {
-                                            day: '2-digit',
-                                            month: 'short',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </small>
-                                </div>
-                                <Badge
-                                    variant={
-                                        document.status === 'signed'
-                                            ? 'success'
-                                            : document.status === 'completed'
-                                                ? 'default'
-                                                : 'warning'
-                                    }
-                                >
-                                    {PATIENT_DOCUMENT_STATUS_LABELS[document.status]}
-                                </Badge>
-                            </div>
+    const renderClinico = () => {
+        const docTypes: { type: import('@/lib/types').PatientDocumentType; label: string }[] = [
+            { type: 'clinical_history', label: PATIENT_DOCUMENT_TYPE_LABELS.clinical_history },
+            { type: 'intervention_consent', label: PATIENT_DOCUMENT_TYPE_LABELS.intervention_consent },
+            { type: 'data_consent', label: PATIENT_DOCUMENT_TYPE_LABELS.data_consent },
+        ];
 
-                            <div className="patient-record-item__content">
-                                <div>
-                                    <span>Plantilla</span>
-                                    <p>{document.template_file_name}</p>
-                                </div>
-                                {typeof document.notes === 'string' && document.notes.trim() ? (
-                                    <div>
-                                        <span>Notas</span>
-                                        <p>{document.notes}</p>
-                                    </div>
-                                ) : null}
-                            </div>
+        const byType = docTypes.map(({ type, label }) => ({
+            type,
+            label,
+            docs: documents
+                .filter((d) => d.document_type === type)
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+        }));
 
-                            <div className="patient-clinical__actions">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    leftIcon={<Icon name="edit" size={14} />}
-                                    onClick={() => onEditDocument(document)}
-                                >
-                                    Rellenar / editar
-                                </Button>
-                                <a
-                                    href={`/consentimientos/${document.template_file_name}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="patient-record-add"
-                                >
-                                    Abrir PDF base
-                                </a>
-                            </div>
-                        </article>
-                    ))}
+        return (
+            <div className="patient-clinical">
+                <div className="patient-clinical__toolbar">
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        leftIcon={<Icon name="plus" size={13} />}
+                        onClick={onNewDocument}
+                    >
+                        Nuevo documento
+                    </Button>
                 </div>
-            )}
-        </div>
-    );
+
+                {documents.length === 0 && (
+                    <div className="patient-empty-box">
+                        <Icon name="clipboard" size={22} className="opacity-50" />
+                        <p>Sin documentos clínico-legales. Crea el primero.</p>
+                    </div>
+                )}
+
+                {byType.map(({ type, label, docs }) =>
+                    docs.length === 0 ? null : (
+                        <section key={type} className="patient-doc-group">
+                            <h4 className="patient-doc-group__title">{label}</h4>
+                            <div className="patient-record-list">
+                                {docs.map((document) => (
+                                    <article key={document.id} className="patient-record-item">
+                                        <div className="patient-record-item__head">
+                                            <div>
+                                                <span>
+                                                    {document.visit_date
+                                                        ? new Date(document.visit_date).toLocaleDateString('es-ES', {
+                                                              day: '2-digit',
+                                                              month: 'short',
+                                                              year: 'numeric',
+                                                          })
+                                                        : new Date(document.created_at).toLocaleDateString('es-ES', {
+                                                              day: '2-digit',
+                                                              month: 'short',
+                                                              year: 'numeric',
+                                                          })}
+                                                </span>
+                                                <small>
+                                                    Actualizado:{' '}
+                                                    {new Date(document.updated_at).toLocaleDateString('es-ES', {
+                                                        day: '2-digit',
+                                                        month: 'short',
+                                                        year: 'numeric',
+                                                    })}
+                                                </small>
+                                            </div>
+                                            <Badge
+                                                variant={
+                                                    document.status === 'signed'
+                                                        ? 'success'
+                                                        : document.status === 'completed'
+                                                            ? 'default'
+                                                            : 'warning'
+                                                }
+                                            >
+                                                {PATIENT_DOCUMENT_STATUS_LABELS[document.status]}
+                                            </Badge>
+                                        </div>
+
+                                        {typeof document.notes === 'string' && document.notes.trim() ? (
+                                            <div className="patient-record-item__content">
+                                                <div>
+                                                    <span>Notas</span>
+                                                    <p>{document.notes}</p>
+                                                </div>
+                                            </div>
+                                        ) : null}
+
+                                        <div className="patient-clinical__actions">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                leftIcon={<Icon name="edit" size={14} />}
+                                                onClick={() => onEditDocument(document)}
+                                            >
+                                                Rellenar / editar
+                                            </Button>
+                                            <a
+                                                href={`/consentimientos/${document.template_file_name}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="patient-record-add"
+                                            >
+                                                Abrir PDF base
+                                            </a>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        </section>
+                    )
+                )}
+            </div>
+        );
+    };
 
     const initials = `${patient.first_name?.[0] ?? ''}${patient.last_name?.[0] ?? ''}`.toUpperCase();
     const headingId = useId();

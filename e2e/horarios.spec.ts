@@ -89,9 +89,10 @@ test.describe('horarios — professional schedules', () => {
         await page.goto('/horarios');
         await expect(page.locator('.schedule-slot-builder')).toBeVisible({ timeout: 15_000 });
 
-        await expect(page.getByLabel('Día')).toBeVisible();
-        await expect(page.getByLabel('Desde')).toBeVisible();
-        await expect(page.getByLabel('Hasta')).toBeVisible();
+        const builder = page.locator('.schedule-slot-builder');
+        await expect(builder.locator('select').first()).toBeVisible();
+        await expect(builder.locator('input[type="time"]').first()).toBeVisible();
+        await expect(builder.locator('input[type="time"]').nth(1)).toBeVisible();
         await expect(page.getByRole('button', { name: /Añadir franja/i })).toBeVisible();
     });
 });

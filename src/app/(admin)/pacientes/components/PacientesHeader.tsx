@@ -8,9 +8,10 @@ interface PacientesHeaderProps {
     totalCount: number;
     consentCount: number;
     onNewPaciente: () => void;
+    onOpenTemplates: () => void;
 }
 
-export function PacientesHeader({ totalCount, consentCount, onNewPaciente }: PacientesHeaderProps) {
+export function PacientesHeader({ totalCount, consentCount, onNewPaciente, onOpenTemplates }: PacientesHeaderProps) {
     const consentPct = totalCount > 0 ? Math.round((consentCount / totalCount) * 100) : 0;
     const pendingConsent = totalCount - consentCount;
 
@@ -18,6 +19,9 @@ export function PacientesHeader({ totalCount, consentCount, onNewPaciente }: Pac
         <header className="zs-pac-header">
             <div className="zs-pac-header__top">
                 <div className="zs-pac-header__actions">
+                    <Button variant="ghost" onClick={onOpenTemplates} leftIcon={<Icon name="clipboard" size={16} />}>
+                        Plantillas
+                    </Button>
                     <Button variant="primary" onClick={onNewPaciente} leftIcon={<Icon name="plus" size={16} />}>
                         Nuevo paciente
                     </Button>

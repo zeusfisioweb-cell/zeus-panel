@@ -12,6 +12,7 @@ import { PacientesTable } from './components/PacientesTable';
 import { PatientDetailsPanel } from './components/PatientDetailsPanel';
 import { PatientDocumentModal } from './components/PatientDocumentModal';
 import { PatientFormData, PatientFormModal } from './components/PatientFormModal';
+import { TemplateGeneratorModal } from './components/TemplateGeneratorModal';
 import { readApiError } from '@/lib/api-helpers';
 
 
@@ -50,6 +51,8 @@ export default function PacientesPage() {
     const [showNewModal, setShowNewModal] = useState(false);
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
     const [editingDocument, setEditingDocument] = useState<PatientDocument | null>(null);
+    const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+    const [isTemplateGeneratorOpen, setIsTemplateGeneratorOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
     const getErrorMessage = (error: unknown): string => {
@@ -94,6 +97,7 @@ export default function PacientesPage() {
     };
 
     const handleViewPatient = (patient: Patient) => {
+        setIsDocumentModalOpen(false);
         setEditingDocument(null);
         setSelectedPatient(patient);
         void loadPatientDetails(patient.id);
@@ -173,8 +177,28 @@ export default function PacientesPage() {
         setSelectedPatient(prev => prev?.id === id ? { ...prev, auth_user_id: null } : prev);
     };
 
-    const handleDocumentSaved = (updated: PatientDocument) => {
-        setPatientDocuments((prev) => prev.map((doc) => (doc.id === updated.id ? updated : doc)));
+    const handleDocumentSaved = (doc: PatientDocument) => {
+        setPatientDocuments((prev) => {
+            const exists = prev.some((d) => d.id === doc.id);
+            return exists
+                ? prev.map((d) => (d.id === doc.id ? doc : d))
+                : [doc, ...prev];
+        });
+    };
+
+    const handleOpenEditDocument = (doc: PatientDocument) => {
+        setEditingDocument(doc);
+        setIsDocumentModalOpen(true);
+    };
+
+    const handleNewDocument = () => {
+        setEditingDocument(null);
+        setIsDocumentModalOpen(true);
+    };
+
+    const handleCloseDocumentModal = () => {
+        setIsDocumentModalOpen(false);
+        setEditingDocument(null);
     };
 
     if (isLoadingPatients) {
@@ -191,6 +215,7 @@ export default function PacientesPage() {
                 totalCount={totalCount}
                 consentCount={patients.filter((p) => p.gdpr_consent).length}
                 onNewPaciente={() => setShowNewModal(true)}
+                onOpenTemplates={() => setIsTemplateGeneratorOpen(true)}
             />
 
             <div className={`patients-layout ${selectedPatient ? 'patients-layout--with-detail' : ''}`}>
@@ -216,12 +241,14 @@ export default function PacientesPage() {
                             documents={patientDocuments}
                             userRole={profile?.role}
                             onClose={() => {
+                                setIsDocumentModalOpen(false);
                                 setEditingDocument(null);
                                 setSelectedPatient(null);
                             }}
                             onEdit={() => setEditingPatient(selectedPatient)}
                             onDelete={handleDeletePatientConfirm}
-                            onEditDocument={setEditingDocument}
+                            onEditDocument={handleOpenEditDocument}
+                            onNewDocument={handleNewDocument}
                             onUnlinkPortal={handleUnlinkPortal}
                         />
                     </div>
@@ -245,12 +272,17 @@ export default function PacientesPage() {
             )}
 
             <PatientDocumentModal
-                isOpen={Boolean(editingDocument) && Boolean(selectedPatient)}
+                isOpen={isDocumentModalOpen && Boolean(selectedPatient)}
                 patientId={selectedPatient?.id ?? ''}
                 patientName={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : ''}
                 document={editingDocument}
-                onClose={() => setEditingDocument(null)}
+                onClose={handleCloseDocumentModal}
                 onSaved={handleDocumentSaved}
+            />
+
+            <TemplateGeneratorModal
+                isOpen={isTemplateGeneratorOpen}
+                onClose={() => setIsTemplateGeneratorOpen(false)}
             />
 
             {confirmAction && (

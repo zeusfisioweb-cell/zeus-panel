@@ -991,7 +991,29 @@ textarea.form-input:focus,
 .patient-clinical {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+}
+
+.patient-clinical__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.patient-doc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.patient-doc-group__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .patient-clinical__actions {

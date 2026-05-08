@@ -214,6 +214,7 @@ export interface PatientDocument {
     form_data: Record<string, unknown>;
     notes: string | null;
     file_url: string | null;
+    visit_date: string | null;
     completed_at: string | null;
     signed_at: string | null;
     created_by: string | null;

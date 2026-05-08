@@ -162,8 +162,8 @@ test.describe('citas — appointments', () => {
         await expect(page.locator('.citas-filters')).toBeVisible({ timeout: 8_000 });
 
         // Either rows exist or empty state
-        const rows = page.locator('.citas-list-row, .citas-table tbody tr');
-        const emptyState = page.locator('.citas-empty, [class*="empty-state"]');
+        const rows = page.locator('.citas-list-item, .citas-list-day');
+        const emptyState = page.locator('.citas-empty-state');
         const hasRows = (await rows.count()) > 0;
         const hasEmpty = await emptyState.isVisible({ timeout: 2_000 }).catch(() => false);
         expect(hasRows || hasEmpty).toBeTruthy();

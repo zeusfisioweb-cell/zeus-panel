@@ -20,6 +20,7 @@ const payloadSchema = z.object({
     form_data: z.record(z.string(), z.unknown()).optional(),
     notes: z.string().trim().max(5000).nullable().optional(),
     file_url: z.string().trim().url().nullable().optional(),
+    visit_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 export async function PATCH(
@@ -68,6 +69,9 @@ export async function PATCH(
         }
         if ('file_url' in body) {
             updatePayload.file_url = body.file_url ?? null;
+        }
+        if ('visit_date' in body) {
+            updatePayload.visit_date = body.visit_date ?? null;
         }
 
         if (nextStatus === 'completed' && existing.status !== 'completed') {
