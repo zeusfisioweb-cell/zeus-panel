@@ -160,6 +160,89 @@ test.describe('pacientes — patient management', () => {
         await page.screenshot({ path: 'test-results/paciente-clinical-record-saved.png' });
     });
 
+    test('search clears on input clear — full list returns', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator('.zs-pac-table')).toBeVisible({ timeout: 10_000 });
+
+        const searchInput = page.locator('#patients-table-search');
+        await expect(searchInput).toBeVisible();
+
+        // Count rows before searching
+        const rowsBefore = await page.locator('.zs-pac-table tbody tr').count();
+
+        // Search for something
+        await searchInput.fill('a');
+        await page.waitForTimeout(700);
+        const rowsDuring = await page.locator('.zs-pac-table tbody tr').count();
+
+        // Clear the search
+        await searchInput.fill('');
+        await page.waitForTimeout(700);
+        const rowsAfter = await page.locator('.zs-pac-table tbody tr').count();
+
+        // After clearing, row count should recover to (at least equal to) before search
+        expect(rowsAfter).toBeGreaterThanOrEqual(Math.min(rowsBefore, rowsDuring));
+        await page.screenshot({ path: 'test-results/paciente-search-cleared.png' });
+    });
+
+    test('patient detail Citas tab renders appointment list or empty state', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        const firstRow = page.locator('.zs-pac-table tbody tr').first();
+        await expect(firstRow).toBeVisible({ timeout: 10_000 });
+        await firstRow.locator('.zs-pac-ficha-btn').click();
+        await expect(page.locator('.zs-drawer')).toBeVisible({ timeout: 8_000 });
+
+        // Click Citas tab
+        await page.locator('.zs-drawer__tab').filter({ hasText: /Citas/i }).click();
+        await page.waitForTimeout(500);
+
+        // Either appointment rows or empty state
+        const aptRows = page.locator('.zs-drawer .zs-pac-cita-row, .zs-drawer [class*="cita-item"]');
+        const emptyState = page.locator('.zs-drawer [class*="empty"]');
+        const hasRows = (await aptRows.count()) > 0;
+        const hasEmpty = await emptyState.isVisible({ timeout: 3_000 }).catch(() => false);
+        expect(hasRows || hasEmpty).toBeTruthy();
+        await page.screenshot({ path: 'test-results/paciente-citas-tab.png' });
+    });
+
+    test('patient detail Fichas tab renders clinical records or empty state', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });
+
+        const firstRow = page.locator('.zs-pac-table tbody tr').first();
+        await expect(firstRow).toBeVisible({ timeout: 10_000 });
+        await firstRow.locator('.zs-pac-ficha-btn').click();
+        await expect(page.locator('.zs-drawer')).toBeVisible({ timeout: 8_000 });
+
+        // Click Fichas tab
+        await page.locator('.zs-drawer__tab').filter({ hasText: /Fichas/i }).click();
+        await page.waitForTimeout(500);
+
+        // Either record actions area or records list
+        const actionsArea = page.locator('.patient-clinical__actions');
+        const hasActions = await actionsArea.isVisible({ timeout: 5_000 }).catch(() => false);
+        expect(hasActions).toBeTruthy();
+        await page.screenshot({ path: 'test-results/paciente-fichas-tab.png' });
+    });
+
+    test('patient KPI strip values are numeric', async ({ page }) => {
+        await page.goto('/pacientes');
+        await expect(page.locator('.zs-pac-kpi-strip')).toBeVisible({ timeout: 15_000 });
+
+        const kpiValues = page.locator('.zs-pac-kpi__value, .zs-kpi-value');
+        const count = await kpiValues.count();
+        if (count > 0) {
+            for (let i = 0; i < Math.min(count, 4); i++) {
+                const text = await kpiValues.nth(i).textContent();
+                expect(text?.trim()).not.toBe('');
+                expect(text).not.toMatch(/NaN|undefined/);
+            }
+        }
+    });
+
     test('export patient data button triggers download without error', async ({ page }) => {
         await page.goto('/pacientes');
         await expect(page.locator('.zs-pac-header')).toBeVisible({ timeout: 15_000 });

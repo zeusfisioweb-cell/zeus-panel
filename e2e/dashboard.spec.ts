@@ -89,4 +89,31 @@ test.describe('dashboard — main admin view', () => {
             await page.screenshot({ path: 'test-results/dashboard-nav-links.png' });
         }
     });
+
+    test('KPI values are numeric — no NaN or undefined', async ({ page }) => {
+        await expect(page.locator('.zs-dash-header__title')).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator('.zs-kpi__value').first()).toBeVisible({ timeout: 20_000 });
+
+        const kpiValues = page.locator('.zs-kpi__value');
+        const count = await kpiValues.count();
+        for (let i = 0; i < Math.min(count, 6); i++) {
+            const text = await kpiValues.nth(i).textContent({ timeout: 5_000 });
+            expect(text?.trim()).not.toBe('');
+            expect(text).not.toMatch(/NaN|undefined|null/);
+        }
+    });
+
+    test('agenda items show professional name — not "Sin asignar" (regression BUG-P4)', async ({ page }) => {
+        await expect(page.locator('.zs-dash-header__title')).toBeVisible({ timeout: 15_000 });
+        const agendaPanel = page.locator('.summary-v5-panel--agenda');
+        await expect(agendaPanel).toBeVisible({ timeout: 20_000 });
+
+        // Check visible appointment items in agenda don't show "Sin asignar"
+        const agendaText = await agendaPanel.textContent({ timeout: 5_000 });
+        // Only fail if appointments exist AND all show "Sin asignar" — if agenda is empty this is fine
+        const hasAppointments = agendaText && agendaText.length > 50;
+        if (hasAppointments) {
+            expect(agendaText).not.toMatch(/^Sin asignar$/m);
+        }
+    });
 });

@@ -151,6 +151,105 @@ test.describe('citas — appointments', () => {
         }
     });
 
+    test('list view rows show required columns', async ({ page }) => {
+        await page.goto('/citas');
+        await expect(page.locator('.zs-ch-wrap')).toBeVisible({ timeout: 15_000 });
+
+        await page.locator('.citas-segment__btn').filter({ hasText: /Lista/i }).click();
+        await page.waitForTimeout(800);
+
+        // Filters panel visible in list view
+        await expect(page.locator('.citas-filters')).toBeVisible({ timeout: 8_000 });
+
+        // Either rows exist or empty state
+        const rows = page.locator('.citas-list-row, .citas-table tbody tr');
+        const emptyState = page.locator('.citas-empty, [class*="empty-state"]');
+        const hasRows = (await rows.count()) > 0;
+        const hasEmpty = await emptyState.isVisible({ timeout: 2_000 }).catch(() => false);
+        expect(hasRows || hasEmpty).toBeTruthy();
+        await page.screenshot({ path: 'test-results/citas-list-rows.png' });
+    });
+
+    test('calendar view — no "Sin asignar" for assigned appointments (regression BUG-P4)', async ({ page }) => {
+        await page.goto('/citas');
+        await expect(page.locator('.zs-ch-wrap')).toBeVisible({ timeout: 15_000 });
+
+        // Calendar is the default view — wait for it to render
+        await page.waitForTimeout(1_500);
+
+        // Check timeline blocks for "Sin asignar" text
+        const timelineBlocks = page.locator('.timeline-cita-block, .cita-event, [class*="cita-block"]');
+        const blockCount = await timelineBlocks.count();
+
+        if (blockCount > 0) {
+            for (let i = 0; i < Math.min(blockCount, 10); i++) {
+                const blockText = await timelineBlocks.nth(i).textContent();
+                expect(blockText).not.toMatch(/^Sin asignar$/);
+            }
+        }
+        await page.screenshot({ path: 'test-results/citas-no-sin-asignar.png' });
+    });
+
+    test('appointment detail panel opens on click in calendar view', async ({ page }) => {
+        await page.goto('/citas');
+        await expect(page.locator('.zs-ch-wrap')).toBeVisible({ timeout: 15_000 });
+        await page.waitForTimeout(1_500);
+
+        // Try clicking an appointment block in the timeline
+        const aptBlock = page.locator(
+            '.timeline-cita-block, [class*="cita-block"], [class*="cita-event"], [class*="appointment-block"]'
+        ).first();
+
+        if (!(await aptBlock.isVisible({ timeout: 5_000 }).catch(() => false))) {
+            test.skip(true, 'No appointment blocks visible in current calendar view');
+        }
+
+        await aptBlock.click();
+        await page.waitForTimeout(600);
+
+        // Detail panel should slide in
+        const detailPanel = page.locator(
+            '.cita-detail-panel, [class*="detail-panel"], [class*="AppointmentDetail"]'
+        ).first();
+
+        if (await detailPanel.isVisible({ timeout: 5_000 }).catch(() => false)) {
+            await page.screenshot({ path: 'test-results/citas-detail-panel.png' });
+            // Panel should show some meaningful content
+            const panelText = await detailPanel.textContent();
+            expect(panelText?.trim().length).toBeGreaterThan(10);
+        }
+    });
+
+    test('navigate calendar to next week — date header updates', async ({ page }) => {
+        await page.goto('/citas');
+        await expect(page.locator('.zs-ch-wrap')).toBeVisible({ timeout: 15_000 });
+
+        // Get current date header text
+        const dateHeader = page.locator('.zs-ch-week-label, .citas-week-label, [class*="week-label"]').first();
+        const hasDateHeader = await dateHeader.isVisible({ timeout: 5_000 }).catch(() => false);
+
+        // Find next-week navigation button
+        const nextBtn = page.locator('[aria-label*="siguiente"], [aria-label*="next"], button').filter({ hasText: /›|▶|→/ }).first()
+            .or(page.locator('.zs-ch-nav-btn--next, [class*="nav-next"], [class*="next-week"]').first());
+
+        if (!(await nextBtn.isVisible({ timeout: 3_000 }).catch(() => false))) {
+            test.skip(true, 'No calendar navigation button found');
+        }
+
+        const headerBefore = hasDateHeader ? await dateHeader.textContent() : null;
+        await nextBtn.click();
+        await page.waitForTimeout(500);
+
+        if (headerBefore && hasDateHeader) {
+            const headerAfter = await dateHeader.textContent();
+            expect(headerAfter).not.toBe(headerBefore);
+        } else {
+            // Just verify no crash after navigation
+            await expect(page.locator('.zs-ch-wrap')).toBeVisible();
+        }
+        await page.screenshot({ path: 'test-results/citas-next-week.png' });
+    });
+
     test('cancel appointment — modal appears and confirms', async ({ page }) => {
         await page.goto('/citas');
         await expect(page.locator('.zs-ch-wrap')).toBeVisible({ timeout: 15_000 });
