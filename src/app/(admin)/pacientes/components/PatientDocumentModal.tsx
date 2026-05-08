@@ -181,11 +181,6 @@ export function PatientDocumentModal({
                     </label>
                 </div>
 
-                <label className="settings-field">
-                    <span className="form-label">Paciente</span>
-                    <input className="form-input" value={patientName} readOnly />
-                </label>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {fields.map((field) => (
                         <label

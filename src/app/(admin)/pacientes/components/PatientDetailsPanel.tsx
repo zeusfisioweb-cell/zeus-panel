@@ -18,6 +18,7 @@ interface PatientDetailsPanelProps {
     onEdit: () => void;
     onDelete: (id: string) => void;
     onEditDocument: (document: PatientDocument) => void;
+    onDeleteDocument: (id: string) => void;
     onNewDocument: () => void;
     onUnlinkPortal?: (id: string) => void;
     userRole?: UserRole;
@@ -39,6 +40,7 @@ export function PatientDetailsPanel({
     onEdit,
     onDelete,
     onEditDocument,
+    onDeleteDocument,
     onNewDocument,
     onUnlinkPortal,
     userRole,
@@ -409,14 +411,15 @@ export function PatientDetailsPanel({
                                             >
                                                 Rellenar / editar
                                             </Button>
-                                            <a
-                                                href={`/consentimientos/${document.template_file_name}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="patient-record-add"
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                leftIcon={<Icon name="trash" size={13} />}
+                                                onClick={() => onDeleteDocument(document.id)}
                                             >
-                                                Abrir PDF base
-                                            </a>
+                                                Eliminar
+                                            </Button>
                                         </div>
                                     </article>
                                 ))}

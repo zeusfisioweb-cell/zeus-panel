@@ -207,9 +207,6 @@ function buildDataConsent(patientName: string, visitDate: string, formData: Reco
 }
 
 export function printDocument({ documentType, patientName, visitDate, formData, notes }: PrintDocumentParams): void {
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=900');
-    if (!printWindow) return;
-
     const displayDate = visitDate
         ? new Date(visitDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
         : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -223,13 +220,17 @@ export function printDocument({ documentType, patientName, visitDate, formData, 
         body = buildDataConsent(patientName, displayDate, formData, notes);
     }
 
-    printWindow.document.write(`<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><title>${escapeHtml(PATIENT_DOCUMENT_TYPE_LABELS[documentType])}</title>
 <style>${PRINT_STYLES}</style></head>
-<body>${body}</body>
-</html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+<body>${body}<script>window.addEventListener('load',function(){window.print();});<\/script></body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (w) {
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
 }

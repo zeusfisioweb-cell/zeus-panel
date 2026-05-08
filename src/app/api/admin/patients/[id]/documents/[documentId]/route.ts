@@ -112,3 +112,43 @@ export async function PATCH(
     }
 }
 
+export async function DELETE(
+    request: Request,
+    context: { params: Promise<{ id: string; documentId: string }> }
+) {
+    try {
+        assertSameOriginMutation(request);
+        const { supabase, role, userId, professionalId } = await requirePanelAccess();
+        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
+
+        const { id: patientId, documentId } = paramsSchema.parse(await context.params);
+        await ensurePatientAccess({
+            supabase,
+            role,
+            professionalId: scopedProfessionalId,
+            patientId,
+        });
+
+        const { error: deleteError } = await supabase
+            .from('patient_documents')
+            .delete()
+            .eq('id', documentId)
+            .eq('patient_id', patientId);
+
+        if (deleteError) throw deleteError;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'DELETE',
+            tableName: 'patient_documents',
+            recordId: documentId,
+            details: { patient_id: patientId },
+        });
+
+        return new NextResponse(null, { status: 204 });
+    } catch (error: unknown) {
+        return handleApiError(error);
+    }
+}
+

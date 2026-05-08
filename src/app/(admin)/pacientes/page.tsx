@@ -196,6 +196,28 @@ export default function PacientesPage() {
         setIsDocumentModalOpen(true);
     };
 
+    const handleDeleteDocument = (docId: string) => {
+        if (!selectedPatient) return;
+        setConfirmAction({
+            title: 'Eliminar documento',
+            message: '¿Eliminar este documento? Esta acción no se puede deshacer.',
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(
+                        `/api/admin/patients/${encodeURIComponent(selectedPatient.id)}/documents/${encodeURIComponent(docId)}`,
+                        { method: 'DELETE', credentials: 'same-origin' }
+                    );
+                    if (!res.ok) throw new Error(await readApiError(res));
+                    setPatientDocuments((prev) => prev.filter((d) => d.id !== docId));
+                    setConfirmAction(null);
+                    toast.success('Documento eliminado');
+                } catch (error: unknown) {
+                    toast.error(getErrorMessage(error));
+                }
+            },
+        });
+    };
+
     const handleCloseDocumentModal = () => {
         setIsDocumentModalOpen(false);
         setEditingDocument(null);
@@ -248,6 +270,7 @@ export default function PacientesPage() {
                             onEdit={() => setEditingPatient(selectedPatient)}
                             onDelete={handleDeletePatientConfirm}
                             onEditDocument={handleOpenEditDocument}
+                            onDeleteDocument={handleDeleteDocument}
                             onNewDocument={handleNewDocument}
                             onUnlinkPortal={handleUnlinkPortal}
                         />
