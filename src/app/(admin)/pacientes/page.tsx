@@ -2,16 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import type { Appointment, ClinicalRecord, Patient, RecordType } from '@/lib/types';
+import type { Appointment, Patient, PatientDocument } from '@/lib/types';
 import { useAuth } from '@/lib/auth-context';
 import { useCreatePaciente, useDeletePaciente, usePacientes, useUpdatePaciente } from '@/hooks/usePacientes';
-import { useProfesionales } from '@/hooks/useProfesionales';
 
 import ConfirmModal from '@/components/ConfirmModal';
-import { ClinicalRecordFormModal } from './components/ClinicalRecordFormModal';
 import { PacientesHeader } from './components/PacientesHeader';
 import { PacientesTable } from './components/PacientesTable';
 import { PatientDetailsPanel } from './components/PatientDetailsPanel';
+import { PatientDocumentModal } from './components/PatientDocumentModal';
 import { PatientFormData, PatientFormModal } from './components/PatientFormModal';
 import { readApiError } from '@/lib/api-helpers';
 
@@ -31,7 +30,6 @@ export default function PacientesPage() {
     const totalCount = result?.count || 0;
 
     const { profile } = useAuth();
-    const { data: professionals = [] } = useProfesionales();
 
     const createPaciente = useCreatePaciente();
     const updatePaciente = useUpdatePaciente();
@@ -39,7 +37,7 @@ export default function PacientesPage() {
 
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
-    const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
+    const [patientDocuments, setPatientDocuments] = useState<PatientDocument[]>([]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -51,8 +49,7 @@ export default function PacientesPage() {
 
     const [showNewModal, setShowNewModal] = useState(false);
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-    const [showRecordModal, setShowRecordModal] = useState(false);
-    const [recordType, setRecordType] = useState<RecordType>('evolution');
+    const [editingDocument, setEditingDocument] = useState<PatientDocument | null>(null);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
     const getErrorMessage = (error: unknown): string => {
@@ -62,28 +59,42 @@ export default function PacientesPage() {
 
     const loadPatientDetails = async (patientId: string) => {
         try {
-            const response = await fetch(`/api/admin/patients/${encodeURIComponent(patientId)}/details`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
+            const [detailsResponse, docsResponse] = await Promise.all([
+                fetch(`/api/admin/patients/${encodeURIComponent(patientId)}/details`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                }),
+                fetch(`/api/admin/patients/${encodeURIComponent(patientId)}/documents`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                }),
+            ]);
 
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
+            if (!detailsResponse.ok) {
+                throw new Error(await readApiError(detailsResponse));
             }
 
-            const payload = (await response.json()) as {
+            const detailsPayload = (await detailsResponse.json()) as {
                 appointments: Appointment[];
-                records: ClinicalRecord[];
             };
 
-            setPatientAppointments(payload.appointments ?? []);
-            setClinicalRecords(payload.records ?? []);
+            setPatientAppointments(detailsPayload.appointments ?? []);
+
+            if (!docsResponse.ok) {
+                throw new Error(await readApiError(docsResponse));
+            }
+
+            const documentsPayload = (await docsResponse.json()) as {
+                documents: PatientDocument[];
+            };
+            setPatientDocuments(documentsPayload.documents ?? []);
         } catch {
             toast.error('Error cargando los detalles del paciente');
         }
     };
 
     const handleViewPatient = (patient: Patient) => {
+        setEditingDocument(null);
         setSelectedPatient(patient);
         void loadPatientDetails(patient.id);
     };
@@ -162,76 +173,8 @@ export default function PacientesPage() {
         setSelectedPatient(prev => prev?.id === id ? { ...prev, auth_user_id: null } : prev);
     };
 
-    const handleOpenRecordModal = (type: RecordType) => {
-        setRecordType(type);
-        setShowRecordModal(true);
-    };
-
-    const handleSaveRecord = async (type: RecordType, recordFields: string[], professionalId?: string) => {
-        if (!selectedPatient) return;
-
-        try {
-            const { RECORD_FIELDS } = await import('./components/ClinicalRecordFormModal');
-            const content: Record<string, string> = {};
-
-            RECORD_FIELDS[type].forEach((field: { key: string }, index: number) => {
-                content[field.key] = recordFields[index] || '';
-            });
-
-            const body: Record<string, unknown> = {
-                patient_id: selectedPatient.id,
-                type,
-                content,
-            };
-            if (professionalId) {
-                body.professional_id = professionalId;
-            }
-
-            const response = await fetch('/api/admin/clinical-records', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(body),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            toast.success('Ficha clínica guardada');
-            await loadPatientDetails(selectedPatient.id);
-        } catch (error: unknown) {
-            toast.error(`Error al guardar ficha: ${getErrorMessage(error)}`);
-            throw error;
-        }
-    };
-
-    const handleDeleteRecordConfirm = (id: string) => {
-        setConfirmAction({
-            title: 'Eliminar ficha clínica',
-            message: '¿Seguro que deseas eliminar esta ficha clínica?',
-            onConfirm: async () => {
-                try {
-                    const response = await fetch(`/api/admin/clinical-records/${encodeURIComponent(id)}`, {
-                        method: 'DELETE',
-                        credentials: 'same-origin',
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(await readApiError(response));
-                    }
-
-                    if (selectedPatient) {
-                        await loadPatientDetails(selectedPatient.id);
-                    }
-
-                    setConfirmAction(null);
-                    toast.success('Ficha eliminada');
-                } catch (error: unknown) {
-                    toast.error(`Error al eliminar ficha: ${getErrorMessage(error)}`);
-                }
-            },
-        });
+    const handleDocumentSaved = (updated: PatientDocument) => {
+        setPatientDocuments((prev) => prev.map((doc) => (doc.id === updated.id ? updated : doc)));
     };
 
     if (isLoadingPatients) {
@@ -270,13 +213,15 @@ export default function PacientesPage() {
                         <PatientDetailsPanel
                             patient={selectedPatient}
                             appointments={patientAppointments}
-                            records={clinicalRecords}
+                            documents={patientDocuments}
                             userRole={profile?.role}
-                            onClose={() => setSelectedPatient(null)}
+                            onClose={() => {
+                                setEditingDocument(null);
+                                setSelectedPatient(null);
+                            }}
                             onEdit={() => setEditingPatient(selectedPatient)}
                             onDelete={handleDeletePatientConfirm}
-                            onNewRecord={handleOpenRecordModal}
-                            onDeleteRecord={handleDeleteRecordConfirm}
+                            onEditDocument={setEditingDocument}
                             onUnlinkPortal={handleUnlinkPortal}
                         />
                     </div>
@@ -299,16 +244,14 @@ export default function PacientesPage() {
                 />
             )}
 
-            {showRecordModal && (
-                <ClinicalRecordFormModal
-                    isOpen={showRecordModal}
-                    onClose={() => setShowRecordModal(false)}
-                    initialType={recordType}
-                    onSubmit={handleSaveRecord}
-                    userRole={profile?.role}
-                    professionals={professionals}
-                />
-            )}
+            <PatientDocumentModal
+                isOpen={Boolean(editingDocument) && Boolean(selectedPatient)}
+                patientId={selectedPatient?.id ?? ''}
+                patientName={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : ''}
+                document={editingDocument}
+                onClose={() => setEditingDocument(null)}
+                onSaved={handleDocumentSaved}
+            />
 
             {confirmAction && (
                 <ConfirmModal

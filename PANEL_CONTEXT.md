@@ -86,6 +86,10 @@ Registro operativo:
   - `PatientsGrowthChart` añade `minWidth={0}` en `ResponsiveContainer` para reducir warnings de dimensiones intermitentes.
   - nueva migración local `supabase/migrations/20260505190000_booking_settings_update_owner_policy.sql` para habilitar `UPDATE` owner en `booking_settings` vía RLS (sin bypass `service_role` en ruta), aplicada en remoto el 2026-05-05 junto con reconciliación de ledger.
   - verificación local posterior: `panel` (`npm run test`, `npm run lint`, `npm run build`) en verde (249 tests).
+- 2026-05-08: documentación clínico-legal por paciente (local). Se crea la migración `supabase/migrations/20260508124000_add_patient_documents.sql` y nuevas APIs admin:
+  - `GET /api/admin/patients/[id]/documents` (materializa y devuelve 3 documentos base por paciente);
+  - `PATCH /api/admin/patients/[id]/documents/[documentId]` (guarda formulario editable, estado y notas).
+  En UI de `panel/src/app/(admin)/pacientes/`, la pestaña clínica pasa a “Documentos” y permite rellenar/editar/guardar/imprimir cada documento y abrir la plantilla PDF base desde `panel/public/consentimientos`.
 - 2026-05-03: antelacion minima de reserva (`min_booking_notice_hours`) bajada de 2h a 1h por defecto en `configuracion/page.tsx` (admin form), `panel/portal/src/app/portal/reservar/ReservarClient.tsx` (fallback cliente) y valor en BD.
 - 2026-05-03: hardening booking portal (local): `POST /api/portal/booking/appointments` valida disponibilidad real contra `get_available_slots` antes de insertar (devuelve `409 slot_taken` si el rango no existe en agenda efectiva) y `GET /api/portal/booking/services` filtra servicios sin profesionales activos asignados para evitar selección de servicios sin opciones de profesional.
 - 2026-04-30: continuidad de sesión documentada en `production-readiness/2026-04-30/01-next-session-handoff.md` con checklist de deploy/smoke y cierre DB pendiente.

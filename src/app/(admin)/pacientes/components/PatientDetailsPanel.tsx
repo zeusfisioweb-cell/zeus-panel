@@ -5,37 +5,19 @@ import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import type { Patient, Appointment, ClinicalRecord, RecordType, UserRole } from '@/lib/types';
-import { RECORD_TYPE_LABELS, RECORD_TYPE_COLORS, STATUS_LABELS } from '@/lib/types';
+import type { Patient, Appointment, PatientDocument, UserRole } from '@/lib/types';
+import { PATIENT_DOCUMENT_STATUS_LABELS, PATIENT_DOCUMENT_TYPE_LABELS, STATUS_LABELS } from '@/lib/types';
 
 type DetailTab = 'datos' | 'citas' | 'clinico';
-
-const FIELD_DISPLAY_LABELS: Record<string, string> = {
-    chief_complaint: 'Motivo de consulta',
-    medical_history: 'Antecedentes',
-    medications: 'Medicación actual',
-    observations: 'Observaciones',
-    visual_inspection: 'Inspección visual',
-    palpation: 'Palpación',
-    mobility: 'Movilidad',
-    specific_tests: 'Tests específicos',
-    treatment_applied: 'Sesión realizada / Tratamiento',
-    patient_response: 'Respuesta del paciente',
-    next_session_plan: 'Plan de tratamiento',
-    diagnosis: 'Diagnóstico',
-    results: 'Resultados',
-    recommendations: 'Recomendaciones',
-};
 
 interface PatientDetailsPanelProps {
     patient: Patient;
     appointments: Appointment[];
-    records: ClinicalRecord[];
+    documents: PatientDocument[];
     onClose: () => void;
     onEdit: () => void;
     onDelete: (id: string) => void;
-    onNewRecord: (type: RecordType) => void;
-    onDeleteRecord: (id: string) => void;
+    onEditDocument: (document: PatientDocument) => void;
     onUnlinkPortal?: (id: string) => void;
     userRole?: UserRole;
 }
@@ -51,12 +33,11 @@ function getAge(birthDate: string): number {
 export function PatientDetailsPanel({
     patient,
     appointments,
-    records,
+    documents,
     onClose,
     onEdit,
     onDelete,
-    onNewRecord,
-    onDeleteRecord,
+    onEditDocument,
     onUnlinkPortal,
     userRole,
 }: PatientDetailsPanelProps) {
@@ -65,6 +46,10 @@ export function PatientDetailsPanel({
     const [exporting, setExporting] = useState(false);
     const [exportingCsv, setExportingCsv] = useState(false);
     const [unlinking, setUnlinking] = useState(false);
+    const [inviting, setInviting] = useState(false);
+    const [inviteSent, setInviteSent] = useState(false);
+
+    useEffect(() => { setInviteSent(false); }, [patient.id]);
 
     const age = patient.birth_date ? getAge(patient.birth_date) : null;
     const isMinorApproachingAutonomy = age !== null && age >= 15 && age < 16;
@@ -81,6 +66,24 @@ export function PatientDetailsPanel({
             onUnlinkPortal?.(patient.id);
         } else {
             toast.error('Error al desvincular la cuenta');
+        }
+    }
+
+    async function handleInvitePortal() {
+        setInviting(true);
+        const res = await fetch('/api/admin/portal/invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ patient_id: patient.id }),
+        });
+        setInviting(false);
+        if (res.ok) {
+            setInviteSent(true);
+            toast.success(`Invitación enviada a ${patient.email}`);
+        } else {
+            const body = await res.json().catch(() => ({ error: 'Error de servidor' }));
+            toast.error((body as { error?: string }).error ?? 'Error al enviar la invitación');
         }
     }
 
@@ -187,6 +190,34 @@ export function PatientDetailsPanel({
                 </Badge>
             </div>
 
+            {/* Portal access status */}
+            <div className="patient-detail-item patient-detail-item--full">
+                <span>Acceso al portal</span>
+                {hasPortalAccount ? (
+                    <Badge variant="success">Cuenta activa</Badge>
+                ) : patient.email && !isManagedByGuardian ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Badge variant="default">Sin cuenta</Badge>
+                        {inviteSent ? (
+                            <Badge variant="success">Invitación enviada</Badge>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleInvitePortal}
+                                disabled={inviting}
+                                isLoading={inviting}
+                                leftIcon={<Icon name="mail" size={13} />}
+                            >
+                                Invitar al portal
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <Badge variant="default">{isManagedByGuardian ? 'Gestionado por tutor' : 'Sin email'}</Badge>
+                )}
+            </div>
+
             <div className="patient-detail-danger">
                 {isOwner && (
                     <>
@@ -281,44 +312,21 @@ export function PatientDetailsPanel({
 
     const renderClinico = () => (
         <div className="patient-clinical">
-            <div className="patient-clinical__actions">
-                {(Object.keys(RECORD_TYPE_LABELS) as RecordType[]).map((type) => (
-                    <button
-                        key={type}
-                        className="patient-record-add"
-                        style={{
-                            borderColor: RECORD_TYPE_COLORS[type],
-                            color: RECORD_TYPE_COLORS[type],
-                            backgroundColor: `${RECORD_TYPE_COLORS[type]}1A`,
-                        }}
-                        onClick={() => onNewRecord(type)}
-                    >
-                        <Icon name="plus" size={12} />
-                        {RECORD_TYPE_LABELS[type]}
-                    </button>
-                ))}
-            </div>
-
-            {records.length === 0 ? (
+            {documents.length === 0 ? (
                 <div className="patient-empty-box">
                     <Icon name="clipboard" size={22} className="opacity-50" />
-                    <p>Sin fichas clínicas</p>
+                    <p>Sin documentos clínico-legales</p>
                 </div>
             ) : (
                 <div className="patient-record-list">
-                    {records.map((record) => (
-                        <article
-                            key={record.id}
-                            className="patient-record-item"
-                            style={{ borderLeftColor: RECORD_TYPE_COLORS[record.type] }}
-                        >
+                    {documents.map((document) => (
+                        <article key={document.id} className="patient-record-item">
                             <div className="patient-record-item__head">
                                 <div>
-                                    <span style={{ color: RECORD_TYPE_COLORS[record.type] }}>
-                                        {RECORD_TYPE_LABELS[record.type]}
-                                    </span>
+                                    <span>{PATIENT_DOCUMENT_TYPE_LABELS[document.document_type]}</span>
                                     <small>
-                                        {new Date(record.created_at).toLocaleDateString('es-ES', {
+                                        Última actualización:{' '}
+                                        {new Date(document.updated_at).toLocaleDateString('es-ES', {
                                             day: '2-digit',
                                             month: 'short',
                                             year: 'numeric',
@@ -327,33 +335,49 @@ export function PatientDetailsPanel({
                                         })}
                                     </small>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="patient-record-delete"
-                                    onClick={() => onDeleteRecord(record.id)}
-                                    title="Eliminar ficha"
-                                    aria-label="Eliminar ficha"
+                                <Badge
+                                    variant={
+                                        document.status === 'signed'
+                                            ? 'success'
+                                            : document.status === 'completed'
+                                                ? 'default'
+                                                : 'warning'
+                                    }
                                 >
-                                    <Icon name="trash" size={14} />
-                                </Button>
-                            </div>
-
-                            <div className="patient-record-item__author">
-                                Por: <strong>{record.professional?.profile?.full_name || 'Profesional'}</strong>
+                                    {PATIENT_DOCUMENT_STATUS_LABELS[document.status]}
+                                </Badge>
                             </div>
 
                             <div className="patient-record-item__content">
-                                {Object.entries(record.content as Record<string, unknown>).map(([key, value]) => {
-                                    if (typeof value !== 'string' || value.trim() === '') return null;
+                                <div>
+                                    <span>Plantilla</span>
+                                    <p>{document.template_file_name}</p>
+                                </div>
+                                {typeof document.notes === 'string' && document.notes.trim() ? (
+                                    <div>
+                                        <span>Notas</span>
+                                        <p>{document.notes}</p>
+                                    </div>
+                                ) : null}
+                            </div>
 
-                                    return (
-                                        <div key={key}>
-                                            <span>{FIELD_DISPLAY_LABELS[key] ?? key}</span>
-                                            <p>{value}</p>
-                                        </div>
-                                    );
-                                })}
+                            <div className="patient-clinical__actions">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    leftIcon={<Icon name="edit" size={14} />}
+                                    onClick={() => onEditDocument(document)}
+                                >
+                                    Rellenar / editar
+                                </Button>
+                                <a
+                                    href={`/consentimientos/${document.template_file_name}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="patient-record-add"
+                                >
+                                    Abrir PDF base
+                                </a>
                             </div>
                         </article>
                     ))}
@@ -405,7 +429,7 @@ export function PatientDetailsPanel({
                 {([
                     { key: 'datos', label: 'Datos', icon: 'user' },
                     { key: 'citas', label: `Citas (${appointments.length})`, icon: 'calendar' },
-                    { key: 'clinico', label: `Fichas (${records.length})`, icon: 'clipboard' },
+                    { key: 'clinico', label: `Documentos (${documents.length})`, icon: 'clipboard' },
                 ] as const).map((tab) => (
                     <button
                         key={tab.key}

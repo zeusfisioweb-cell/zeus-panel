@@ -37,10 +37,16 @@ describe('admin patient details route RBAC', () => {
             eq: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
+        const documentsQuery = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
         const supabase = {
             from: vi.fn((table: string) => {
                 if (table === 'appointments') return appointmentsQuery;
                 if (table === 'clinical_records') return recordsQuery;
+                if (table === 'patient_documents') return documentsQuery;
                 throw new Error(`Unexpected table: ${table}`);
             }),
         };

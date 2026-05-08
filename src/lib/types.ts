@@ -5,6 +5,8 @@ export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'complet
 export type RecordType = 'anamnesis' | 'exploration' | 'evolution' | 'report';
 export type ConsentType = 'gdpr' | 'informed' | 'marketing';
 export type AppointmentSource = 'web' | 'admin' | 'phone';
+export type PatientDocumentType = 'clinical_history' | 'intervention_consent' | 'data_consent';
+export type PatientDocumentStatus = 'draft' | 'completed' | 'signed';
 
 export interface Profile {
     id: string;
@@ -202,6 +204,24 @@ export interface ClinicalRecord {
     professional?: { profile?: { full_name: string | null } };
 }
 
+export interface PatientDocument {
+    id: string;
+    patient_id: string;
+    document_type: PatientDocumentType;
+    title: string;
+    template_file_name: string;
+    status: PatientDocumentStatus;
+    form_data: Record<string, unknown>;
+    notes: string | null;
+    file_url: string | null;
+    completed_at: string | null;
+    signed_at: string | null;
+    created_by: string | null;
+    updated_by: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 // Day names for schedule display (UI order: 0=Lunes .. 6=Domingo)
 export const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const DAY_NAMES_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -234,6 +254,18 @@ export const RECORD_TYPE_COLORS: Record<RecordType, string> = {
     report: '#C06B4E',
 };
 
+export const PATIENT_DOCUMENT_TYPE_LABELS: Record<PatientDocumentType, string> = {
+    clinical_history: 'Historia clínica fisioterapéutica',
+    intervention_consent: 'Consentimiento de intervención',
+    data_consent: 'Consentimiento LOPD/RGPD',
+};
+
+export const PATIENT_DOCUMENT_STATUS_LABELS: Record<PatientDocumentStatus, string> = {
+    draft: 'Borrador',
+    completed: 'Completado',
+    signed: 'Firmado',
+};
+
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
     pending: 'Pendiente',
     confirmed: 'Confirmada',
@@ -247,4 +279,3 @@ export const STATUS_COLORS: Record<AppointmentStatus, string> = {
     cancelled: '#ef4444',
     completed: '#6366f1',
 };
-
