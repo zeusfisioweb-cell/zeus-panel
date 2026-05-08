@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import type { PatientDocumentType } from '@/lib/types';
 import { PATIENT_DOCUMENT_TYPE_LABELS } from '@/lib/types';
+import { useProfesionales } from '@/hooks/useProfesionales';
 import {
     DOCUMENT_FIELDS,
     DOCUMENT_TYPE_OPTIONS,
@@ -21,9 +22,10 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
     const [selectedType, setSelectedType] = useState<PatientDocumentType>('clinical_history');
     const [formData, setFormData] = useState<Record<string, unknown>>({});
     const [notes, setNotes] = useState('');
+    const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
 
+    const { data: professionals = [] } = useProfesionales();
     const fields = useMemo(() => DOCUMENT_FIELDS[selectedType], [selectedType]);
-    const templateUrl = `/consentimientos/${selectedType}_template.pdf`;
 
     function updateField(key: string, value: unknown) {
         setFormData((prev) => ({ ...prev, [key]: value }));
@@ -37,13 +39,11 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
 
     function handlePrint() {
         printDocument({
-            typeLabel: PATIENT_DOCUMENT_TYPE_LABELS[selectedType],
-            subjectLine: 'Documento sin paciente asignado',
-            statusLabel: '—',
-            fields,
+            documentType: selectedType,
+            patientName: '___________________________',
+            visitDate,
             formData,
             notes,
-            templateUrl,
         });
     }
 
@@ -72,6 +72,17 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
                     ))}
                 </div>
 
+                <label className="settings-field">
+                    <span className="form-label">Fecha del documento</span>
+                    <input
+                        type="date"
+                        className="form-input"
+                        value={visitDate}
+                        onChange={(e) => setVisitDate(e.target.value)}
+                        style={{ maxWidth: 200 }}
+                    />
+                </label>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {fields.map((field) => (
                         <label
@@ -93,6 +104,22 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
                                     checked={Boolean(formData[field.key])}
                                     onChange={(e) => updateField(field.key, e.target.checked)}
                                 />
+                            ) : field.type === 'professional_select' ? (
+                                <select
+                                    className="form-input"
+                                    value={String(formData[field.key] ?? '')}
+                                    onChange={(e) => updateField(field.key, e.target.value)}
+                                >
+                                    <option value="">— Seleccionar profesional —</option>
+                                    {professionals
+                                        .filter((p) => p.is_active)
+                                        .map((p) => (
+                                            <option key={p.id} value={p.profile?.full_name ?? p.id}>
+                                                {p.profile?.full_name ?? 'Sin nombre'}
+                                                {p.specialty ? ` · ${p.specialty}` : ''}
+                                            </option>
+                                        ))}
+                                </select>
                             ) : (
                                 <input
                                     type={field.type}
@@ -116,17 +143,9 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
                     />
                 </label>
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                    <a
-                        href={templateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="patient-record-add"
-                    >
-                        <Icon name="download" size={13} />
-                        Abrir plantilla PDF base
-                    </a>
-                </div>
+                <p className="text-xs text-[var(--text-muted)]">
+                    El PDF se genera con el nombre del paciente en blanco. Para documentos asociados a un paciente, usa el tab &quot;Documentos&quot; en su ficha.
+                </p>
             </div>
 
             <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-surface)] shrink-0 flex justify-between gap-3 rounded-b-xl">

@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import type { PatientDocument, PatientDocumentType, PatientDocumentStatus } from '@/lib/types';
 import { PATIENT_DOCUMENT_STATUS_LABELS, PATIENT_DOCUMENT_TYPE_LABELS } from '@/lib/types';
 import { readApiError } from '@/lib/api-helpers';
+import { useProfesionales } from '@/hooks/useProfesionales';
 import {
     DOCUMENT_FIELDS,
     DOCUMENT_TYPE_OPTIONS,
@@ -33,6 +34,7 @@ export function PatientDocumentModal({
     onSaved,
 }: PatientDocumentModalProps) {
     const isCreate = document === null;
+    const { data: professionals = [] } = useProfesionales();
 
     const [selectedType, setSelectedType] = useState<PatientDocumentType>('clinical_history');
     const [visitDate, setVisitDate] = useState('');
@@ -61,25 +63,17 @@ export function PatientDocumentModal({
     const activeType = isCreate ? selectedType : document!.document_type;
     const fields = useMemo(() => DOCUMENT_FIELDS[activeType], [activeType]);
 
-    const templateUrl = `/consentimientos/${
-        isCreate
-            ? `${activeType}_template.pdf`
-            : document!.template_file_name
-    }`;
-
     function updateField(key: string, value: unknown) {
         setFormData((prev) => ({ ...prev, [key]: value }));
     }
 
     function handlePrint() {
         printDocument({
-            typeLabel: PATIENT_DOCUMENT_TYPE_LABELS[activeType],
-            subjectLine: `Paciente: ${patientName}`,
-            statusLabel: PATIENT_DOCUMENT_STATUS_LABELS[status],
-            fields,
+            documentType: activeType,
+            patientName,
+            visitDate,
             formData,
             notes,
-            templateUrl,
         });
     }
 
@@ -213,6 +207,22 @@ export function PatientDocumentModal({
                                     checked={Boolean(formData[field.key])}
                                     onChange={(e) => updateField(field.key, e.target.checked)}
                                 />
+                            ) : field.type === 'professional_select' ? (
+                                <select
+                                    className="form-input"
+                                    value={String(formData[field.key] ?? '')}
+                                    onChange={(e) => updateField(field.key, e.target.value)}
+                                >
+                                    <option value="">— Seleccionar profesional —</option>
+                                    {professionals
+                                        .filter((p) => p.is_active)
+                                        .map((p) => (
+                                            <option key={p.id} value={p.profile?.full_name ?? p.id}>
+                                                {p.profile?.full_name ?? 'Sin nombre'}
+                                                {p.specialty ? ` · ${p.specialty}` : ''}
+                                            </option>
+                                        ))}
+                                </select>
                             ) : (
                                 <input
                                     type={field.type}
@@ -237,15 +247,6 @@ export function PatientDocumentModal({
                 </label>
 
                 <div className="flex flex-wrap gap-2 pt-2">
-                    <a
-                        href={templateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="patient-record-add"
-                    >
-                        <Icon name="download" size={13} />
-                        Abrir plantilla PDF
-                    </a>
                     <Button
                         type="button"
                         variant="ghost"
@@ -253,7 +254,7 @@ export function PatientDocumentModal({
                         leftIcon={<Icon name="print" size={13} />}
                         onClick={handlePrint}
                     >
-                        Imprimir ficha rellenada
+                        Imprimir / Generar PDF
                     </Button>
                 </div>
             </div>
