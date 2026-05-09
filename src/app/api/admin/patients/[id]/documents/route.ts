@@ -8,6 +8,7 @@ import {
     assertSameOriginMutation,
 } from '../../../_lib';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
+import { sanitizeDocumentFormData } from '@/lib/patient-document-definitions';
 
 const paramsSchema = z.object({
     id: z.string().uuid({ message: 'ID de paciente inválido' }),
@@ -77,7 +78,7 @@ export async function POST(
                 title: defaults.title,
                 template_file_name: defaults.templateFileName,
                 status: 'draft',
-                form_data: body.form_data ?? {},
+                form_data: sanitizeDocumentFormData(body.document_type, body.form_data),
                 notes: null,
                 visit_date: body.visit_date ?? null,
                 created_by: userId,

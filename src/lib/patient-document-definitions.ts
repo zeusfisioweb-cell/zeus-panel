@@ -116,3 +116,19 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
 export function getDocumentFields(documentType: PatientDocumentType): PatientDocumentField[] {
     return PATIENT_DOCUMENT_DEFINITIONS[documentType].sections.flatMap((section) => section.fields);
 }
+
+export function getDocumentFieldKeys(documentType: PatientDocumentType): string[] {
+    return getDocumentFields(documentType).map((field) => field.key);
+}
+
+export function sanitizeDocumentFormData(
+    documentType: PatientDocumentType,
+    formData: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+    if (!formData) return {};
+
+    const allowed = new Set(getDocumentFieldKeys(documentType));
+    return Object.fromEntries(
+        Object.entries(formData).filter(([key]) => allowed.has(key))
+    );
+}

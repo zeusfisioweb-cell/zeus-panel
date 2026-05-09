@@ -10,6 +10,7 @@ import { PATIENT_DOCUMENT_TYPE_LABELS } from '@/lib/types';
 import { readApiError } from '@/lib/api-helpers';
 import { useProfesionales } from '@/hooks/useProfesionales';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
+import { sanitizeDocumentFormData } from '@/lib/patient-document-definitions';
 import {
     DOCUMENT_TYPE_OPTIONS,
     printDocument,
@@ -49,7 +50,7 @@ export function PatientDocumentModal({
         if (!isOpen) return;
         if (document) {
             setSelectedType(document.document_type);
-            setFormData(document.form_data ?? {});
+            setFormData(sanitizeDocumentFormData(document.document_type, document.form_data));
             setStatus(document.status);
             setVisitDate(document.visit_date ?? '');
         } else {
@@ -101,7 +102,7 @@ export function PatientDocumentModal({
                             document_type: selectedType,
                             visit_date: visitDate || null,
                             status,
-                            form_data: formData,
+                            form_data: sanitizeDocumentFormData(selectedType, formData),
                         }),
                     }
                 );
@@ -114,7 +115,7 @@ export function PatientDocumentModal({
                         credentials: 'same-origin',
                         body: JSON.stringify({
                             status,
-                            form_data: formData,
+                            form_data: sanitizeDocumentFormData(activeType, formData),
                             visit_date: visitDate || null,
                         }),
                     }

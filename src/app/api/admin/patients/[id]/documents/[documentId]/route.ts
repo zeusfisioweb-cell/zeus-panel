@@ -9,6 +9,7 @@ import {
     resolveScopedProfessionalId,
     writeAuditLog,
 } from '../../../../_lib';
+import { sanitizeDocumentFormData } from '@/lib/patient-document-definitions';
 
 const paramsSchema = z.object({
     id: z.string().uuid({ message: 'ID de paciente inválido' }),
@@ -43,7 +44,7 @@ export async function PATCH(
 
         const { data: existing, error: existingError } = await supabase
             .from('patient_documents')
-            .select('id, patient_id, status')
+            .select('id, patient_id, status, document_type')
             .eq('id', documentId)
             .eq('patient_id', patientId)
             .maybeSingle();
@@ -61,7 +62,7 @@ export async function PATCH(
             updatePayload.status = body.status;
         }
         if ('form_data' in body) {
-            updatePayload.form_data = body.form_data ?? {};
+            updatePayload.form_data = sanitizeDocumentFormData(existing.document_type, body.form_data);
         }
         if ('file_url' in body) {
             updatePayload.file_url = body.file_url ?? null;

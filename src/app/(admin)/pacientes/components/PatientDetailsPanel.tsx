@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import type { Patient, Appointment, PatientDocument, UserRole } from '@/lib/types';
 import { PATIENT_DOCUMENT_STATUS_LABELS, PATIENT_DOCUMENT_TYPE_LABELS, STATUS_LABELS } from '@/lib/types';
 import { getDocumentFields } from '@/lib/patient-document-definitions';
+import { sanitizeDocumentFormData } from '@/lib/patient-document-definitions';
 
 type DetailTab = 'datos' | 'citas' | 'clinico';
 
@@ -401,13 +402,13 @@ export function PatientDetailsPanel({
                                         </div>
 
                                         <div className="patient-record-item__content">
-                                            {Object.entries(document.form_data ?? {}).length === 0 ? (
+                                            {Object.entries(sanitizeDocumentFormData(document.document_type, document.form_data)).length === 0 ? (
                                                 <div>
                                                     <span>Campos del documento</span>
                                                     <p>Sin datos rellenados todavía.</p>
                                                 </div>
                                             ) : (
-                                                Object.entries(document.form_data ?? {}).map(([key, value]) => (
+                                                Object.entries(sanitizeDocumentFormData(document.document_type, document.form_data)).map(([key, value]) => (
                                                     <div key={key}>
                                                         <span>{documentFieldLabels.get(key) ?? key}</span>
                                                         <p>{typeof value === 'boolean' ? (value ? 'Sí' : 'No') : String(value || '—')}</p>

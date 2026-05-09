@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import type { PatientDocumentType } from '@/lib/types';
 import { useProfesionales } from '@/hooks/useProfesionales';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
+import { sanitizeDocumentFormData } from '@/lib/patient-document-definitions';
 import {
     DOCUMENT_TYPE_OPTIONS,
     printDocument,
@@ -44,7 +45,7 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
                 patientName: '___________________________',
                 patientDocumentId: '',
                 visitDate,
-                formData,
+                formData: sanitizeDocumentFormData(selectedType, formData),
             });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'No se pudo generar el PDF';
