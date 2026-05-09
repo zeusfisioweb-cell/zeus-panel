@@ -29,27 +29,28 @@ export interface PatientDocumentPdfInput {
 
 function clinicalHistoryLayout(): FieldPlacement[] {
     return [
-        { key: 'fecha_primera_visita', kind: 'line', page: 0, x: 156, y: 722, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: '__patient_name', kind: 'line', page: 0, x: 170, y: 672, maxWidth: 300, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'edad', kind: 'line', page: 0, x: 145, y: 647, maxWidth: 60, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'sexo', kind: 'line', page: 0, x: 145, y: 634, maxWidth: 140, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'ocupacion', kind: 'line', page: 0, x: 168, y: 621, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'motivo_consulta', kind: 'area', page: 0, x: 102, y: 583, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 34 },
-        { key: 'antecedentes_personales', kind: 'area', page: 0, x: 102, y: 516, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 22 },
-        { key: 'historial_familiar', kind: 'line', page: 0, x: 188, y: 475, maxWidth: 344, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'sintomatologia', kind: 'area', page: 0, x: 102, y: 416, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 5, clearHeight: 52 },
-        { key: 'peso', kind: 'line', page: 0, x: 145, y: 341, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'altura', kind: 'line', page: 0, x: 145, y: 329, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'tipo', kind: 'line', page: 0, x: 145, y: 316, maxWidth: 170, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'frecuencia_ejercicio', kind: 'line', page: 0, x: 280, y: 303, maxWidth: 252, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'efectos_lesion', kind: 'area', page: 0, x: 102, y: 267, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 34 },
-        { key: 'descripcion_sintomas', kind: 'area', page: 0, x: 102, y: 208, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 34 },
-        { key: 'valoracion_movilidad', kind: 'area', page: 0, x: 102, y: 150, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
-        { key: 'pruebas_diagnosticas', kind: 'line', page: 0, x: 72, y: 104, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'fecha_primera_visita', kind: 'line', page: 0, x: 156, y: 714, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: '__patient_first_name', kind: 'line', page: 0, x: 148, y: 664, maxWidth: 170, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: '__patient_last_name', kind: 'line', page: 0, x: 158, y: 651, maxWidth: 260, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'edad', kind: 'line', page: 0, x: 145, y: 639, maxWidth: 60, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'sexo', kind: 'line', page: 0, x: 145, y: 626, maxWidth: 140, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'ocupacion', kind: 'line', page: 0, x: 168, y: 613, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'motivo_consulta', kind: 'area', page: 0, x: 102, y: 575, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 40 },
+        { key: 'antecedentes_personales', kind: 'area', page: 0, x: 102, y: 509, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 28 },
+        { key: 'historial_familiar', kind: 'line', page: 0, x: 188, y: 467, maxWidth: 344, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'sintomatologia', kind: 'area', page: 0, x: 102, y: 409, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 5, clearHeight: 60 },
+        { key: 'peso', kind: 'line', page: 0, x: 145, y: 333, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'altura', kind: 'line', page: 0, x: 145, y: 321, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'tipo', kind: 'line', page: 0, x: 145, y: 308, maxWidth: 170, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'frecuencia_ejercicio', kind: 'line', page: 0, x: 280, y: 295, maxWidth: 252, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'efectos_lesion', kind: 'area', page: 0, x: 102, y: 260, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 40 },
+        { key: 'descripcion_sintomas', kind: 'area', page: 0, x: 102, y: 201, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 40 },
+        { key: 'valoracion_movilidad', kind: 'area', page: 0, x: 102, y: 143, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
+        { key: 'pruebas_diagnosticas', kind: 'line', page: 0, x: 72, y: 96, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
 
-        { key: 'diagnostico', kind: 'area', page: 1, x: 72, y: 749, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
-        { key: 'tratamiento_recomendado', kind: 'area', page: 1, x: 72, y: 702, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
-        { key: 'evolucion', kind: 'area', page: 1, x: 72, y: 654, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
+        { key: 'diagnostico', kind: 'area', page: 1, x: 72, y: 741, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
+        { key: 'tratamiento_recomendado', kind: 'area', page: 1, x: 72, y: 694, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
+        { key: 'evolucion', kind: 'area', page: 1, x: 72, y: 646, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
     ];
 }
 
@@ -100,6 +101,17 @@ function normalizeText(value: unknown): string {
 function fieldValue(key: string, input: PatientDocumentPdfInput): string {
     if (key === '__patient_name') {
         return normalizeText(input.patientName ?? '');
+    }
+    if (key === '__patient_first_name') {
+        const full = normalizeText(input.patientName ?? '');
+        if (!full) return '';
+        return full.split(/\s+/)[0] ?? '';
+    }
+    if (key === '__patient_last_name') {
+        const full = normalizeText(input.patientName ?? '');
+        if (!full) return '';
+        const parts = full.split(/\s+/);
+        return parts.slice(1).join(' ');
     }
     if (key === '__patient_document_id') {
         return normalizeText(input.patientDocumentId ?? '');
@@ -176,9 +188,6 @@ export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): 
         const page = pdfDoc.getPage(placement.page);
         if (!page) continue;
 
-        const value = fieldValue(placement.key, input);
-        if (!value) continue;
-
         if (placement.clearHeight && placement.clearHeight > 0) {
             page.drawRectangle({
                 x: placement.x - 2,
@@ -189,6 +198,9 @@ export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): 
                 borderWidth: 0,
             });
         }
+
+        const value = fieldValue(placement.key, input);
+        if (!value) continue;
 
         const text = fitText(value, placement, font);
         if (!text) continue;

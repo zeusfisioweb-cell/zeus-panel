@@ -32,7 +32,6 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
                     { key: 'sexo', label: 'Sexo', type: 'text' },
                     { key: 'ocupacion', label: 'Ocupación', type: 'text' },
                     { key: 'fecha_primera_visita', label: 'Fecha primera visita', type: 'date' },
-                    { key: 'profesional_responsable', label: 'Profesional responsable', type: 'professional_select' },
                 ],
             },
             {
