@@ -4,13 +4,6 @@ import { PDFDocument, StandardFonts, type PDFFont, rgb } from 'pdf-lib';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
 import type { PatientDocumentType } from '@/lib/types';
 
-const PAGE_W = 595.2755905511812; // A4 width in pt
-const PAGE_H = 841.8897637795277; // A4 height in pt
-const MM_TO_PT = 72 / 25.4;
-
-const marginX = mm(16);
-const marginTop = mm(16);
-
 type FieldKind = 'line' | 'area';
 
 interface FieldPlacement {
@@ -23,12 +16,7 @@ interface FieldPlacement {
     fontSize: number;
     lineHeight: number;
     maxLines?: number;
-}
-
-interface LayoutState {
-    page: number;
-    y: number;
-    fields: FieldPlacement[];
+    clearHeight?: number;
 }
 
 export interface PatientDocumentPdfInput {
@@ -39,174 +27,50 @@ export interface PatientDocumentPdfInput {
     formData: Record<string, unknown>;
 }
 
-function mm(value: number): number {
-    return value * MM_TO_PT;
-}
-
-function startContentY(): number {
-    let y = PAGE_H - marginTop;
-    y -= mm(8);
-    y -= mm(8);
-    y -= mm(7);
-    return y;
-}
-
-function sectionTitle(y: number): number {
-    y -= mm(2.5);
-    y -= mm(4.5);
-    return y;
-}
-
-function addLineField(state: LayoutState, key: string): void {
-    const lineY = state.y - mm(2.5);
-    state.fields.push({
-        key,
-        kind: 'line',
-        page: state.page,
-        x: marginX + mm(2),
-        y: lineY + mm(1.4),
-        maxWidth: PAGE_W - (2 * marginX) - mm(4),
-        fontSize: 10,
-        lineHeight: 11,
-        maxLines: 1,
-    });
-    state.y = lineY - mm(5.5);
-}
-
-function addAreaField(state: LayoutState, key: string): void {
-    const rectTop = state.y - mm(2.5);
-    const rectHeight = mm(16);
-    state.fields.push({
-        key,
-        kind: 'area',
-        page: state.page,
-        x: marginX + mm(2),
-        y: rectTop - mm(4),
-        maxWidth: PAGE_W - (2 * marginX) - mm(4),
-        fontSize: 9.5,
-        lineHeight: 10.5,
-        maxLines: 4,
-    });
-    state.y = rectTop - rectHeight - mm(4);
-}
-
-function newPage(state: LayoutState): void {
-    state.page += 1;
-    state.y = startContentY();
-}
-
 function clinicalHistoryLayout(): FieldPlacement[] {
-    const state: LayoutState = { page: 0, y: startContentY(), fields: [] };
-    state.y = sectionTitle(state.y);
+    return [
+        { key: 'fecha_primera_visita', kind: 'line', page: 0, x: 156, y: 722, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: '__patient_name', kind: 'line', page: 0, x: 170, y: 672, maxWidth: 300, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'edad', kind: 'line', page: 0, x: 145, y: 647, maxWidth: 60, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'sexo', kind: 'line', page: 0, x: 145, y: 634, maxWidth: 140, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'ocupacion', kind: 'line', page: 0, x: 168, y: 621, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'motivo_consulta', kind: 'area', page: 0, x: 102, y: 583, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 34 },
+        { key: 'antecedentes_personales', kind: 'area', page: 0, x: 102, y: 516, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 22 },
+        { key: 'historial_familiar', kind: 'line', page: 0, x: 188, y: 475, maxWidth: 344, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'sintomatologia', kind: 'area', page: 0, x: 102, y: 416, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 5, clearHeight: 52 },
+        { key: 'peso', kind: 'line', page: 0, x: 145, y: 341, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'altura', kind: 'line', page: 0, x: 145, y: 329, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'tipo', kind: 'line', page: 0, x: 145, y: 316, maxWidth: 170, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'frecuencia_ejercicio', kind: 'line', page: 0, x: 280, y: 303, maxWidth: 252, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'efectos_lesion', kind: 'area', page: 0, x: 102, y: 267, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 34 },
+        { key: 'descripcion_sintomas', kind: 'area', page: 0, x: 102, y: 208, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 34 },
+        { key: 'valoracion_movilidad', kind: 'area', page: 0, x: 102, y: 150, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
+        { key: 'pruebas_diagnosticas', kind: 'line', page: 0, x: 72, y: 104, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
 
-    addLineField(state, '__patient_name');
-    addLineField(state, 'edad');
-    addLineField(state, 'sexo');
-    addLineField(state, 'ocupacion');
-    addLineField(state, 'fecha_primera_visita');
-    addLineField(state, 'profesional_responsable');
-
-    state.y = sectionTitle(state.y);
-    for (const key of [
-        'motivo_consulta',
-        'antecedentes_personales',
-        'historial_familiar',
-        'sintomatologia',
-    ]) {
-        addAreaField(state, key);
-        if (state.y < mm(55)) {
-            newPage(state);
-        }
-    }
-
-    addLineField(state, 'peso');
-    addLineField(state, 'altura');
-    addLineField(state, 'tipo');
-    addLineField(state, 'frecuencia_ejercicio');
-
-    for (const key of [
-        'efectos_lesion',
-        'descripcion_sintomas',
-        'valoracion_movilidad',
-        'pruebas_diagnosticas',
-        'diagnostico',
-        'tratamiento_recomendado',
-        'evolucion',
-    ]) {
-        if (state.y < mm(55)) {
-            newPage(state);
-        }
-        addAreaField(state, key);
-    }
-
-    return state.fields;
+        { key: 'diagnostico', kind: 'area', page: 1, x: 72, y: 749, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
+        { key: 'tratamiento_recomendado', kind: 'area', page: 1, x: 72, y: 702, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
+        { key: 'evolucion', kind: 'area', page: 1, x: 72, y: 654, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 24 },
+    ];
 }
 
 function interventionConsentLayout(): FieldPlacement[] {
-    const state: LayoutState = { page: 0, y: startContentY(), fields: [] };
-    state.y = sectionTitle(state.y);
-
-    addLineField(state, '__patient_name');
-    addLineField(state, '__patient_document_id');
-    addLineField(state, 'fecha_consentimiento');
-    addLineField(state, 'nombre_firmante');
-    addLineField(state, 'dni_firmante');
-    addLineField(state, 'nombre_tutor');
-    addLineField(state, 'dni_tutor');
-
-    state.y = sectionTitle(state.y);
-    addLineField(state, 'tecnica_intervencion');
-
-    for (const key of [
-        'objetivo',
-        'riesgos_explicitados',
-        'alternativas_explicitadas',
-        'contraindicaciones',
-    ]) {
-        addAreaField(state, key);
-        if (state.y < mm(55)) {
-            newPage(state);
-        }
-    }
-
-    addLineField(state, 'firma_recogida');
-    return state.fields;
+    return [
+        { key: 'fecha_consentimiento', kind: 'line', page: 4, x: 140, y: 741, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'nombre_firmante', kind: 'line', page: 4, x: 122, y: 652, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'dni_firmante', kind: 'line', page: 4, x: 260, y: 652, maxWidth: 110, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'nombre_tutor', kind: 'line', page: 4, x: 244, y: 204, maxWidth: 140, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'dni_tutor', kind: 'line', page: 4, x: 370, y: 204, maxWidth: 120, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+    ];
 }
 
 function dataConsentLayout(): FieldPlacement[] {
-    const state: LayoutState = { page: 0, y: startContentY(), fields: [] };
-    state.y = sectionTitle(state.y);
-
-    addLineField(state, '__patient_name');
-    addLineField(state, '__patient_document_id');
-    addLineField(state, 'fecha_consentimiento');
-    addLineField(state, 'nombre_firmante');
-    addLineField(state, 'dni_firmante');
-    addLineField(state, 'nombre_tutor');
-    addLineField(state, 'dni_tutor');
-
-    state.y = sectionTitle(state.y);
-    const rows: Array<{ key: string; kind: FieldKind }> = [
-        { key: 'responsable_tratamiento', kind: 'line' },
-        { key: 'finalidad', kind: 'area' },
-        { key: 'base_legal', kind: 'line' },
-        { key: 'cesiones_previstas', kind: 'area' },
-        { key: 'plazo_conservacion', kind: 'line' },
-        { key: 'canal_electronico_autorizado', kind: 'line' },
+    return [
+        { key: 'fecha_consentimiento', kind: 'line', page: 0, x: 150, y: 287, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'nombre_firmante', kind: 'line', page: 0, x: 122, y: 197, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'dni_firmante', kind: 'line', page: 0, x: 260, y: 197, maxWidth: 110, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'nombre_tutor', kind: 'line', page: 1, x: 122, y: 614, maxWidth: 220, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
+        { key: 'dni_tutor', kind: 'line', page: 1, x: 350, y: 614, maxWidth: 130, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
     ];
-
-    for (const row of rows) {
-        if (state.y < mm(55)) {
-            newPage(state);
-        }
-        if (row.kind === 'area') {
-            addAreaField(state, row.key);
-        } else {
-            addLineField(state, row.key);
-        }
-    }
-
-    return state.fields;
 }
 
 function getLayout(documentType: PatientDocumentType): FieldPlacement[] {
@@ -281,16 +145,15 @@ function wrapLines(text: string, font: PDFFont, fontSize: number, maxWidth: numb
         return lines.slice(0, maxLines);
     }
 
-    if (lines.length === maxLines) {
-        if (consumed < words.length) {
-            const last = lines[maxLines - 1] ?? '';
-            let cut = last;
-            while (cut.length > 1 && font.widthOfTextAtSize(`${cut}…`, fontSize) > maxWidth) {
-                cut = cut.slice(0, -1);
-            }
-            lines[maxLines - 1] = `${cut}…`;
+    if (lines.length === maxLines && consumed < words.length) {
+        const last = lines[maxLines - 1] ?? '';
+        let cut = last;
+        while (cut.length > 1 && font.widthOfTextAtSize(`${cut}...`, fontSize) > maxWidth) {
+            cut = cut.slice(0, -1);
         }
+        lines[maxLines - 1] = `${cut}...`;
     }
+
     return lines;
 }
 
@@ -316,6 +179,17 @@ export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): 
         const value = fieldValue(placement.key, input);
         if (!value) continue;
 
+        if (placement.clearHeight && placement.clearHeight > 0) {
+            page.drawRectangle({
+                x: placement.x - 2,
+                y: placement.y - 2,
+                width: placement.maxWidth + 4,
+                height: placement.clearHeight,
+                color: rgb(1, 1, 1),
+                borderWidth: 0,
+            });
+        }
+
         const text = fitText(value, placement, font);
         if (!text) continue;
 
@@ -326,7 +200,7 @@ export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): 
             size: placement.fontSize,
             lineHeight: placement.lineHeight,
             maxWidth: placement.maxWidth,
-            color: rgb(0.08, 0.08, 0.08),
+            color: rgb(0, 0, 0),
         });
     }
 

@@ -23,7 +23,7 @@ export interface PatientDocumentDefinition {
 export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDocumentDefinition> = {
     clinical_history: {
         title: 'Historia clínica fisioterapéutica',
-        templateFileName: 'historia_clinica_fisioterapeutica_template.pdf',
+        templateFileName: 'historia_clinica_fisioterapeutica_original.pdf',
         sections: [
             {
                 title: 'Datos del paciente',
@@ -64,7 +64,7 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
     },
     intervention_consent: {
         title: 'Consentimiento de intervención',
-        templateFileName: 'consentimiento_intervencion_template.pdf',
+        templateFileName: 'consentimiento_intervencion_original.pdf',
         sections: [
             {
                 title: 'Datos de consentimiento',
@@ -76,33 +76,16 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
                     { key: 'dni_tutor', label: 'DNI/NIE tutor/familiar (si aplica)', type: 'text' },
                 ],
             },
-            {
-                title: 'Intervención y riesgos',
-                fields: [
-                    { key: 'tecnica_intervencion', label: 'Técnica / intervención', type: 'text' },
-                    { key: 'objetivo', label: 'Objetivo terapéutico', type: 'textarea' },
-                    { key: 'riesgos_explicitados', label: 'Riesgos explicados', type: 'textarea' },
-                    { key: 'alternativas_explicitadas', label: 'Alternativas explicadas', type: 'textarea' },
-                    { key: 'contraindicaciones', label: 'Contraindicaciones revisadas', type: 'textarea' },
-                    { key: 'firma_recogida', label: 'Firma recogida físicamente', type: 'checkbox' },
-                ],
-            },
         ],
     },
     data_consent: {
         title: 'Consentimiento LOPD/RGPD',
-        templateFileName: 'consentimiento_lopd_template.pdf',
+        templateFileName: 'consentimiento_lopd_original.pdf',
         sections: [
             {
-                title: 'Datos de tratamiento',
+                title: 'Datos de consentimiento',
                 fields: [
                     { key: 'fecha_consentimiento', label: 'Fecha consentimiento', type: 'date' },
-                    { key: 'responsable_tratamiento', label: 'Responsable del tratamiento', type: 'text' },
-                    { key: 'finalidad', label: 'Finalidad del tratamiento', type: 'textarea' },
-                    { key: 'base_legal', label: 'Base legal', type: 'text' },
-                    { key: 'cesiones_previstas', label: 'Cesiones previstas', type: 'textarea' },
-                    { key: 'plazo_conservacion', label: 'Plazo de conservación', type: 'text' },
-                    { key: 'canal_electronico_autorizado', label: 'Autoriza comunicaciones electrónicas', type: 'checkbox' },
                     { key: 'nombre_firmante', label: 'Nombre del firmante', type: 'text' },
                     { key: 'dni_firmante', label: 'DNI/NIE del firmante', type: 'text' },
                     { key: 'nombre_tutor', label: 'Nombre tutor/familiar (si aplica)', type: 'text' },
