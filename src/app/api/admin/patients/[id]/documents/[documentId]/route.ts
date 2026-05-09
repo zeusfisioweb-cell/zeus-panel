@@ -18,7 +18,6 @@ const paramsSchema = z.object({
 const payloadSchema = z.object({
     status: z.enum(['draft', 'completed', 'signed']).optional(),
     form_data: z.record(z.string(), z.unknown()).optional(),
-    notes: z.string().trim().max(5000).nullable().optional(),
     file_url: z.string().trim().url().nullable().optional(),
     visit_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
@@ -63,9 +62,6 @@ export async function PATCH(
         }
         if ('form_data' in body) {
             updatePayload.form_data = body.form_data ?? {};
-        }
-        if ('notes' in body) {
-            updatePayload.notes = body.notes ?? null;
         }
         if ('file_url' in body) {
             updatePayload.file_url = body.file_url ?? null;
@@ -151,4 +147,3 @@ export async function DELETE(
         return handleApiError(error);
     }
 }
-

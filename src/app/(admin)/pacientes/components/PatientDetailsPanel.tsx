@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import type { Patient, Appointment, PatientDocument, UserRole } from '@/lib/types';
 import { PATIENT_DOCUMENT_STATUS_LABELS, PATIENT_DOCUMENT_TYPE_LABELS, STATUS_LABELS } from '@/lib/types';
+import { getDocumentFields } from '@/lib/patient-document-definitions';
 
 type DetailTab = 'datos' | 'citas' | 'clinico';
 
@@ -45,6 +46,12 @@ export function PatientDetailsPanel({
     onUnlinkPortal,
     userRole,
 }: PatientDetailsPanelProps) {
+    const documentFieldLabels = new Map(
+        (['clinical_history', 'intervention_consent', 'data_consent'] as const).flatMap((type) =>
+            getDocumentFields(type).map((field) => [field.key, field.label] as const)
+        )
+    );
+
     const isOwner = userRole === 'owner';
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
     const [exporting, setExporting] = useState(false);
@@ -393,14 +400,21 @@ export function PatientDetailsPanel({
                                             </Badge>
                                         </div>
 
-                                        {typeof document.notes === 'string' && document.notes.trim() ? (
-                                            <div className="patient-record-item__content">
+                                        <div className="patient-record-item__content">
+                                            {Object.entries(document.form_data ?? {}).length === 0 ? (
                                                 <div>
-                                                    <span>Notas</span>
-                                                    <p>{document.notes}</p>
+                                                    <span>Campos del documento</span>
+                                                    <p>Sin datos rellenados todavía.</p>
                                                 </div>
-                                            </div>
-                                        ) : null}
+                                            ) : (
+                                                Object.entries(document.form_data ?? {}).map(([key, value]) => (
+                                                    <div key={key}>
+                                                        <span>{documentFieldLabels.get(key) ?? key}</span>
+                                                        <p>{typeof value === 'boolean' ? (value ? 'Sí' : 'No') : String(value || '—')}</p>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
 
                                         <div className="patient-clinical__actions">
                                             <Button

@@ -6,11 +6,11 @@ import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import type { PatientDocument, PatientDocumentType, PatientDocumentStatus } from '@/lib/types';
-import { PATIENT_DOCUMENT_STATUS_LABELS, PATIENT_DOCUMENT_TYPE_LABELS } from '@/lib/types';
+import { PATIENT_DOCUMENT_TYPE_LABELS } from '@/lib/types';
 import { readApiError } from '@/lib/api-helpers';
 import { useProfesionales } from '@/hooks/useProfesionales';
+import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
 import {
-    DOCUMENT_FIELDS,
     DOCUMENT_TYPE_OPTIONS,
     printDocument,
 } from './document-fields';
@@ -40,7 +40,6 @@ export function PatientDocumentModal({
     const [visitDate, setVisitDate] = useState('');
     const [formData, setFormData] = useState<Record<string, unknown>>({});
     const [status, setStatus] = useState<PatientDocumentStatus>('draft');
-    const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -49,19 +48,17 @@ export function PatientDocumentModal({
             setSelectedType(document.document_type);
             setFormData(document.form_data ?? {});
             setStatus(document.status);
-            setNotes(document.notes ?? '');
             setVisitDate(document.visit_date ?? '');
         } else {
             setSelectedType('clinical_history');
             setFormData({});
             setStatus('draft');
-            setNotes('');
             setVisitDate(new Date().toISOString().slice(0, 10));
         }
     }, [isOpen, document]);
 
     const activeType = isCreate ? selectedType : document!.document_type;
-    const fields = useMemo(() => DOCUMENT_FIELDS[activeType], [activeType]);
+    const sections = useMemo(() => PATIENT_DOCUMENT_DEFINITIONS[activeType].sections, [activeType]);
 
     function updateField(key: string, value: unknown) {
         setFormData((prev) => ({ ...prev, [key]: value }));
@@ -73,7 +70,6 @@ export function PatientDocumentModal({
             patientName,
             visitDate,
             formData,
-            notes,
         });
     }
 
@@ -94,7 +90,6 @@ export function PatientDocumentModal({
                             visit_date: visitDate || null,
                             status,
                             form_data: formData,
-                            notes: notes.trim() || null,
                         }),
                     }
                 );
@@ -108,7 +103,6 @@ export function PatientDocumentModal({
                         body: JSON.stringify({
                             status,
                             form_data: formData,
-                            notes: notes.trim() || null,
                             visit_date: visitDate || null,
                         }),
                     }
@@ -181,65 +175,60 @@ export function PatientDocumentModal({
                     </label>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {fields.map((field) => (
-                        <label
-                            className={`settings-field ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}
-                            key={field.key}
-                        >
-                            <span className="form-label">{field.label}</span>
-                            {field.type === 'textarea' ? (
-                                <textarea
-                                    className="form-input settings-textarea"
-                                    rows={4}
-                                    value={String(formData[field.key] ?? '')}
-                                    placeholder={field.placeholder}
-                                    onChange={(e) => updateField(field.key, e.target.value)}
-                                />
-                            ) : field.type === 'checkbox' ? (
-                                <input
-                                    type="checkbox"
-                                    checked={Boolean(formData[field.key])}
-                                    onChange={(e) => updateField(field.key, e.target.checked)}
-                                />
-                            ) : field.type === 'professional_select' ? (
-                                <select
-                                    className="form-input"
-                                    value={String(formData[field.key] ?? '')}
-                                    onChange={(e) => updateField(field.key, e.target.value)}
+                {sections.map((section) => (
+                    <section key={section.title} className="border border-[var(--border-color)] rounded-lg p-3">
+                        <h3 className="text-sm font-semibold mb-3">{section.title}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {section.fields.map((field) => (
+                                <label
+                                    className={`settings-field ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}
+                                    key={field.key}
                                 >
-                                    <option value="">— Seleccionar profesional —</option>
-                                    {professionals
-                                        .filter((p) => p.is_active)
-                                        .map((p) => (
-                                            <option key={p.id} value={p.profile?.full_name ?? p.id}>
-                                                {p.profile?.full_name ?? 'Sin nombre'}
-                                                {p.specialty ? ` · ${p.specialty}` : ''}
-                                            </option>
-                                        ))}
-                                </select>
-                            ) : (
-                                <input
-                                    type={field.type}
-                                    className="form-input"
-                                    value={String(formData[field.key] ?? '')}
-                                    placeholder={field.placeholder}
-                                    onChange={(e) => updateField(field.key, e.target.value)}
-                                />
-                            )}
-                        </label>
-                    ))}
-                </div>
-
-                <label className="settings-field">
-                    <span className="form-label">Notas internas</span>
-                    <textarea
-                        className="form-input settings-textarea"
-                        rows={3}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                    />
-                </label>
+                                    <span className="form-label">{field.label}</span>
+                                    {field.type === 'textarea' ? (
+                                        <textarea
+                                            className="form-input settings-textarea"
+                                            rows={4}
+                                            value={String(formData[field.key] ?? '')}
+                                            placeholder={field.placeholder}
+                                            onChange={(e) => updateField(field.key, e.target.value)}
+                                        />
+                                    ) : field.type === 'checkbox' ? (
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(formData[field.key])}
+                                            onChange={(e) => updateField(field.key, e.target.checked)}
+                                        />
+                                    ) : field.type === 'professional_select' ? (
+                                        <select
+                                            className="form-input"
+                                            value={String(formData[field.key] ?? '')}
+                                            onChange={(e) => updateField(field.key, e.target.value)}
+                                        >
+                                            <option value="">— Seleccionar profesional —</option>
+                                            {professionals
+                                                .filter((p) => p.is_active)
+                                                .map((p) => (
+                                                    <option key={p.id} value={p.profile?.full_name ?? p.id}>
+                                                        {p.profile?.full_name ?? 'Sin nombre'}
+                                                        {p.specialty ? ` · ${p.specialty}` : ''}
+                                                    </option>
+                                                ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type={field.type}
+                                            className="form-input"
+                                            value={String(formData[field.key] ?? '')}
+                                            placeholder={field.placeholder}
+                                            onChange={(e) => updateField(field.key, e.target.value)}
+                                        />
+                                    )}
+                                </label>
+                            ))}
+                        </div>
+                    </section>
+                ))}
 
                 <div className="flex flex-wrap gap-2 pt-2">
                     <Button

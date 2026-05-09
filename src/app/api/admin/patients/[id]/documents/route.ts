@@ -7,30 +7,15 @@ import {
     resolveScopedProfessionalId,
     assertSameOriginMutation,
 } from '../../../_lib';
+import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
 
 const paramsSchema = z.object({
     id: z.string().uuid({ message: 'ID de paciente inválido' }),
 });
 
-const DOCUMENT_DEFAULTS: Record<string, { title: string; template_file_name: string }> = {
-    clinical_history: {
-        title: 'Historia clínica fisioterapéutica',
-        template_file_name: 'historia_clinica_fisioterapeutica_template.pdf',
-    },
-    intervention_consent: {
-        title: 'Consentimiento de intervención',
-        template_file_name: 'consentimiento_intervencion_template.pdf',
-    },
-    data_consent: {
-        title: 'Consentimiento LOPD/RGPD',
-        template_file_name: 'consentimiento_lopd_template.pdf',
-    },
-};
-
 const createSchema = z.object({
     document_type: z.enum(['clinical_history', 'intervention_consent', 'data_consent']),
     visit_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-    notes: z.string().trim().max(5000).nullable().optional(),
     form_data: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -82,7 +67,7 @@ export async function POST(
         });
 
         const body = createSchema.parse(await request.json());
-        const defaults = DOCUMENT_DEFAULTS[body.document_type];
+        const defaults = PATIENT_DOCUMENT_DEFINITIONS[body.document_type];
 
         const { data, error } = await supabase
             .from('patient_documents')
@@ -90,10 +75,10 @@ export async function POST(
                 patient_id: patientId,
                 document_type: body.document_type,
                 title: defaults.title,
-                template_file_name: defaults.template_file_name,
+                template_file_name: defaults.templateFileName,
                 status: 'draft',
                 form_data: body.form_data ?? {},
-                notes: body.notes ?? null,
+                notes: null,
                 visit_date: body.visit_date ?? null,
                 created_by: userId,
                 updated_by: userId,

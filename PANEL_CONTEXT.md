@@ -90,6 +90,7 @@ Registro operativo:
   - `GET /api/admin/patients/[id]/documents` (materializa y devuelve 3 documentos base por paciente);
   - `PATCH /api/admin/patients/[id]/documents/[documentId]` (guarda formulario editable, estado y notas).
   En UI de `panel/src/app/(admin)/pacientes/`, la pestaña clínica pasa a “Documentos” y permite rellenar/editar/guardar/imprimir cada documento y abrir la plantilla PDF base desde `panel/public/consentimientos`.
+- 2026-05-09: mejora de calidad de fichas. Se define contrato único de campos (`src/lib/patient-document-definitions.ts`) y se refactoriza UI/print para usar únicamente campos canónicos por tipo de documento (sin campos extra en generación). Plantillas PDF base regeneradas y saneadas sin PII con `scripts/generate_patient_document_templates.py`.
 - 2026-05-03: antelacion minima de reserva (`min_booking_notice_hours`) bajada de 2h a 1h por defecto en `configuracion/page.tsx` (admin form), `panel/portal/src/app/portal/reservar/ReservarClient.tsx` (fallback cliente) y valor en BD.
 - 2026-05-03: hardening booking portal (local): `POST /api/portal/booking/appointments` valida disponibilidad real contra `get_available_slots` antes de insertar (devuelve `409 slot_taken` si el rango no existe en agenda efectiva) y `GET /api/portal/booking/services` filtra servicios sin profesionales activos asignados para evitar selección de servicios sin opciones de profesional.
 - 2026-04-30: continuidad de sesión documentada en `production-readiness/2026-04-30/01-next-session-handoff.md` con checklist de deploy/smoke y cierre DB pendiente.
