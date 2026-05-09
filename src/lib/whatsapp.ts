@@ -1,4 +1,4 @@
-const PORTAL_URL = process.env.PORTAL_URL ?? 'http://localhost:3000/portal/mis-citas';
+const PORTAL_URL = process.env.PORTAL_URL ?? 'https://zeus-portal-testing.vercel.app/portal/mis-citas';
 const CLINIC_NAME = process.env.CLINIC_NAME ?? 'Zeus Fisioterapia';
 
 export interface AppointmentWhatsAppParams {

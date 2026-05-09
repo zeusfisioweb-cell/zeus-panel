@@ -421,7 +421,7 @@ Sin problemas en: orphan appointments, inverted time, orphan FKs, bad color_code
 1. **Configurar `NEXT_PUBLIC_APP_URL` en Vercel/entorno de produccion** con el dominio final del panel (ej `https://panel.zeus...`). Sin ella, las mutaciones con `Origin` fallan por configuracion incompleta.
 2. **Activar Leaked Password Protection en Supabase** (Dashboard → Authentication → Password Security). Advisor la reporta WARN.
 3. **Limpieza de datos**: decidir que hacer con `Test Patient` (sin email ni telefono, probablemente de seed) y con el profesional activo sin slots (no puede recibir reservas publicas).
-4. **Configurar Upstash rate limiting en produccion** (`UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`). En panel admin, sin esas variables los endpoints rate-limited fallan cerrado; en portal de paciente hay fallback en memoria para continuidad operativa.
+4. **Upstash no se configura por decisión operativa (2026-05-09)**. Se acepta fallback local en memoria para rate limiting (menor robustez frente a abuso distribuido y reinicios de instancia en Vercel).
 5. **Rotar `SUPABASE_SERVICE_ROLE_KEY`** (repositorio privado lo baja a P2, pero sigue en la lista).
 6. **Revisar 3 `unused_index` reportados por advisor** despues de validar trafico real en produccion (es esperado con poca data).
 7. **Subir cobertura de branches** en endpoints con deuda (`patients`, `services`, `professionals`, `clinical-records`).
@@ -621,7 +621,7 @@ Gestiona tus citas: {PORTAL_URL}
 |---------|---------|-----|
 | `WHATSAPP_ACCESS_TOKEN` | (vacío) | Bearer token para Graph API |
 | `WHATSAPP_PHONE_NUMBER_ID` | (vacío) | ID del número WhatsApp en Meta |
-| `PORTAL_URL` | `http://localhost:3000/portal/mis-citas` | URL base del portal paciente |
+| `PORTAL_URL` | `https://zeus-portal-testing.vercel.app/portal/mis-citas` | URL base del portal paciente |
 
 ### Verificación
 - `npm run test`: 196/196 ✓
