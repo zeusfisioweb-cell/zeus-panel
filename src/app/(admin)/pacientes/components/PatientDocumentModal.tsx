@@ -19,6 +19,7 @@ interface PatientDocumentModalProps {
     isOpen: boolean;
     patientId: string;
     patientName: string;
+    patientDocumentId?: string | null;
     /** null = create mode, PatientDocument = edit mode */
     document: PatientDocument | null;
     onClose: () => void;
@@ -29,6 +30,7 @@ export function PatientDocumentModal({
     isOpen,
     patientId,
     patientName,
+    patientDocumentId,
     document,
     onClose,
     onSaved,
@@ -41,6 +43,7 @@ export function PatientDocumentModal({
     const [formData, setFormData] = useState<Record<string, unknown>>({});
     const [status, setStatus] = useState<PatientDocumentStatus>('draft');
     const [saving, setSaving] = useState(false);
+    const [printing, setPrinting] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -64,13 +67,22 @@ export function PatientDocumentModal({
         setFormData((prev) => ({ ...prev, [key]: value }));
     }
 
-    function handlePrint() {
-        printDocument({
-            documentType: activeType,
-            patientName,
-            visitDate,
-            formData,
-        });
+    async function handlePrint() {
+        setPrinting(true);
+        try {
+            await printDocument({
+                documentType: activeType,
+                patientName,
+                patientDocumentId,
+                visitDate,
+                formData,
+            });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'No se pudo generar el PDF';
+            toast.error(message);
+        } finally {
+            setPrinting(false);
+        }
     }
 
     async function handleSave() {
@@ -236,9 +248,11 @@ export function PatientDocumentModal({
                         variant="ghost"
                         size="sm"
                         leftIcon={<Icon name="print" size={13} />}
+                        isLoading={printing}
+                        disabled={printing}
                         onClick={handlePrint}
                     >
-                        Imprimir / Generar PDF
+                        Generar PDF base
                     </Button>
                 </div>
             </div>

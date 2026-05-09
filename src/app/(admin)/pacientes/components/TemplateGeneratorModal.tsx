@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -21,6 +22,7 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
     const [selectedType, setSelectedType] = useState<PatientDocumentType>('clinical_history');
     const [formData, setFormData] = useState<Record<string, unknown>>({});
     const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
+    const [printing, setPrinting] = useState(false);
 
     const { data: professionals = [] } = useProfesionales();
     const sections = useMemo(() => PATIENT_DOCUMENT_DEFINITIONS[selectedType].sections, [selectedType]);
@@ -34,13 +36,22 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
         setFormData({});
     }
 
-    function handlePrint() {
-        printDocument({
-            documentType: selectedType,
-            patientName: '___________________________',
-            visitDate,
-            formData,
-        });
+    async function handlePrint() {
+        setPrinting(true);
+        try {
+            await printDocument({
+                documentType: selectedType,
+                patientName: '___________________________',
+                patientDocumentId: '',
+                visitDate,
+                formData,
+            });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'No se pudo generar el PDF';
+            toast.error(message);
+        } finally {
+            setPrinting(false);
+        }
     }
 
     function handleReset() {
@@ -150,9 +161,11 @@ export function TemplateGeneratorModal({ isOpen, onClose }: TemplateGeneratorMod
                         type="button"
                         variant="primary"
                         leftIcon={<Icon name="print" size={14} />}
+                        isLoading={printing}
+                        disabled={printing}
                         onClick={handlePrint}
                     >
-                        Imprimir / Generar PDF
+                        Generar PDF base
                     </Button>
                 </div>
             </div>

@@ -298,6 +298,7 @@ export default function PacientesPage() {
                 isOpen={isDocumentModalOpen && Boolean(selectedPatient)}
                 patientId={selectedPatient?.id ?? ''}
                 patientName={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : ''}
+                patientDocumentId={selectedPatient?.document_id ?? null}
                 document={editingDocument}
                 onClose={handleCloseDocumentModal}
                 onSaved={handleDocumentSaved}
