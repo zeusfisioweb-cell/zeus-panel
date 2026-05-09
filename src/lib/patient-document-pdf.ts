@@ -17,6 +17,8 @@ interface FieldPlacement {
     lineHeight: number;
     maxLines?: number;
     clearHeight?: number;
+    prefix?: string;
+    alwaysDraw?: boolean;
 }
 
 export interface PatientDocumentPdfInput {
@@ -29,28 +31,31 @@ export interface PatientDocumentPdfInput {
 
 function clinicalHistoryLayout(): FieldPlacement[] {
     return [
-        { key: 'fecha_primera_visita', kind: 'line', page: 0, x: 156, y: 714, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: '__patient_first_name', kind: 'line', page: 0, x: 148, y: 664, maxWidth: 170, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: '__patient_last_name', kind: 'line', page: 0, x: 158, y: 651, maxWidth: 260, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'edad', kind: 'line', page: 0, x: 145, y: 639, maxWidth: 60, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'sexo', kind: 'line', page: 0, x: 145, y: 626, maxWidth: 140, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'ocupacion', kind: 'line', page: 0, x: 168, y: 613, maxWidth: 250, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'motivo_consulta', kind: 'area', page: 0, x: 102, y: 575, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 40 },
-        { key: 'antecedentes_personales', kind: 'area', page: 0, x: 102, y: 509, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 28 },
-        { key: 'historial_familiar', kind: 'line', page: 0, x: 188, y: 467, maxWidth: 344, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'sintomatologia', kind: 'area', page: 0, x: 102, y: 409, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 5, clearHeight: 60 },
-        { key: 'peso', kind: 'line', page: 0, x: 145, y: 333, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'altura', kind: 'line', page: 0, x: 145, y: 321, maxWidth: 80, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'tipo', kind: 'line', page: 0, x: 145, y: 308, maxWidth: 170, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'frecuencia_ejercicio', kind: 'line', page: 0, x: 280, y: 295, maxWidth: 252, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'efectos_lesion', kind: 'area', page: 0, x: 102, y: 260, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 40 },
-        { key: 'descripcion_sintomas', kind: 'area', page: 0, x: 102, y: 201, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 40 },
-        { key: 'valoracion_movilidad', kind: 'area', page: 0, x: 102, y: 143, maxWidth: 430, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
-        { key: 'pruebas_diagnosticas', kind: 'line', page: 0, x: 72, y: 96, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'fecha_primera_visita', kind: 'line', page: 0, x: 72, y: 722, maxWidth: 280, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'En Torrijos el ', alwaysDraw: true },
+        { key: '__patient_first_name', kind: 'line', page: 0, x: 102, y: 672, maxWidth: 220, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Nombre:', alwaysDraw: true },
+        { key: '__patient_last_name', kind: 'line', page: 0, x: 102, y: 659, maxWidth: 300, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Apellidos:', alwaysDraw: true },
+        { key: 'edad', kind: 'line', page: 0, x: 102, y: 646, maxWidth: 90, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Edad:', alwaysDraw: true },
+        { key: 'sexo', kind: 'line', page: 0, x: 102, y: 634, maxWidth: 180, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Sexo: ', alwaysDraw: true },
+        { key: 'ocupacion', kind: 'line', page: 0, x: 102, y: 621, maxWidth: 320, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Ocupación: ', alwaysDraw: true },
 
-        { key: 'diagnostico', kind: 'area', page: 1, x: 72, y: 741, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
-        { key: 'tratamiento_recomendado', kind: 'area', page: 1, x: 72, y: 694, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
-        { key: 'evolucion', kind: 'area', page: 1, x: 72, y: 646, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
+        { key: 'motivo_consulta', kind: 'area', page: 0, x: 72, y: 571, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 38 },
+        { key: 'antecedentes_personales', kind: 'area', page: 0, x: 72, y: 497, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 28 },
+        { key: 'historial_familiar', kind: 'line', page: 0, x: 72, y: 452, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+        { key: 'sintomatologia', kind: 'area', page: 0, x: 72, y: 405, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 5, clearHeight: 62 },
+
+        { key: 'peso', kind: 'line', page: 0, x: 102, y: 341, maxWidth: 120, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Peso:', alwaysDraw: true },
+        { key: 'altura', kind: 'line', page: 0, x: 102, y: 329, maxWidth: 120, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Altura:', alwaysDraw: true },
+        { key: 'tipo', kind: 'line', page: 0, x: 102, y: 316, maxWidth: 220, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Tipo:', alwaysDraw: true },
+        { key: 'frecuencia_ejercicio', kind: 'line', page: 0, x: 102, y: 303, maxWidth: 430, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Frecuencia de ejercicio físico: ', alwaysDraw: true },
+
+        { key: 'efectos_lesion', kind: 'area', page: 0, x: 72, y: 244, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 38 },
+        { key: 'descripcion_sintomas', kind: 'area', page: 0, x: 72, y: 186, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 38 },
+        { key: 'valoracion_movilidad', kind: 'area', page: 0, x: 72, y: 140, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 28 },
+        { key: 'pruebas_diagnosticas', kind: 'line', page: 0, x: 72, y: 93, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+
+        { key: 'diagnostico', kind: 'area', page: 1, x: 72, y: 739, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
+        { key: 'tratamiento_recomendado', kind: 'area', page: 1, x: 72, y: 691, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
+        { key: 'evolucion', kind: 'area', page: 1, x: 72, y: 644, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
     ];
 }
 
@@ -98,20 +103,28 @@ function normalizeText(value: unknown): string {
     return String(value).trim();
 }
 
+function splitPatientName(name: string): { firstName: string; lastName: string } {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { firstName: '', lastName: '' };
+    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+    return {
+        firstName: parts[0] ?? '',
+        lastName: parts.slice(1).join(' '),
+    };
+}
+
 function fieldValue(key: string, input: PatientDocumentPdfInput): string {
+    const patientName = normalizeText(input.patientName ?? '');
+    const { firstName, lastName } = splitPatientName(patientName);
+
     if (key === '__patient_name') {
-        return normalizeText(input.patientName ?? '');
+        return patientName;
     }
     if (key === '__patient_first_name') {
-        const full = normalizeText(input.patientName ?? '');
-        if (!full) return '';
-        return full.split(/\s+/)[0] ?? '';
+        return firstName;
     }
     if (key === '__patient_last_name') {
-        const full = normalizeText(input.patientName ?? '');
-        if (!full) return '';
-        const parts = full.split(/\s+/);
-        return parts.slice(1).join(' ');
+        return lastName;
     }
     if (key === '__patient_document_id') {
         return normalizeText(input.patientDocumentId ?? '');
@@ -200,9 +213,9 @@ export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): 
         }
 
         const value = fieldValue(placement.key, input);
-        if (!value) continue;
+        if (!value && !placement.alwaysDraw) continue;
 
-        const text = fitText(value, placement, font);
+        const text = fitText(`${placement.prefix ?? ''}${value}`, placement, font);
         if (!text) continue;
 
         page.drawText(text, {
