@@ -191,15 +191,14 @@ export async function POST(request: Request) {
         if (payload.professional_id) {
             const startMs = new Date(parsed.start_time).getTime();
             const endMs = new Date(parsed.end_time).getTime();
-            const bufferMs = settings.buffer_minutes * 60 * 1000;
             const { data: existing, error: conflictErr } = await supabase
                 .from('appointments')
                 .select('id, start_time, end_time, status')
                 .eq('professional_id', payload.professional_id)
-                .gt('end_time', new Date(startMs - bufferMs).toISOString())
-                .lt('start_time', new Date(endMs + bufferMs).toISOString());
+                .gt('end_time', new Date(startMs).toISOString())
+                .lt('start_time', new Date(endMs).toISOString());
             if (conflictErr) throw conflictErr;
-            const conflict = findConflict(startMs, endMs, settings.buffer_minutes, existing ?? []);
+            const conflict = findConflict(startMs, endMs, 0, existing ?? []);
             if (conflict) {
                 throw new ApiRouteError(422, 'El horario solicitado no está disponible (conflicto con otra cita)');
             }
@@ -332,15 +331,14 @@ export async function PATCH(request: Request) {
             if (effectiveProfId) {
                 const startMs = new Date(effectiveStart).getTime();
                 const endMs = new Date(effectiveEnd).getTime();
-                const bufferMs = settings.buffer_minutes * 60 * 1000;
                 const { data: existing, error: conflictErr } = await supabase
                     .from('appointments')
                     .select('id, start_time, end_time, status')
                     .eq('professional_id', effectiveProfId)
-                    .gt('end_time', new Date(startMs - bufferMs).toISOString())
-                    .lt('start_time', new Date(endMs + bufferMs).toISOString());
+                    .gt('end_time', new Date(startMs).toISOString())
+                    .lt('start_time', new Date(endMs).toISOString());
                 if (conflictErr) throw conflictErr;
-                const conflict = findConflict(startMs, endMs, settings.buffer_minutes, existing ?? [], id);
+                const conflict = findConflict(startMs, endMs, 0, existing ?? [], id);
                 if (conflict) {
                     throw new ApiRouteError(422, 'El horario solicitado no está disponible (conflicto con otra cita)');
                 }

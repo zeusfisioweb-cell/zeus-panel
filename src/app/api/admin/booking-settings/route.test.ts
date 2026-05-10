@@ -86,7 +86,7 @@ describe('admin booking settings route', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ id: 'settings-1', clinic_name: 'Zeus' });
+        expect(body).toEqual({ id: 'settings-1', clinic_name: 'Zeus', buffer_minutes: 0 });
         expect(requirePanelAccessMock).toHaveBeenCalledWith();
     });
 

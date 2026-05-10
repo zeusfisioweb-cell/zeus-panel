@@ -11,16 +11,16 @@ test.describe('configuracion — booking settings', () => {
         await loginAsAdmin(page);
     });
 
-    test('page loads with KPI strip and settings form', async ({ page }) => {
+    test('page loads with simplified settings form', async ({ page }) => {
         await page.goto('/configuracion');
-        await expect(page.locator('.zs-cfg-kpi-strip')).toBeVisible({ timeout: 15_000 });
-        await expect(page.locator('.settings-layout')).toBeVisible();
+        await expect(page.getByTestId('settings-page')).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByRole('heading', { name: 'Configuración' })).toBeVisible();
         await page.screenshot({ path: 'test-results/configuracion-loaded.png' });
     });
 
     test('key booking fields are pre-populated from DB', async ({ page }) => {
         await page.goto('/configuracion');
-        await expect(page.locator('.zs-cfg-kpi-strip')).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByTestId('settings-page')).toBeVisible({ timeout: 15_000 });
 
         // Cancellation hours and min notice should have numeric values
         const cancellationInput = page.getByLabel(/Cancelación \(horas\)/i);
@@ -34,30 +34,29 @@ test.describe('configuracion — booking settings', () => {
         expect(Number(noticeValue)).toBeGreaterThanOrEqual(0);
     });
 
-    test('KPI strip shows opening/closing hours and booking window', async ({ page }) => {
+    test('only operational fields are shown', async ({ page }) => {
         await page.goto('/configuracion');
-        await expect(page.locator('.zs-cfg-kpi-strip')).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByTestId('settings-page')).toBeVisible({ timeout: 15_000 });
 
-        const kpis = page.locator('.zs-cfg-kpi');
-        const count = await kpis.count();
-        expect(count).toBeGreaterThanOrEqual(3);
-
-        // Each KPI has a label and a value
-        const firstKpi = kpis.first();
-        await expect(firstKpi.locator('.zs-cfg-kpi__label')).toBeVisible();
-        await expect(firstKpi.locator('.zs-cfg-kpi__value')).toBeVisible();
+        await expect(page.getByLabel(/Nombre de la clínica/i)).toBeVisible();
+        await expect(page.getByLabel(/Apertura/i)).toBeVisible();
+        await expect(page.getByLabel(/Cierre/i)).toBeVisible();
+        await expect(page.getByLabel(/Intervalo de huecos \(min\)/i)).toBeVisible();
+        await expect(page.getByLabel(/Email/i)).toHaveCount(0);
+        await expect(page.getByLabel(/Dirección/i)).toHaveCount(0);
+        await expect(page.getByLabel(/Texto RGPD \/ LOPDGDD/i)).toHaveCount(0);
     });
 
     test('save settings returns 200 and shows success toast', async ({ page }) => {
         await page.goto('/configuracion');
-        await expect(page.locator('.zs-cfg-kpi-strip')).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByTestId('settings-page')).toBeVisible({ timeout: 15_000 });
 
-        // Toggle buffer_minutes by 1 to force a change
-        const bufferInput = page.getByLabel(/Buffer entre citas \(min\)/i);
-        await expect(bufferInput).toBeVisible({ timeout: 10_000 });
-        const currentVal = Number(await bufferInput.inputValue());
-        const newVal = currentVal === 10 ? 15 : 10;
-        await bufferInput.fill(String(newVal));
+        // Change cancellation hours by 1 to force a persisted update
+        const cancellationInput = page.getByLabel(/Cancelación \(horas\)/i);
+        await expect(cancellationInput).toBeVisible({ timeout: 10_000 });
+        const currentVal = Number(await cancellationInput.inputValue());
+        const newVal = currentVal === 24 ? 25 : 24;
+        await cancellationInput.fill(String(newVal));
 
         const responsePromise = page.waitForResponse(res =>
             res.url().includes('/api/admin/booking-settings') && res.request().method() === 'PATCH',

@@ -41,12 +41,12 @@ describe('doIntervalsOverlapWithBuffer', () => {
         )).toBe(false);
     });
 
-    it('returns true when buffer pushes adjacent intervals into overlap', () => {
+    it('ignores buffer and keeps adjacent intervals non-overlapping', () => {
         expect(doIntervalsOverlapWithBuffer(
             toMs('2024-01-01T10:00:00Z'), toMs('2024-01-01T11:00:00Z'),
             toMs('2024-01-01T11:00:00Z'), toMs('2024-01-01T12:00:00Z'),
             10 * 60 * 1000
-        )).toBe(true);
+        )).toBe(false);
     });
 
     it('returns true for directly overlapping intervals', () => {
@@ -85,9 +85,9 @@ describe('findConflict', () => {
         expect(findConflict(candidateStart, candidateEnd, 0, existing, 'self')).toBeNull();
     });
 
-    it('detects conflict via buffer when intervals are adjacent', () => {
+    it('ignores buffer when intervals are adjacent', () => {
         const existing = [slot('b', '2024-01-01T11:00:00Z', '2024-01-01T12:00:00Z')];
-        expect(findConflict(candidateStart, candidateEnd, 15, existing)?.id).toBe('b');
+        expect(findConflict(candidateStart, candidateEnd, 15, existing)).toBeNull();
     });
 
     it('returns null when intervals are far enough apart with buffer', () => {

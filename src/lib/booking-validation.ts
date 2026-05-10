@@ -17,8 +17,8 @@ export function isAlignedToInterval(isoTimestamp: string, intervalMinutes: numbe
 }
 
 /**
- * Returns true when [aStart, aEnd) and [bStart, bEnd) overlap after expanding
- * each interval by bufferMinutes on both sides.
+ * Returns true when [aStart, aEnd) and [bStart, bEnd) overlap.
+ * Buffer has been deprecated and is intentionally ignored.
  * All times in ms since epoch.
  */
 export function doIntervalsOverlapWithBuffer(
@@ -26,12 +26,13 @@ export function doIntervalsOverlapWithBuffer(
     aEndMs: number,
     bStartMs: number,
     bEndMs: number,
-    bufferMs: number
+    _bufferMs: number
 ): boolean {
-    const aFrom = aStartMs - bufferMs;
-    const aTo = aEndMs + bufferMs;
-    const bFrom = bStartMs - bufferMs;
-    const bTo = bEndMs + bufferMs;
+    void _bufferMs;
+    const aFrom = aStartMs;
+    const aTo = aEndMs;
+    const bFrom = bStartMs;
+    const bTo = bEndMs;
     return aFrom < bTo && aTo > bFrom;
 }
 
@@ -43,11 +44,12 @@ export function doIntervalsOverlapWithBuffer(
 export function findConflict(
     candidateStartMs: number,
     candidateEndMs: number,
-    bufferMinutes: number,
+    _bufferMinutes: number,
     existing: AppointmentSlot[],
     excludeId?: string
 ): AppointmentSlot | null {
-    const bufferMs = bufferMinutes * 60 * 1000;
+    void _bufferMinutes;
+    const bufferMs = 0;
 
     for (const slot of existing) {
         if (slot.status === 'cancelled') continue;

@@ -293,7 +293,11 @@ export async function getBookingSettings(supabase: PanelSupabaseClient): Promise
         throw new ApiRouteError(500, 'Booking settings not configured');
     }
 
-    return data as BookingSettings;
+    // Buffer is deprecated in operations: keep API behavior deterministic with zero buffer.
+    return {
+        ...(data as BookingSettings),
+        buffer_minutes: 0,
+    };
 }
 
 export async function writeAuditLog({

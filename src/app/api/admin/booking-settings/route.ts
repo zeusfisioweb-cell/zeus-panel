@@ -8,11 +8,10 @@ const updateBookingSettingsSchema = z.object({
     phone: z.string().nullable().optional(),
     email: z.string().email().nullable().optional(),
     address: z.string().nullable().optional(),
-    booking_advance_days: z.number().int().min(1).max(365),
+    booking_advance_days: z.number().int().min(1).max(365).optional(),
     min_booking_notice_hours: z.number().int().min(0).max(168),
     cancellation_hours: z.number().int().min(0).max(168),
     slot_interval_minutes: z.number().int().min(5).max(240),
-    buffer_minutes: z.number().int().min(0).max(180),
     gdpr_text: z.string().nullable().optional(),
     informed_consent_text: z.string().nullable().optional(),
     privacy_policy_url: z.string().url().nullable().optional(),
@@ -37,7 +36,10 @@ export async function GET() {
         if (!data) {
             return NextResponse.json({ error: 'Booking settings not configured' }, { status: 404 });
         }
-        return NextResponse.json(data);
+        return NextResponse.json({
+            ...data,
+            buffer_minutes: 0,
+        });
     } catch (error: unknown) {
         return handleApiError(error);
     }
@@ -63,13 +65,28 @@ export async function PATCH(request: Request) {
 
         const payload = {
             ...parsed,
-            phone: normalizeNullableText(parsed.phone),
-            email: normalizeNullableText(parsed.email),
-            address: normalizeNullableText(parsed.address),
-            gdpr_text: normalizeNullableText(parsed.gdpr_text),
-            informed_consent_text: normalizeNullableText(parsed.informed_consent_text),
-            privacy_policy_url: normalizeNullableText(parsed.privacy_policy_url),
-            terms_url: normalizeNullableText(parsed.terms_url),
+            buffer_minutes: 0,
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'phone')
+                ? { phone: normalizeNullableText(parsed.phone) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'email')
+                ? { email: normalizeNullableText(parsed.email) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'address')
+                ? { address: normalizeNullableText(parsed.address) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'gdpr_text')
+                ? { gdpr_text: normalizeNullableText(parsed.gdpr_text) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'informed_consent_text')
+                ? { informed_consent_text: normalizeNullableText(parsed.informed_consent_text) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'privacy_policy_url')
+                ? { privacy_policy_url: normalizeNullableText(parsed.privacy_policy_url) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'terms_url')
+                ? { terms_url: normalizeNullableText(parsed.terms_url) }
+                : {}),
         };
 
         const { data, error } = await supabase
