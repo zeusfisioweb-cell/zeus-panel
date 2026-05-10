@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useEffect, useState } from 'react';
 import type { Appointment, AppointmentStatus } from '@/lib/types';
 import Link from 'next/link';
 
@@ -31,6 +32,19 @@ export function DashboardAgenda({
     onNewAppointmentClick,
     onUpdateStatus,
 }: DashboardAgendaProps) {
+    const [isCompactMobile, setIsCompactMobile] = useState(false);
+
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 540px)');
+        const apply = () => setIsCompactMobile(mq.matches);
+        apply();
+        mq.addEventListener('change', apply);
+        return () => mq.removeEventListener('change', apply);
+    }, []);
+
+    const visibleAppointments = isCompactMobile ? todayAppointments.slice(0, 3) : todayAppointments;
+    const hiddenAppointmentsCount = Math.max(0, totalActionableCount - visibleAppointments.length);
+
     const formatTime = (iso: string) =>
         new Date(iso).toLocaleTimeString('es-ES', {
             hour: '2-digit',
@@ -43,7 +57,7 @@ export function DashboardAgenda({
                 <div>
                     <h2 className="summary-v5-panel__title">Agenda de hoy</h2>
                     <p className="summary-v5-panel__hint">
-                        {todayAppointments.length} de {totalActionableCount} citas confirmadas hoy
+                        {visibleAppointments.length} de {totalActionableCount} citas confirmadas hoy
                     </p>
                 </div>
                 <Link href="/citas" className="btn btn--ghost btn--sm">
@@ -51,7 +65,7 @@ export function DashboardAgenda({
                 </Link>
             </div>
 
-            {todayAppointments.length === 0 ? (
+            {visibleAppointments.length === 0 ? (
                 <div className="zs-agenda-empty">
                     <div className="zs-agenda-empty__icon">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -71,7 +85,7 @@ export function DashboardAgenda({
                 </div>
             ) : (
                 <ol className="summary-v5-timeline">
-                    {todayAppointments.map((apt) => {
+                    {visibleAppointments.map((apt) => {
                         const hasPhone = Boolean(apt.patient_phone);
                         return (
                             <li key={apt.id} className={`summary-v5-timeline__item summary-v5-timeline__item--${apt.status}`}>
@@ -145,10 +159,10 @@ export function DashboardAgenda({
                             </li>
                         );
                     })}
-                    {todayAppointments.length < totalActionableCount && (
+                    {hiddenAppointmentsCount > 0 && (
                         <li className="summary-v5-timeline__more mt-1">
                             <Link href="/citas" className="btn btn--ghost btn--sm w-full justify-center">
-                                Ver las {totalActionableCount - todayAppointments.length} citas restantes
+                                Ver las {hiddenAppointmentsCount} citas restantes
                             </Link>
                         </li>
                     )}

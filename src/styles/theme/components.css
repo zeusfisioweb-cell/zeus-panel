@@ -311,6 +311,9 @@ textarea.form-input:focus,
 
 .table-wrapper {
   overflow: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 .table {
@@ -1177,9 +1180,9 @@ textarea.form-input:focus,
 .modal {
   position: relative;
   z-index: 1;
-  width: min(96vw, 720px);
-  max-width: min(96vw, 720px);
-  max-height: 88vh;
+  width: min(calc(100vw - 24px), 720px);
+  max-width: min(calc(100vw - 24px), 720px);
+  max-height: calc(100dvh - 24px);
   overflow: hidden;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -1251,7 +1254,7 @@ textarea.form-input:focus,
 }
 
 .modal__body {
-  max-height: calc(88vh - 110px);
+  max-height: calc(100dvh - 140px);
   overflow: auto;
   padding: 16px;
 }
@@ -1404,12 +1407,51 @@ textarea.form-input:focus,
     align-items: stretch;
   }
 
+  .filter-bar__search,
+  .citas-filters__search {
+    min-width: 0;
+    width: 100%;
+  }
+
   .patient-detail-tab {
     justify-content: flex-start;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .table-wrapper {
+    margin-inline: -4px;
+    padding-inline: 4px;
+  }
+
+  .table {
+    min-width: 640px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 16px);
+    border-radius: 14px;
+  }
+
+  .modal__header,
+  .modal__footer {
+    padding: 10px 12px;
+  }
+
+  .modal__body {
+    padding: 12px;
+    max-height: calc(100dvh - 124px);
   }
 }
 
@@ -1678,4 +1720,25 @@ textarea.form-input:focus,
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+@media (max-width: 540px) {
+  .btn--sm {
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .form-input,
+  .form-select,
+  .settings-textarea,
+  .pro-form__textarea,
+  .service-form__textarea,
+  .appointment-form__search-input,
+  input[type="date"].form-input,
+  input[type="time"].form-input,
+  textarea.form-input {
+    min-height: 40px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
 }

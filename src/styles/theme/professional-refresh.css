@@ -770,6 +770,21 @@
 }
 
 @media (max-width: 760px) {
+  .citas-shell--clean.citas-shell--calendar .citas-stage {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .citas-shell--clean.citas-shell--calendar .zc-sidebar-cal {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .citas-shell--clean.citas-shell--calendar .citas-stage__main {
+    width: 100%;
+    min-width: 0;
+  }
+
   .citas-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3121,6 +3136,76 @@
 .zs-dash-header__actions {
   display: flex;
   gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .zs-dash-header {
+    padding: 14px 12px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+  }
+
+  .zs-dash-header__top {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .zs-dash-header__title {
+    font-size: 24px;
+  }
+
+  .zs-dash-header__tools {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .zs-dash-datepicker {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .zs-dash-datepicker__value {
+    min-width: 0;
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    padding: 0 6px;
+  }
+
+  .zs-dash-datepicker__nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .zs-dash-datepicker__today {
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .zs-dash-header__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .zs-dash-header__actions > .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .zs-segment__btn {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .zs-dash-header__actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Override legacy summary-v5 margin/padding for the new header */

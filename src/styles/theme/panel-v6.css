@@ -1431,6 +1431,13 @@
   color: var(--ops-text-subtle);
 }
 
+@media (max-width: 760px) {
+  .admin-shell--modern:not(.admin-shell--summary) .schedule-slot-chip__remove {
+    width: 30px;
+    height: 30px;
+  }
+}
+
 .admin-shell--modern:not(.admin-shell--summary) .schedule-slot-builder {
   margin-top: 10px;
   padding-top: 12px;

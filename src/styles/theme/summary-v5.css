@@ -841,6 +841,7 @@
 
   .admin-shell--modern.admin-shell--summary .summary-v5-timeline__actions {
     margin-left: 0;
+    padding-left: 0;
   }
 
   .admin-shell--modern.admin-shell--summary .summary-v5-legend {
@@ -1095,5 +1096,49 @@
 @media (max-width: 540px) {
   .zs-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-panel--agenda {
+    max-height: 520px;
+    padding: 12px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-panel__header {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline {
+    gap: 6px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline__item {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 6px 8px;
+    padding: 9px 9px 8px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline__time strong {
+    font-size: 15px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline__patient {
+    font-size: 13px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline__meta {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline__actions {
+    padding-left: 64px;
+    gap: 5px;
+  }
+
+  .admin-shell--modern.admin-shell--summary .summary-v5-timeline__wa {
+    display: none !important;
   }
 }

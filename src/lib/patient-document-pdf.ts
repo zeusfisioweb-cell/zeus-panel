@@ -14,11 +14,9 @@ interface FieldPlacement {
     y: number;
     maxWidth: number;
     fontSize: number;
+    minFontSize: number;
     lineHeight: number;
-    maxLines?: number;
-    clearHeight?: number;
-    prefix?: string;
-    alwaysDraw?: boolean;
+    maxLines: number;
 }
 
 export interface PatientDocumentPdfInput {
@@ -29,63 +27,200 @@ export interface PatientDocumentPdfInput {
     formData: Record<string, unknown>;
 }
 
+const MM = 72 / 25.4;
+const PAGE_WIDTH = 595.2756;
+const PAGE_HEIGHT = 841.8898;
+const MARGIN_X = 16 * MM;
+const MARGIN_TOP = 16 * MM;
+const HEADER_GAP = 8 * MM;
+const HEADER_AFTER_LINE = 7 * MM;
+const SECTION_TITLE_GAP = 2.5 * MM;
+const SECTION_AFTER_LINE = 4.5 * MM;
+const FIELD_LABEL_GAP = 2.5 * MM;
+const FIELD_AFTER_LINE = 5.5 * MM;
+const AREA_HEIGHT = 16 * MM;
+const AREA_AFTER = 4 * MM;
+const PAGE_BREAK_THRESHOLD = 55 * MM;
+const LINE_TEXT_OFFSET_Y = -4;
+const AREA_TEXT_TOP_PADDING = 12;
+const HORIZONTAL_TEXT_PADDING = 6;
+
+function headerStartY(): number {
+    const y = PAGE_HEIGHT - MARGIN_TOP - HEADER_GAP - HEADER_GAP;
+    return y - HEADER_AFTER_LINE;
+}
+
+function advanceSectionTitle(y: number): number {
+    return y - SECTION_TITLE_GAP - SECTION_AFTER_LINE;
+}
+
+function placeLineField(
+    placements: FieldPlacement[],
+    key: string,
+    page: number,
+    y: number
+): number {
+    const lineY = y - FIELD_LABEL_GAP;
+    placements.push({
+        key,
+        kind: 'line',
+        page,
+        x: MARGIN_X + HORIZONTAL_TEXT_PADDING,
+        y: lineY + LINE_TEXT_OFFSET_Y,
+        maxWidth: PAGE_WIDTH - (2 * MARGIN_X) - (2 * HORIZONTAL_TEXT_PADDING),
+        fontSize: 7,
+        minFontSize: 6,
+        lineHeight: 8,
+        maxLines: 1,
+    });
+    return lineY - FIELD_AFTER_LINE;
+}
+
+function placeAreaField(
+    placements: FieldPlacement[],
+    key: string,
+    page: number,
+    y: number
+): number {
+    const boxTop = y - FIELD_LABEL_GAP;
+    placements.push({
+        key,
+        kind: 'area',
+        page,
+        x: MARGIN_X + HORIZONTAL_TEXT_PADDING,
+        y: boxTop - AREA_TEXT_TOP_PADDING,
+        maxWidth: PAGE_WIDTH - (2 * MARGIN_X) - (2 * HORIZONTAL_TEXT_PADDING),
+        fontSize: 8.8,
+        minFontSize: 7,
+        lineHeight: 10.2,
+        maxLines: 4,
+    });
+    return boxTop - AREA_HEIGHT - AREA_AFTER;
+}
+
 function clinicalHistoryLayout(): FieldPlacement[] {
-    return [
-        { key: 'fecha_primera_visita', kind: 'line', page: 0, x: 72, y: 722, maxWidth: 280, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'En Torrijos el ', alwaysDraw: true },
-        { key: '__patient_first_name', kind: 'line', page: 0, x: 102, y: 672, maxWidth: 220, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Nombre:', alwaysDraw: true },
-        { key: '__patient_last_name', kind: 'line', page: 0, x: 102, y: 659, maxWidth: 300, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Apellidos:', alwaysDraw: true },
-        { key: 'edad', kind: 'line', page: 0, x: 102, y: 646, maxWidth: 90, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Edad:', alwaysDraw: true },
-        { key: 'sexo', kind: 'line', page: 0, x: 102, y: 634, maxWidth: 180, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Sexo: ', alwaysDraw: true },
-        { key: 'ocupacion', kind: 'line', page: 0, x: 102, y: 621, maxWidth: 320, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Ocupación: ', alwaysDraw: true },
+    const placements: FieldPlacement[] = [];
+    let page = 0;
+    let y = advanceSectionTitle(headerStartY());
 
-        { key: 'motivo_consulta', kind: 'area', page: 0, x: 72, y: 571, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 38 },
-        { key: 'antecedentes_personales', kind: 'area', page: 0, x: 72, y: 497, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 28 },
-        { key: 'historial_familiar', kind: 'line', page: 0, x: 72, y: 452, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
-        { key: 'sintomatologia', kind: 'area', page: 0, x: 72, y: 405, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 5, clearHeight: 62 },
+    for (const key of [
+        '__patient_name',
+        'edad',
+        'sexo',
+        'ocupacion',
+        '__visit_date',
+        'profesional_responsable',
+    ]) {
+        y = placeLineField(placements, key, page, y);
+    }
 
-        { key: 'peso', kind: 'line', page: 0, x: 102, y: 341, maxWidth: 120, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Peso:', alwaysDraw: true },
-        { key: 'altura', kind: 'line', page: 0, x: 102, y: 329, maxWidth: 120, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Altura:', alwaysDraw: true },
-        { key: 'tipo', kind: 'line', page: 0, x: 102, y: 316, maxWidth: 220, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Tipo:', alwaysDraw: true },
-        { key: 'frecuencia_ejercicio', kind: 'line', page: 0, x: 102, y: 303, maxWidth: 430, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14, prefix: 'Frecuencia de ejercicio físico: ', alwaysDraw: true },
+    y = advanceSectionTitle(y);
 
-        { key: 'efectos_lesion', kind: 'area', page: 0, x: 72, y: 244, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 38 },
-        { key: 'descripcion_sintomas', kind: 'area', page: 0, x: 72, y: 186, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 3, clearHeight: 38 },
-        { key: 'valoracion_movilidad', kind: 'area', page: 0, x: 72, y: 140, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 28 },
-        { key: 'pruebas_diagnosticas', kind: 'line', page: 0, x: 72, y: 93, maxWidth: 460, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 14 },
+    for (const key of [
+        'motivo_consulta',
+        'antecedentes_personales',
+        'historial_familiar',
+        'sintomatologia',
+    ]) {
+        y = placeAreaField(placements, key, page, y);
+        if (y < PAGE_BREAK_THRESHOLD) {
+            page += 1;
+            y = headerStartY();
+        }
+    }
 
-        { key: 'diagnostico', kind: 'area', page: 1, x: 72, y: 739, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
-        { key: 'tratamiento_recomendado', kind: 'area', page: 1, x: 72, y: 691, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
-        { key: 'evolucion', kind: 'area', page: 1, x: 72, y: 644, maxWidth: 460, fontSize: 9.5, lineHeight: 10.5, maxLines: 2, clearHeight: 30 },
-    ];
+    for (const key of ['peso', 'altura', 'tipo', 'frecuencia_ejercicio']) {
+        y = placeLineField(placements, key, page, y);
+    }
+
+    for (const key of [
+        'efectos_lesion',
+        'descripcion_sintomas',
+        'valoracion_movilidad',
+        'pruebas_diagnosticas',
+        'diagnostico',
+        'tratamiento_recomendado',
+        'evolucion',
+    ]) {
+        if (y < PAGE_BREAK_THRESHOLD) {
+            page += 1;
+            y = headerStartY();
+        }
+        y = placeAreaField(placements, key, page, y);
+    }
+
+    return placements;
 }
 
 function interventionConsentLayout(): FieldPlacement[] {
-    return [
-        { key: 'fecha_consentimiento', kind: 'line', page: 4, x: 140, y: 741, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'nombre_firmante', kind: 'line', page: 4, x: 122, y: 652, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'dni_firmante', kind: 'line', page: 4, x: 260, y: 652, maxWidth: 110, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'nombre_tutor', kind: 'line', page: 4, x: 244, y: 204, maxWidth: 140, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'dni_tutor', kind: 'line', page: 4, x: 370, y: 204, maxWidth: 120, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-    ];
+    const placements: FieldPlacement[] = [];
+    let page = 0;
+    let y = advanceSectionTitle(headerStartY());
+
+    for (const key of [
+        '__patient_name',
+        '__patient_document_id',
+        'fecha_consentimiento',
+        'nombre_firmante',
+        'dni_firmante',
+        'nombre_tutor',
+        'dni_tutor',
+    ]) {
+        y = placeLineField(placements, key, page, y);
+    }
+
+    y = advanceSectionTitle(y);
+
+    y = placeLineField(placements, 'tecnica_intervencion', page, y);
+    for (const key of [
+        'objetivo',
+        'riesgos_explicitados',
+        'alternativas_explicitadas',
+        'contraindicaciones',
+    ]) {
+        y = placeAreaField(placements, key, page, y);
+        if (y < PAGE_BREAK_THRESHOLD) {
+            page += 1;
+            y = headerStartY();
+        }
+    }
+    y = placeLineField(placements, 'firma_recogida', page, y);
+
+    return placements;
 }
 
 function dataConsentLayout(): FieldPlacement[] {
-    return [
-        { key: 'fecha_consentimiento', kind: 'line', page: 0, x: 150, y: 287, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'nombre_firmante', kind: 'line', page: 0, x: 122, y: 197, maxWidth: 190, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'dni_firmante', kind: 'line', page: 0, x: 260, y: 197, maxWidth: 110, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'nombre_tutor', kind: 'line', page: 1, x: 122, y: 614, maxWidth: 220, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-        { key: 'dni_tutor', kind: 'line', page: 1, x: 350, y: 614, maxWidth: 130, fontSize: 10, lineHeight: 11, maxLines: 1, clearHeight: 12 },
-    ];
+    const placements: FieldPlacement[] = [];
+    const page = 0;
+    let y = advanceSectionTitle(headerStartY());
+
+    for (const key of [
+        '__patient_name',
+        '__patient_document_id',
+        'fecha_consentimiento',
+        'nombre_firmante',
+        'dni_firmante',
+        'nombre_tutor',
+        'dni_tutor',
+    ]) {
+        y = placeLineField(placements, key, page, y);
+    }
+
+    y = advanceSectionTitle(y);
+
+    y = placeLineField(placements, 'responsable_tratamiento', page, y);
+    y = placeAreaField(placements, 'finalidad', page, y);
+    y = placeLineField(placements, 'base_legal', page, y);
+    y = placeAreaField(placements, 'cesiones_previstas', page, y);
+    y = placeLineField(placements, 'plazo_conservacion', page, y);
+    placeLineField(placements, 'canal_electronico_autorizado', page, y);
+
+    return placements;
 }
 
 function getLayout(documentType: PatientDocumentType): FieldPlacement[] {
-    if (documentType === 'clinical_history') {
-        return clinicalHistoryLayout();
-    }
-    if (documentType === 'intervention_consent') {
-        return interventionConsentLayout();
-    }
+    if (documentType === 'clinical_history') return clinicalHistoryLayout();
+    if (documentType === 'intervention_consent') return interventionConsentLayout();
     return dataConsentLayout();
 }
 
@@ -103,31 +238,17 @@ function normalizeText(value: unknown): string {
     return String(value).trim();
 }
 
-function splitPatientName(name: string): { firstName: string; lastName: string } {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return { firstName: '', lastName: '' };
-    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
-    return {
-        firstName: parts[0] ?? '',
-        lastName: parts.slice(1).join(' '),
-    };
-}
-
 function fieldValue(key: string, input: PatientDocumentPdfInput): string {
     const patientName = normalizeText(input.patientName ?? '');
-    const { firstName, lastName } = splitPatientName(patientName);
 
     if (key === '__patient_name') {
         return patientName;
     }
-    if (key === '__patient_first_name') {
-        return firstName;
-    }
-    if (key === '__patient_last_name') {
-        return lastName;
-    }
     if (key === '__patient_document_id') {
         return normalizeText(input.patientDocumentId ?? '');
+    }
+    if (key === '__visit_date') {
+        return toDateEs(normalizeText(input.visitDate ?? ''));
     }
 
     const raw = normalizeText(input.formData[key]);
@@ -138,9 +259,15 @@ function fieldValue(key: string, input: PatientDocumentPdfInput): string {
     return raw;
 }
 
-function wrapLines(text: string, font: PDFFont, fontSize: number, maxWidth: number, maxLines: number): string[] {
+function wrapLines(
+    text: string,
+    font: PDFFont,
+    fontSize: number,
+    maxWidth: number,
+    maxLines: number
+): { lines: string[]; truncated: boolean } {
     const normalized = text.replace(/\s+/g, ' ').trim();
-    if (!normalized) return [];
+    if (!normalized) return { lines: [], truncated: false };
 
     const words = normalized.split(' ');
     const lines: string[] = [];
@@ -167,9 +294,10 @@ function wrapLines(text: string, font: PDFFont, fontSize: number, maxWidth: numb
     }
 
     if (lines.length > maxLines) {
-        return lines.slice(0, maxLines);
+        return { lines: lines.slice(0, maxLines), truncated: true };
     }
 
+    let truncated = false;
     if (lines.length === maxLines && consumed < words.length) {
         const last = lines[maxLines - 1] ?? '';
         let cut = last;
@@ -177,15 +305,42 @@ function wrapLines(text: string, font: PDFFont, fontSize: number, maxWidth: numb
             cut = cut.slice(0, -1);
         }
         lines[maxLines - 1] = `${cut}...`;
+        truncated = true;
     }
 
-    return lines;
+    return { lines, truncated };
 }
 
-function fitText(text: string, placement: FieldPlacement, font: PDFFont): string {
-    const maxLines = placement.maxLines ?? 1;
-    const lines = wrapLines(text, font, placement.fontSize, placement.maxWidth, maxLines);
-    return lines.join('\n');
+function fitText(
+    text: string,
+    placement: FieldPlacement,
+    font: PDFFont
+): { text: string; fontSize: number; lineHeight: number } {
+    for (let fontSize = placement.fontSize; fontSize >= placement.minFontSize; fontSize -= 0.5) {
+        const { lines, truncated } = wrapLines(text, font, fontSize, placement.maxWidth, placement.maxLines);
+        if (lines.length === 0) {
+            return { text: '', fontSize, lineHeight: placement.lineHeight };
+        }
+        if (!truncated) {
+            return {
+                text: lines.join('\n'),
+                fontSize,
+                lineHeight: placement.lineHeight * (fontSize / placement.fontSize),
+            };
+        }
+    }
+
+    const { lines } = wrapLines(text, font, placement.minFontSize, placement.maxWidth, placement.maxLines);
+    return {
+        text: lines.join('\n'),
+        fontSize: placement.minFontSize,
+        lineHeight: placement.lineHeight * (placement.minFontSize / placement.fontSize),
+    };
+}
+
+function firstLineWidth(text: string, font: PDFFont, fontSize: number): number {
+    const firstLine = text.split('\n')[0] ?? '';
+    return font.widthOfTextAtSize(firstLine, fontSize);
 }
 
 export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): Promise<Uint8Array> {
@@ -201,29 +356,34 @@ export async function renderPatientDocumentPdf(input: PatientDocumentPdfInput): 
         const page = pdfDoc.getPage(placement.page);
         if (!page) continue;
 
-        if (placement.clearHeight && placement.clearHeight > 0) {
+        const value = fieldValue(placement.key, input);
+        if (!value) continue;
+
+        const fitted = fitText(value, placement, font);
+        if (!fitted.text) continue;
+
+        if (placement.kind === 'line') {
+            const lineY = placement.y - LINE_TEXT_OFFSET_Y;
+            const lineWidth = Math.min(
+                firstLineWidth(fitted.text, font, fitted.fontSize) + 8,
+                placement.maxWidth
+            );
             page.drawRectangle({
-                x: placement.x - 2,
-                y: placement.y - 2,
-                width: placement.maxWidth + 4,
-                height: placement.clearHeight,
+                x: MARGIN_X,
+                y: lineY - 1,
+                width: (placement.x - MARGIN_X) + lineWidth + 2,
+                height: 2,
                 color: rgb(1, 1, 1),
                 borderWidth: 0,
             });
         }
 
-        const value = fieldValue(placement.key, input);
-        if (!value && !placement.alwaysDraw) continue;
-
-        const text = fitText(`${placement.prefix ?? ''}${value}`, placement, font);
-        if (!text) continue;
-
-        page.drawText(text, {
+        page.drawText(fitted.text, {
             x: placement.x,
             y: placement.y,
             font,
-            size: placement.fontSize,
-            lineHeight: placement.lineHeight,
+            size: fitted.fontSize,
+            lineHeight: fitted.lineHeight,
             maxWidth: placement.maxWidth,
             color: rgb(0, 0, 0),
         });

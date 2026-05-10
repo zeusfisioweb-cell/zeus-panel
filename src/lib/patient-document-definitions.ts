@@ -23,7 +23,7 @@ export interface PatientDocumentDefinition {
 export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDocumentDefinition> = {
     clinical_history: {
         title: 'Historia clínica fisioterapéutica',
-        templateFileName: 'historia_clinica_fisioterapeutica_original.pdf',
+        templateFileName: 'historia_clinica_fisioterapeutica_template.pdf',
         sections: [
             {
                 title: 'Datos del paciente',
@@ -31,7 +31,6 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
                     { key: 'edad', label: 'Edad', type: 'text' },
                     { key: 'sexo', label: 'Sexo', type: 'text' },
                     { key: 'ocupacion', label: 'Ocupación', type: 'text' },
-                    { key: 'fecha_primera_visita', label: 'Fecha primera visita', type: 'date' },
                 ],
             },
             {
@@ -63,7 +62,7 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
     },
     intervention_consent: {
         title: 'Consentimiento de intervención',
-        templateFileName: 'consentimiento_intervencion_original.pdf',
+        templateFileName: 'consentimiento_intervencion_template.pdf',
         sections: [
             {
                 title: 'Datos de consentimiento',
@@ -79,7 +78,7 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
     },
     data_consent: {
         title: 'Consentimiento LOPD/RGPD',
-        templateFileName: 'consentimiento_lopd_original.pdf',
+        templateFileName: 'consentimiento_lopd_template.pdf',
         sections: [
             {
                 title: 'Datos de consentimiento',
