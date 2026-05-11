@@ -80,7 +80,10 @@ export function PushNotificationsBootstrap() {
                 return;
             }
 
-            if (Notification.permission === 'default' && !askedRef.current) {
+            const DISMISS_KEY = 'zeus_push_prompt_dismissed';
+            const alreadyDismissed = window.localStorage.getItem(DISMISS_KEY);
+
+            if (Notification.permission === 'default' && !askedRef.current && !alreadyDismissed) {
                 askedRef.current = true;
                 toast.message('Activa notificaciones', {
                     description: 'Recibe avisos en tu móvil cuando entra o se cancela una cita.',
@@ -88,7 +91,10 @@ export function PushNotificationsBootstrap() {
                         label: 'Activar',
                         onClick: async () => {
                             const permission = await Notification.requestPermission();
-                            if (permission !== 'granted') return;
+                            if (permission !== 'granted') {
+                                window.localStorage.setItem(DISMISS_KEY, '1');
+                                return;
+                            }
 
                             const reg = await navigator.serviceWorker.register(SW_PATH);
                             const applicationServerKey = base64ToUint8Array(vapidPublicKey) as unknown as BufferSource;
@@ -107,6 +113,7 @@ export function PushNotificationsBootstrap() {
                             toast.success('Notificaciones activadas');
                         },
                     },
+                    onDismiss: () => window.localStorage.setItem(DISMISS_KEY, '1'),
                     duration: 10000,
                 });
             }
