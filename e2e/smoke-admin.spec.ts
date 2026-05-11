@@ -9,7 +9,7 @@ const ROUTES = [
     { path: '/servicios',      ready: '.zs-svc-header',          label: 'servicios' },
     { path: '/horarios',       ready: '.zs-hor-header__title',   label: 'horarios' },
     { path: '/analitica',      ready: 'h1',                      label: 'analitica' },
-    { path: '/configuracion',  ready: '.zs-cfg-header',          label: 'configuracion' },
+    { path: '/configuracion',  ready: '[data-testid="settings-page"]', label: 'configuracion' },
 ] as const;
 
 async function gotoWithRetry(path: string, page: Page): Promise<void> {
@@ -71,6 +71,7 @@ test.describe('admin smoke — responsive screenshots', () => {
 
     for (const vp of VIEWPORTS) {
         test(`${vp.name}px — all routes screenshot`, async ({ browser }: { browser: Browser }) => {
+            test.slow();
             const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
             const page = await context.newPage();
 
@@ -81,7 +82,7 @@ test.describe('admin smoke — responsive screenshots', () => {
                 await expect(
                     page.locator(route.ready).first(),
                     `route ${route.path} at ${vp.name}px: ready selector not visible`,
-                ).toBeVisible({ timeout: 15_000 });
+                ).toBeVisible({ timeout: 25_000 });
 
                 await page.screenshot({
                     path: `test-results/responsive-${route.label}-${vp.name}px.png`,

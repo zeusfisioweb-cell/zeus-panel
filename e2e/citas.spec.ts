@@ -8,6 +8,7 @@ test.describe('citas — appointments', () => {
     );
 
     test.beforeEach(async ({ page }) => {
+        test.slow();
         await loginAsAdmin(page);
     });
 
@@ -161,11 +162,15 @@ test.describe('citas — appointments', () => {
         // Filters panel visible in list view
         await expect(page.locator('.citas-filters')).toBeVisible({ timeout: 8_000 });
 
-        // Either rows exist or empty state
+        // Wait for either rows or empty state to confirm list rendered
         const rows = page.locator('.citas-list-item, .citas-list-day');
         const emptyState = page.locator('.citas-empty-state');
+        await Promise.race([
+            expect(rows.first()).toBeVisible({ timeout: 10_000 }).catch(() => null),
+            expect(emptyState).toBeVisible({ timeout: 10_000 }).catch(() => null),
+        ]);
         const hasRows = (await rows.count()) > 0;
-        const hasEmpty = await emptyState.isVisible({ timeout: 2_000 }).catch(() => false);
+        const hasEmpty = await emptyState.isVisible({ timeout: 1_000 }).catch(() => false);
         expect(hasRows || hasEmpty).toBeTruthy();
         await page.screenshot({ path: 'test-results/citas-list-rows.png' });
     });

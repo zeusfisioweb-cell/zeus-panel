@@ -10,7 +10,7 @@ test.describe('configuracion — booking settings', () => {
     test('guardar configuración responde 200', async ({ page }) => {
         await loginAsAdmin(page);
         await page.goto('/configuracion');
-        await expect(page.locator('.zs-cfg-header')).toBeVisible();
+        await expect(page.locator('[data-testid="settings-page"]')).toBeVisible();
 
         const saveResponsePromise = page.waitForResponse((response) => (
             response.url().includes('/api/admin/booking-settings')

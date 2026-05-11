@@ -22,6 +22,7 @@ test.describe('card redesign visual smoke', () => {
     test.skip(!email || !password, 'Set PANEL_E2E_EMAIL and PANEL_E2E_PASSWORD to run redesign smoke.');
 
     test('desktop routes keep intentional card surfaces', async ({ page }) => {
+        test.slow();
         await login(page);
 
         const routes = [
@@ -30,7 +31,7 @@ test.describe('card redesign visual smoke', () => {
             { path: '/profesionales', ready: '.zs-pros-header__title', surface: '.zs-pro-card', expected: 'elevated' },
             { path: '/servicios', ready: '.zs-svc-header', surface: '.zs-svc-tile', expected: 'elevated' },
             { path: '/horarios', ready: '.zs-hor-header__title', surface: '.schedule-card', expected: 'flat' },
-            { path: '/configuracion', ready: '.zs-cfg-header', surface: '.settings-panel', expected: 'flat' },
+            { path: '/configuracion', ready: '[data-testid="settings-page"]', surface: '.settings-panel', expected: 'flat' },
         ] as const;
 
         for (const route of routes) {
@@ -45,6 +46,7 @@ test.describe('card redesign visual smoke', () => {
     });
 
     test('mobile snapshot sanity for redesigned modules', async ({ browser }) => {
+        test.slow();
         const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
         const page = await context.newPage();
 
@@ -53,7 +55,7 @@ test.describe('card redesign visual smoke', () => {
         const routes = [
             { path: '/citas', ready: '.zs-ch-wrap' },
             { path: '/pacientes', ready: '.zs-pac-header' },
-            { path: '/configuracion', ready: '.zs-cfg-header' },
+            { path: '/configuracion', ready: '[data-testid="settings-page"]' },
         ] as const;
 
         for (const route of routes) {

@@ -34,60 +34,47 @@ describe('admin profile route', () => {
     });
 
     it('returns current profile for authenticated users', async () => {
-        const maybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'user-1', role: 'owner' },
-            error: null,
-        });
-        const query = {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle,
-        };
-        const supabase = {
-            from: vi.fn().mockReturnValue(query),
-        };
-
         requirePanelAccessMock.mockResolvedValue({
-            supabase,
-            userId: 'user-1',
             role: 'owner',
+            userId: 'user-1',
             professionalId: null,
+            profileData: { id: 'user-1', email: 'owner@test.com', role: 'owner', full_name: 'Owner User', created_at: '2024-01-01' },
         });
 
         const response = await GET();
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ id: 'user-1', role: 'owner', professional_id: null });
-        expect(query.eq).toHaveBeenCalledWith('id', 'user-1');
+        expect(body).toEqual({
+            id: 'user-1',
+            email: 'owner@test.com',
+            role: 'owner',
+            full_name: 'Owner User',
+            created_at: '2024-01-01',
+            professional_id: null,
+        });
     });
 
     it('includes professional_id for professional users', async () => {
-        const maybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'user-2', role: 'professional' },
-            error: null,
-        });
-        const query = {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle,
-        };
-        const supabase = {
-            from: vi.fn().mockReturnValue(query),
-        };
-
         requirePanelAccessMock.mockResolvedValue({
-            supabase,
-            userId: 'user-2',
             role: 'professional',
+            userId: 'user-2',
             professionalId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+            profileData: { id: 'user-2', email: 'pro@test.com', role: 'professional', full_name: 'Pro User', created_at: '2024-01-01' },
         });
 
         const response = await GET();
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ id: 'user-2', role: 'professional', professional_id: 'dddddddd-dddd-dddd-dddd-dddddddddddd' });
+        expect(body).toEqual({
+            id: 'user-2',
+            email: 'pro@test.com',
+            role: 'professional',
+            full_name: 'Pro User',
+            created_at: '2024-01-01',
+            professional_id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+        });
     });
 
     it('returns 401 when no session is present', async () => {
@@ -100,26 +87,8 @@ describe('admin profile route', () => {
         expect(body).toEqual({ error: 'Unauthorized' });
     });
 
-    it('returns 500 when supabase query fails', async () => {
-        const single = vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'profile read failed' },
-        });
-        const query = {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single,
-        };
-        const supabase = {
-            from: vi.fn().mockReturnValue(query),
-        };
-
-        requirePanelAccessMock.mockResolvedValue({
-            supabase,
-            userId: 'user-1',
-            role: 'owner',
-            professionalId: null,
-        });
+    it('returns 500 when requirePanelAccess throws unexpectedly', async () => {
+        requirePanelAccessMock.mockRejectedValue(new Error('unexpected db failure'));
 
         const response = await GET();
         const body = await response.json();

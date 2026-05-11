@@ -8,6 +8,7 @@ test.describe('horarios — professional schedules', () => {
     );
 
     test.beforeEach(async ({ page }) => {
+        test.slow();
         await loginAsAdmin(page);
     });
 

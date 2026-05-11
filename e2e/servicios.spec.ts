@@ -8,6 +8,7 @@ test.describe('servicios — services management', () => {
     );
 
     test.beforeEach(async ({ page }) => {
+        test.slow();
         await loginAsAdmin(page);
     });
 

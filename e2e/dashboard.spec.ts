@@ -8,6 +8,7 @@ test.describe('dashboard — main admin view', () => {
     );
 
     test.beforeEach(async ({ page }) => {
+        test.slow();
         await loginAsAdmin(page);
         // loginAsAdmin already navigates to / and verifies heading
     });

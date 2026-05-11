@@ -32,11 +32,20 @@ interface RequirePanelAccessOptions {
     ownerOnly?: boolean;
 }
 
+interface PanelProfileData {
+    id: string;
+    email: string;
+    role: string;
+    full_name: string | null;
+    created_at: string;
+}
+
 interface PanelAccessContext {
     role: UserRole;
     userId: string;
     professionalId: string | null;
     supabase: PanelSupabaseClient;
+    profileData: PanelProfileData;
 }
 
 interface WriteAuditLogParams {
@@ -116,7 +125,7 @@ export async function requirePanelAccess(
 
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('id, email, role, full_name, created_at')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -154,6 +163,7 @@ export async function requirePanelAccess(
         userId: user.id,
         professionalId,
         supabase,
+        profileData: profile as PanelProfileData,
     };
 }
 
@@ -170,6 +180,10 @@ export function handleApiError(error: unknown): NextResponse {
             },
             { status: 400 }
         );
+    }
+
+    if (error instanceof SyntaxError) {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
     console.error('[admin-api] Unhandled error:', error);
