@@ -37,6 +37,7 @@
     "panel/node_modules",
     "panel/coverage",
     "portal",
+    "_audit",
     "vitest.config.ts",
     "playwright.config.ts",
     "e2e"
