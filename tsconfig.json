@@ -32,6 +32,9 @@
   ],
   "exclude": [
     "node_modules",
-    "chrome-devtools-mcp"
+    "chrome-devtools-mcp",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "e2e"
   ]
 }

@@ -11,9 +11,5 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './src'),
         },
-        modules: [
-            path.resolve(__dirname, 'panel/node_modules'),
-            'node_modules',
-        ],
     },
 });
