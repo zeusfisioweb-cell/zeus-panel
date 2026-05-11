@@ -35,6 +35,12 @@ const eslintConfig = defineConfig([
     "panel/pdf-verification/**",
     // Portal source (separate project, separate lint)
     "portal/**",
+    // Audit directory (separate repos, not product code)
+    "_audit/**",
+    // Temporary debug scripts and audit runners
+    "tmp_*.cjs",
+    "audit_prod_apps*.cjs",
+    "panel_dynamic_audit.cjs",
     // Test infrastructure
     "e2e/**",
   ]),
