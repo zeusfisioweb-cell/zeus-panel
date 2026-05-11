@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+
+const deleteCategorySchema = z.object({ id: z.string().uuid() });
 const createCategorySchema = z.object({
     name: z.string().min(2),
     is_active: z.boolean().default(true),
@@ -61,6 +63,49 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(data);
+    } catch (error: unknown) {
+        return handleApiError(error);
+    }
+}
+
+export async function DELETE(request: Request) {
+    try {
+        assertSameOriginMutation(request);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
+        const rawBody = await request.json();
+        const { id } = deleteCategorySchema.parse(rawBody);
+
+        const { count, error: countError } = await supabase
+            .from('services')
+            .select('id', { count: 'exact', head: true })
+            .eq('category_id', id);
+
+        if (countError) throw countError;
+
+        if ((count ?? 0) > 0) {
+            return NextResponse.json(
+                { error: `No se puede eliminar: hay ${count} servicio(s) en esta categoría. Elimínalos primero.`, count },
+                { status: 409 }
+            );
+        }
+
+        const { error: deleteError } = await supabase
+            .from('service_categories')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        await writeAuditLog({
+            supabase,
+            userId,
+            action: 'DELETE',
+            tableName: 'service_categories',
+            recordId: id,
+            details: null,
+        });
+
+        return NextResponse.json({ success: true });
     } catch (error: unknown) {
         return handleApiError(error);
     }
