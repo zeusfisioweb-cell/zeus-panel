@@ -33,6 +33,10 @@
   "exclude": [
     "node_modules",
     "chrome-devtools-mcp",
+    "panel/chrome-devtools-mcp",
+    "panel/node_modules",
+    "panel/coverage",
+    "portal",
     "vitest.config.ts",
     "playwright.config.ts",
     "e2e"
