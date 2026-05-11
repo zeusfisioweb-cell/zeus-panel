@@ -16,15 +16,27 @@ const eslintConfig = defineConfig([
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
+    // Next.js build output (root and subdirs)
     ".next/**",
+    "panel/.next/**",
+    "portal/.next/**",
     "out/**",
     "build/**",
     "coverage/**",
     "next-env.d.ts",
-    // External/vendor workspace copied under panel for tooling experiments.
-    // Not part of the panel product surface or quality gate.
+    // node_modules in subdirectories
+    "panel/node_modules/**",
+    "portal/node_modules/**",
+    // Non-product directories
     "chrome-devtools-mcp/**",
+    "panel/chrome-devtools-mcp/**",
+    "panel/pdf-renders/**",
+    "panel/pdf-check-current/**",
+    "panel/pdf-verification/**",
+    // Portal source (separate project, separate lint)
+    "portal/**",
+    // Test infrastructure
+    "e2e/**",
   ]),
 ]);
 
