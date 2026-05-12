@@ -15,6 +15,22 @@ interface PanelAppointmentPushPayload {
     title: string;
     body: string;
     tag: string;
+    url: string;
+    icon: string;
+    badge: string;
+    timestampMs: number;
+    renotify: boolean;
+    requireInteraction: boolean;
+    silent: boolean;
+    actions: Array<{
+        action: string;
+        title: string;
+    }>;
+    data: {
+        kind: 'created' | 'cancelled';
+        url: string;
+        appointmentStartTime: string;
+    };
 }
 
 interface SendPanelAppointmentPushParams {
@@ -43,23 +59,52 @@ function normalizeText(input: string | null | undefined, fallback: string): stri
     return next.length > 0 ? next : fallback;
 }
 
-function buildPayload(params: SendPanelAppointmentPushParams): PanelAppointmentPushPayload {
+function buildNotificationTag(kind: SendPanelAppointmentPushParams['kind'], startTime: string): string {
+    const compactStartTime = startTime.replace(/[^0-9]/g, '').slice(0, 12) || 'no-time';
+    return `appointment-${kind}-${compactStartTime}`;
+}
+
+function getTimestampMs(startTime: string): number {
+    const parsed = new Date(startTime);
+    if (Number.isNaN(parsed.getTime())) return Date.now();
+    return parsed.getTime();
+}
+
+export function buildPanelAppointmentPushPayload(
+    params: SendPanelAppointmentPushParams
+): PanelAppointmentPushPayload {
     const patient = normalizeText(params.patientName, 'Paciente');
     const service = normalizeText(params.serviceName, 'Servicio');
     const dateText = formatAppointmentDate(params.startTime);
+    const tag = buildNotificationTag(params.kind, params.startTime);
+    const base: Omit<PanelAppointmentPushPayload, 'title'> = {
+        body: `${patient} · ${service} · ${dateText}`,
+        tag,
+        url: PANEL_ALERT_PATH,
+        icon: '/zeus-favicon.png',
+        badge: '/zeus-favicon.png',
+        timestampMs: getTimestampMs(params.startTime),
+        renotify: true,
+        requireInteraction: params.kind === 'cancelled',
+        silent: false,
+        actions: [{ action: 'open_schedule', title: 'Ver agenda' }],
+        data: {
+            kind: params.kind,
+            url: PANEL_ALERT_PATH,
+            appointmentStartTime: params.startTime,
+        },
+    };
 
     if (params.kind === 'created') {
         return {
             title: 'Nueva cita',
-            body: `${patient} · ${service} · ${dateText}`,
-            tag: 'appointment-created',
+            ...base,
         };
     }
 
     return {
         title: 'Cita cancelada',
-        body: `${patient} · ${service} · ${dateText}`,
-        tag: 'appointment-cancelled',
+        ...base,
     };
 }
 
@@ -147,13 +192,7 @@ export async function sendPanelAppointmentPush(params: SendPanelAppointmentPushP
     const subscriptions = await getActiveSubscriptions(userIds);
     if (subscriptions.length === 0) return;
 
-    const payloadBase = buildPayload(params);
-    const payload = JSON.stringify({
-        title: payloadBase.title,
-        body: payloadBase.body,
-        url: PANEL_ALERT_PATH,
-        tag: payloadBase.tag,
-    });
+    const payload = JSON.stringify(buildPanelAppointmentPushPayload(params));
 
     await Promise.allSettled(
         subscriptions.map(async (subscription) => {
@@ -180,4 +219,3 @@ export async function sendPanelAppointmentPush(params: SendPanelAppointmentPushP
         })
     );
 }
-
