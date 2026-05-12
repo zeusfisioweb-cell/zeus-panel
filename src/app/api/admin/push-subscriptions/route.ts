@@ -83,8 +83,11 @@ export async function POST(request: Request) {
             userId,
             action: 'CREATE',
             tableName: 'push_subscriptions',
-            recordId: parsed.endpoint,
-            details: { scope: 'panel_notifications_push_subscribe' },
+            recordId: userId,
+            details: {
+                scope: 'panel_notifications_push_subscribe',
+                endpoint: parsed.endpoint,
+            },
         });
 
         return NextResponse.json({ ok: true });
@@ -118,8 +121,11 @@ export async function DELETE(request: Request) {
             userId,
             action: 'UPDATE',
             tableName: 'push_subscriptions',
-            recordId: parsed.endpoint,
-            details: { scope: 'panel_notifications_push_unsubscribe' },
+            recordId: userId,
+            details: {
+                scope: 'panel_notifications_push_unsubscribe',
+                endpoint: parsed.endpoint,
+            },
         });
 
         return NextResponse.json({ ok: true });

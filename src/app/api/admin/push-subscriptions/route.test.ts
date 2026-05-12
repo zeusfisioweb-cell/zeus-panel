@@ -92,6 +92,35 @@ describe('admin push subscriptions route', () => {
         expect(body).toEqual({ enabled: false, degraded: true });
     });
 
+    it('writes audit log with userId as recordId on POST success', async () => {
+        const upsert = vi.fn().mockResolvedValue({ error: null });
+        const supabase = {
+            from: vi.fn().mockReturnValue({ upsert }),
+        };
+        requirePanelAccessMock.mockResolvedValue({ supabase, userId: 'owner-1' });
+
+        const endpoint = 'https://example.test/sub';
+        const response = await POST(createPostRequest({
+            endpoint,
+            keys: { p256dh: 'abc', auth: 'def' },
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ ok: true });
+        expect(writeAuditLogMock).toHaveBeenCalledWith({
+            supabase,
+            userId: 'owner-1',
+            action: 'CREATE',
+            tableName: 'push_subscriptions',
+            recordId: 'owner-1',
+            details: {
+                scope: 'panel_notifications_push_subscribe',
+                endpoint,
+            },
+        });
+    });
+
     it('returns enabled=true when active subscriptions exist', async () => {
         const is = vi.fn().mockResolvedValue({
             data: [{ endpoint: 'https://example.test/sub', disabled_at: null }],
