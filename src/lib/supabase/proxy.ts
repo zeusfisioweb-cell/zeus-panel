@@ -4,6 +4,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 function isPublicPath(pathname: string): boolean {
     return pathname.startsWith('/auth')
         || pathname === '/login'
+        || pathname === '/manifest.webmanifest'
+        || pathname === '/push-sw.js'
 }
 
 export async function updateSession(request: NextRequest) {
