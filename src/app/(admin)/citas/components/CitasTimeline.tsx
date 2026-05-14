@@ -33,11 +33,21 @@ interface PositionedAppointment {
     profName: string;
 }
 
+interface OverflowBadge {
+    type: 'overflow';
+    topPx: number;
+    heightPx: number;
+    count: number;
+}
+
+type PositionedItem = PositionedAppointment | OverflowBadge;
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PX_PER_MIN   = 2.2;   // 13h × 60 × 2.2 = 1716px total height
-const SLOT_MIN     = 30;
-const MIN_DUR_MIN  = 30;
+const PX_PER_MIN        = 2.2;   // 13h × 60 × 2.2 = 1716px total height
+const SLOT_MIN          = 30;
+const MIN_DUR_MIN       = 30;
+const MAX_VISIBLE_COLS  = 4;    // cap overlap columns to keep cards readable
 const TIME_W       = 64;    // px width of the time rail
 const UNASSIGNED_COLOR = '#94a3b8';
 
@@ -275,7 +285,7 @@ export function CitasTimeline({
     }, [nowTopPx, selectedDate]);
 
     // ── Overlap-aware positioning ─────────────────────────────────────────────
-    const positioned = useMemo<PositionedAppointment[]>(() => {
+    const positioned = useMemo<PositionedItem[]>(() => {
         interface N { apt: Appointment; startM: number; endM: number; }
         const norm: N[] = filtered
             .map(apt => {
@@ -298,7 +308,7 @@ export function CitasTimeline({
             }
         });
 
-        const result: PositionedAppointment[] = [];
+        const result: PositionedItem[] = [];
         clusters.forEach(cluster => {
             // Assign columns within cluster using greedy lane algorithm
             const lanes: number[] = []; // lane → endM
@@ -311,9 +321,20 @@ export function CitasTimeline({
                 laneOf[idx] = lane;
             });
 
-            const totalLanes = lanes.length;
+            // Cap visible columns so cards stay readable on mobile
+            const totalLanes = Math.min(lanes.length, MAX_VISIBLE_COLS);
+            let overflowCount = 0;
+            let overflowTopPx = 0;
+            let overflowHeightPx = 0;
+
             cluster.forEach((ev, idx) => {
-                const lane  = laneOf[idx];
+                const lane = laneOf[idx];
+                if (lane >= MAX_VISIBLE_COLS) {
+                    overflowCount++;
+                    overflowTopPx    = (ev.startM - dayStart) * PX_PER_MIN;
+                    overflowHeightPx = Math.max(MIN_DUR_MIN, ev.endM - ev.startM) * PX_PER_MIN;
+                    return;
+                }
                 const profColor = ev.apt.professional_id
                     ? (profColorMap.get(ev.apt.professional_id) ?? UNASSIGNED_COLOR)
                     : UNASSIGNED_COLOR;
@@ -331,6 +352,15 @@ export function CitasTimeline({
                     profName,
                 });
             });
+
+            if (overflowCount > 0) {
+                result.push({
+                    type: 'overflow',
+                    topPx:    overflowTopPx,
+                    heightPx: overflowHeightPx,
+                    count:    overflowCount,
+                });
+            }
         });
 
         return result;
@@ -624,16 +654,31 @@ export function CitasTimeline({
                         )}
 
                         {/* Appointments */}
-                        {positioned.map(pos => (
-                            <AppointmentCard
-                                key={pos.appointment.id}
-                                pos={pos}
-                                onAppointmentClick={onAppointmentClick}
-                                isDraggable={isDraggable}
-                                onDragStart={handleCardDragStart}
-                                onDragEnd={handleCardDragEnd}
-                            />
-                        ))}
+                        {positioned.map((item, i) => {
+                            if ('type' in item && item.type === 'overflow') {
+                                return (
+                                    <div
+                                        key={`overflow-${i}`}
+                                        className="zc-vcal__overflow"
+                                        style={{ top: `${item.topPx + 2}px`, height: `${Math.max(22, item.heightPx - 4)}px` }}
+                                        title="Filtra por profesional para ver todas las citas"
+                                    >
+                                        +{item.count}
+                                    </div>
+                                );
+                            }
+                            const pos = item as PositionedAppointment;
+                            return (
+                                <AppointmentCard
+                                    key={pos.appointment.id}
+                                    pos={pos}
+                                    onAppointmentClick={onAppointmentClick}
+                                    isDraggable={isDraggable}
+                                    onDragStart={handleCardDragStart}
+                                    onDragEnd={handleCardDragEnd}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
             </div>

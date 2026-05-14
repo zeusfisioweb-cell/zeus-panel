@@ -685,6 +685,26 @@
   letter-spacing: 0.04em;
 }
 
+/* ─── Overflow badge (when >MAX_VISIBLE_COLS overlap) ───────── */
+.zc-vcal__overflow {
+  position: absolute;
+  right: 4px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  border-radius: 6px;
+  background: var(--vc-bg-alt);
+  border: 1.5px dashed var(--vc-border-strong);
+  color: var(--vc-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
 /* ─── Now indicator ─────────────────────────────────────────── */
 .zc-vcal__now {
   position: absolute;
