@@ -450,6 +450,7 @@
   overflow: visible;
   background: var(--vc-bg);
   position: relative;
+  padding-bottom: 80px;
 }
 
 .zc-vcal__inner {

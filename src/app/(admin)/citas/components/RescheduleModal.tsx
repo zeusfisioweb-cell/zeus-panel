@@ -50,8 +50,8 @@ export function RescheduleModal({ appointment, isOpen, isLoading, onClose, onSub
         try {
             await onSubmit(appointment.id, newStart.toJSDate(), newEnd);
             onClose();
-        } catch {
-            setError('No se pudo reprogramar la cita');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'No se pudo reprogramar la cita');
         }
     };
 

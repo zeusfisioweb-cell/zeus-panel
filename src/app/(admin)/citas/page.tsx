@@ -296,10 +296,13 @@ export default function CitasPage() {
         }
 
         try {
-            await updateCita.mutateAsync({ id, start_time: startIso, end_time: endIso });
+            const updated = await updateCita.mutateAsync({ id, start_time: startIso, end_time: endIso });
+            setSelectedEvent(prev => prev?.id === id ? updated : prev);
             toast.success('Cita reprogramada');
-        } catch {
-            toast.error('Error al reprogramar la cita');
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Error al reprogramar la cita';
+            toast.error(msg);
+            throw err;
         }
     };
 
