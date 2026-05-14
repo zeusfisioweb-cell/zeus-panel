@@ -19,6 +19,8 @@ interface CitasTimelineProps {
     closeHour: number;
     onSlotClick: (date: Date, professionalId: string | null) => void;
     onAppointmentClick: (appointment: Appointment) => void;
+    onReschedule?: (id: string, newStart: Date, newEnd: Date) => void;
+    isDraggable?: boolean;
 }
 
 interface PositionedAppointment {
@@ -76,7 +78,15 @@ function hexToRgb(hex: string) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: PositionedAppointment, onAppointmentClick: (a: Appointment) => void }) => {
+interface AppointmentCardProps {
+    pos: PositionedAppointment;
+    onAppointmentClick: (a: Appointment) => void;
+    isDraggable?: boolean;
+    onDragStart?: (e: React.DragEvent<HTMLDivElement>, pos: PositionedAppointment) => void;
+    onDragEnd?: () => void;
+}
+
+const AppointmentCard = React.memo(({ pos, onAppointmentClick, isDraggable, onDragStart, onDragEnd }: AppointmentCardProps) => {
     const { appointment: apt, topPx, heightPx, leftPct, widthPct, profColor, profName } = pos;
     const isCompact  = heightPx < 44;
     const isTiny     = heightPx < 28;
@@ -90,9 +100,10 @@ const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: Position
 
     return (
         <div
-            className={`zc-vcal__event is-${apt.status}${isCompact ? ' is-compact' : ''}${isTiny ? ' is-tiny' : ''}`}
+            className={`zc-vcal__event is-${apt.status}${isCompact ? ' is-compact' : ''}${isTiny ? ' is-tiny' : ''}${isDraggable ? ' is-draggable' : ''}`}
             role="button"
             tabIndex={0}
+            draggable={isDraggable}
             style={{
                 top:    `${topPx + 2}px`,
                 height: `${Math.max(22, heightPx - 4)}px`,
@@ -100,6 +111,7 @@ const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: Position
                 width:  `calc(${widthPct}% - 8px)`,
                 '--pc': profColor,
                 '--pc-rgb': rgb,
+                cursor: isDraggable ? 'grab' : 'pointer',
             } as React.CSSProperties}
             onClick={e => { e.stopPropagation(); onAppointmentClick(apt); }}
             onKeyDown={e => {
@@ -109,6 +121,8 @@ const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: Position
                     onAppointmentClick(apt);
                 }
             }}
+            onDragStart={isDraggable && onDragStart ? e => onDragStart(e, pos) : undefined}
+            onDragEnd={isDraggable && onDragEnd ? onDragEnd : undefined}
             aria-label={ariaLabel}
             title={`${patName}${svcName ? ` · ${svcName}` : ''} — ${profName} (${fmtTime(apt.start_time)})`}
         >
@@ -142,6 +156,8 @@ const AppointmentCard = React.memo(({ pos, onAppointmentClick }: { pos: Position
 });
 AppointmentCard.displayName = 'AppointmentCard';
 
+function snapMin(min: number, snap = 5) { return Math.round(min / snap) * snap; }
+
 export function CitasTimeline({
     appointments,
     professionals,
@@ -151,11 +167,17 @@ export function CitasTimeline({
     closeHour,
     onSlotClick,
     onAppointmentClick,
+    onReschedule,
+    isDraggable,
 }: CitasTimelineProps) {
     const [profFilter,   setProfFilter]   = useState<string>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | AppointmentStatus>('all');
-    const scrollRef   = useRef<HTMLDivElement>(null);
+    const scrollRef    = useRef<HTMLDivElement>(null);
     const animFrameRef = useRef<number>(0);
+    const eventsAreaRef = useRef<HTMLDivElement>(null);
+    const dragInfoRef   = useRef<{ id: string; durationMin: number; offsetMin: number } | null>(null);
+    const [dragOverMin, setDragOverMin]   = useState<number | null>(null);
+    const [draggingOverDay, setDraggingOverDay] = useState<string | null>(null);
 
     const dayStart  = openHour  * 60;
     const dayEnd    = closeHour * 60;
@@ -320,6 +342,68 @@ export function CitasTimeline({
         onSlotClick(d, profFilter !== 'all' && profFilter !== 'unassigned' ? profFilter : null);
     }, [selectedDate, onSlotClick, profFilter]);
 
+    const handleCardDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, pos: PositionedAppointment) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const offsetPx = e.clientY - rect.top;
+        const offsetMin = Math.round(offsetPx / PX_PER_MIN);
+        const startM = minutesOf(new Date(pos.appointment.start_time));
+        const endM   = minutesOf(new Date(pos.appointment.end_time));
+        const durationMin = Math.max(15, endM - startM);
+        dragInfoRef.current = { id: pos.appointment.id, durationMin, offsetMin };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', pos.appointment.id);
+    }, []);
+
+    const handleCardDragEnd = useCallback(() => {
+        dragInfoRef.current = null;
+        setDragOverMin(null);
+        setDraggingOverDay(null);
+    }, []);
+
+    const handleEventsAreaDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        if (!dragInfoRef.current || !eventsAreaRef.current || !onReschedule) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = eventsAreaRef.current.getBoundingClientRect();
+        const rawMin = (e.clientY - rect.top) / PX_PER_MIN + dayStart - dragInfoRef.current.offsetMin;
+        const clamped = Math.max(dayStart, Math.min(dayEnd - dragInfoRef.current.durationMin, rawMin));
+        setDragOverMin(snapMin(clamped));
+    }, [dayStart, dayEnd, onReschedule]);
+
+    const handleEventsAreaDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        if (!dragInfoRef.current || dragOverMin === null || !onReschedule) return;
+        const { id, durationMin } = dragInfoRef.current;
+        const newStart = new Date(selectedDate);
+        newStart.setHours(Math.floor(dragOverMin / 60), dragOverMin % 60, 0, 0);
+        const newEnd = new Date(newStart.getTime() + durationMin * 60_000);
+        dragInfoRef.current = null;
+        setDragOverMin(null);
+        onReschedule(id, newStart, newEnd);
+    }, [dragOverMin, selectedDate, onReschedule]);
+
+    const handleWeekDayDragOver = useCallback((e: React.DragEvent<HTMLButtonElement>, dayIso: string) => {
+        if (!dragInfoRef.current || !onReschedule) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDraggingOverDay(dayIso);
+    }, [onReschedule]);
+
+    const handleWeekDayDrop = useCallback((e: React.DragEvent<HTMLButtonElement>, day: Date) => {
+        e.preventDefault();
+        if (!dragInfoRef.current || !onReschedule) return;
+        const apt = appointments.find(a => a.id === dragInfoRef.current!.id);
+        if (!apt) return;
+        const origStart = new Date(apt.start_time);
+        const origEnd   = new Date(apt.end_time);
+        const newStart  = new Date(day);
+        newStart.setHours(origStart.getHours(), origStart.getMinutes(), 0, 0);
+        const newEnd = new Date(newStart.getTime() + (origEnd.getTime() - origStart.getTime()));
+        dragInfoRef.current = null;
+        setDraggingOverDay(null);
+        onReschedule(apt.id, newStart, newEnd);
+    }, [appointments, onReschedule]);
+
     // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="zc-vcal">
@@ -409,8 +493,11 @@ export function CitasTimeline({
                         <button
                             key={day.toISOString()}
                             type="button"
-                            className={`zc-vcal__week-day${isSelected ? ' is-selected' : ''}${isCurrent ? ' is-today' : ''}`}
+                            className={`zc-vcal__week-day${isSelected ? ' is-selected' : ''}${isCurrent ? ' is-today' : ''}${draggingOverDay === day.toISOString() ? ' is-drag-over' : ''}`}
                             onClick={() => setSelectedDate(day)}
+                            onDragOver={isDraggable ? e => handleWeekDayDragOver(e, day.toISOString()) : undefined}
+                            onDragLeave={isDraggable ? () => setDraggingOverDay(null) : undefined}
+                            onDrop={isDraggable ? e => handleWeekDayDrop(e, day) : undefined}
                         >
                             <span className="zc-vcal__wday-name">{format(day, 'EEE', { locale: es })}</span>
                             <span className="zc-vcal__wday-num">{format(day, 'd')}</span>
@@ -465,7 +552,14 @@ export function CitasTimeline({
                     </div>
 
                     {/* Events area */}
-                    <div className="zc-vcal__events-area" style={{ height: `${totalH}px` }}>
+                    <div
+                        className="zc-vcal__events-area"
+                        style={{ height: `${totalH}px` }}
+                        ref={eventsAreaRef}
+                        onDragOver={isDraggable ? handleEventsAreaDragOver : undefined}
+                        onDragLeave={isDraggable ? () => setDragOverMin(null) : undefined}
+                        onDrop={isDraggable ? handleEventsAreaDrop : undefined}
+                    >
 
                         {/* Hour grid lines */}
                         {hourMarks.map(h => (
@@ -505,6 +599,19 @@ export function CitasTimeline({
                             </div>
                         )}
 
+                        {/* Drag-drop preview line */}
+                        {dragOverMin !== null && (
+                            <div
+                                className="zc-vcal__drag-preview"
+                                style={{ top: `${(dragOverMin - dayStart) * PX_PER_MIN}px` }}
+                                aria-hidden="true"
+                            >
+                                <span className="zc-vcal__drag-preview-time">
+                                    {`${Math.floor(dragOverMin / 60).toString().padStart(2, '0')}:${(dragOverMin % 60).toString().padStart(2, '0')}`}
+                                </span>
+                            </div>
+                        )}
+
                         {/* Empty state */}
                         {filtered.length === 0 && (
                             <div className="zc-vcal__empty">
@@ -522,6 +629,9 @@ export function CitasTimeline({
                                 key={pos.appointment.id}
                                 pos={pos}
                                 onAppointmentClick={onAppointmentClick}
+                                isDraggable={isDraggable}
+                                onDragStart={handleCardDragStart}
+                                onDragEnd={handleCardDragEnd}
                             />
                         ))}
                     </div>

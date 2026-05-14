@@ -12,6 +12,7 @@ import {
     useCreateCita,
     useCreateException,
     useScheduleExceptions,
+    useUpdateCita,
     useUpdateCitaStatus,
 } from '@/hooks/useCitas';
 import { useProfesionales } from '@/hooks/useProfesionales';
@@ -21,6 +22,7 @@ import { AppointmentDetailPanel } from './components/AppointmentDetailPanel';
 import { AppointmentExceptionModal, type ExceptionFormData } from './components/AppointmentExceptionModal';
 import { AppointmentFormModal, type AppointmentFormData } from './components/AppointmentFormModal';
 import { CancelCitaModal } from './components/CancelCitaModal';
+import { RescheduleModal } from './components/RescheduleModal';
 import { CitasTimeline } from './components/CitasTimeline';
 import { CitasFilters } from './components/CitasFilters';
 import { CitasHeader } from './components/CitasHeader';
@@ -77,6 +79,7 @@ export default function CitasPage() {
 
     const [selectedEvent, setSelectedEvent] = useState<Appointment | null>(null);
     const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
+    const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null);
 
     const isProfessional = profile?.role === 'professional';
     const profId = isProfessional ? (profile?.professional_id ?? undefined) : undefined;
@@ -106,6 +109,7 @@ export default function CitasPage() {
     const { data: professionals = [] } = useProfesionales();
 
     const createCita = useCreateCita();
+    const updateCita = useUpdateCita();
     const updateStatus = useUpdateCitaStatus();
 
     const cancelCita = useCancelCita();
@@ -272,6 +276,33 @@ export default function CitasPage() {
         }
     };
 
+    const handleReschedule = async (id: string, newStart: Date, newEnd: Date) => {
+        const apt = calendarAppointments.find(a => a.id === id);
+        if (!apt) return;
+
+        const startIso = newStart.toISOString();
+        const endIso   = newEnd.toISOString();
+
+        const overlaps = hasProfessionalOverlap(calendarAppointments, {
+            professionalId: apt.professional_id ?? null,
+            start: newStart,
+            end: newEnd,
+            excludeId: id,
+        });
+
+        if (overlaps) {
+            toast.warning('No se permite solapar citas del mismo profesional');
+            return;
+        }
+
+        try {
+            await updateCita.mutateAsync({ id, start_time: startIso, end_time: endIso });
+            toast.success('Cita reprogramada');
+        } catch {
+            toast.error('Error al reprogramar la cita');
+        }
+    };
+
     const handleRetryLoad = () => {
         void refetchAppointments();
     };
@@ -372,6 +403,8 @@ export default function CitasPage() {
                                 closeHour={closeHour}
                                 onSlotClick={handleSlotClick}
                                 onAppointmentClick={setSelectedEvent}
+                                onReschedule={!isProfessional ? handleReschedule : undefined}
+                                isDraggable={!isProfessional}
                             />
                         )}
                     </div>
@@ -383,6 +416,7 @@ export default function CitasPage() {
                             onClose={() => setSelectedEvent(null)}
                             onUpdateStatus={handleUpdateFromDetail}
                             onInitiateCancel={(apt) => setCancelTarget(apt)}
+                            onInitiateReschedule={!isProfessional ? (apt) => setRescheduleTarget(apt) : undefined}
                         />
                     )}
                 </div>
@@ -445,6 +479,7 @@ export default function CitasPage() {
                     onClose={() => setSelectedEvent(null)}
                     onUpdateStatus={handleUpdateFromDetail}
                     onInitiateCancel={(apt) => setCancelTarget(apt)}
+                    onInitiateReschedule={!isProfessional ? (apt) => setRescheduleTarget(apt) : undefined}
                 />
             )}
 
@@ -475,6 +510,14 @@ export default function CitasPage() {
                 isLoading={cancelCita.isPending}
                 onClose={() => setCancelTarget(null)}
                 onConfirm={handleConfirmCancel}
+            />
+
+            <RescheduleModal
+                isOpen={!!rescheduleTarget}
+                appointment={rescheduleTarget}
+                isLoading={updateCita.isPending}
+                onClose={() => setRescheduleTarget(null)}
+                onSubmit={handleReschedule}
             />
         </div>
     );

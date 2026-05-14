@@ -12,7 +12,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "qa:quad": "node qa/quad-runner.mjs",
+    "qa:quad:smoke": "node qa/quad-runner.mjs --env=testing --scope=smoke",
+    "qa:quad:exhaustive": "node qa/quad-runner.mjs --env=testing --scope=exhaustive"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1004,9 +1004,18 @@
 }
 
 .zc-detail-panel--inline {
-  width: 100%;
-  height: 100%;
-  position: relative;
+  width: 360px;
+  flex-shrink: 0;
+  position: sticky;
+  top: calc(88px + var(--safe-top, 0px));
+  align-self: flex-start;
+  max-height: calc(100vh - 104px - var(--safe-top, 0px));
+  overflow-y: auto;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.08),
+    0 1px 4px rgba(0,0,0,0.05);
 }
 
 .zc-detail-panel--overlay {
@@ -1014,8 +1023,14 @@
   right: 16px;
   top: 90px;
   bottom: 16px;
-  width: min(360px, calc(100vw - 32px));
+  width: min(380px, calc(100vw - 32px));
   z-index: 180;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.10),
+    0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
 }
 
 .zc-detail-panel__head {

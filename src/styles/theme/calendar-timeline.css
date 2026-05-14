@@ -724,6 +724,48 @@
   }
 }
 
+/* ── Drag & drop ─────────────────────────────────────────── */
+.zc-vcal__event.is-draggable:hover {
+  cursor: grab;
+}
+
+.zc-vcal__drag-preview {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.zc-vcal__drag-preview::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--color-accent, #6366f1);
+  opacity: 0.8;
+}
+
+.zc-vcal__drag-preview-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent, #6366f1);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--color-accent, #6366f1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.zc-vcal__week-day.is-drag-over {
+  background: color-mix(in srgb, var(--color-accent, #6366f1) 12%, transparent);
+  outline: 2px dashed var(--color-accent, #6366f1);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
 /* ─── Empty state ───────────────────────────────────────────── */
 .zc-vcal__empty {
   position: absolute;

@@ -13,6 +13,7 @@ interface AppointmentDetailPanelProps {
     onClose: () => void;
     onUpdateStatus: (id: string, status: string) => Promise<void>;
     onInitiateCancel: (apt: Appointment) => void;
+    onInitiateReschedule?: (apt: Appointment) => void;
     variant?: 'inline' | 'overlay';
 }
 
@@ -30,6 +31,7 @@ export function AppointmentDetailPanel({
     onClose,
     onUpdateStatus,
     onInitiateCancel,
+    onInitiateReschedule,
     variant = 'overlay',
 }: AppointmentDetailPanelProps) {
     if (!appointment) return null;
@@ -136,6 +138,17 @@ export function AppointmentDetailPanel({
 
             {isActionable && (
                 <div className="zc-detail-panel__actions">
+                    {onInitiateReschedule && (
+                        <Button
+                            variant="secondary"
+                            className="w-full justify-center"
+                            onClick={() => onInitiateReschedule(appointment)}
+                            leftIcon={<Icon name="calendar" size={14} />}
+                        >
+                            Reprogramar
+                        </Button>
+                    )}
+
                     <Button
                         variant="secondary"
                         className="w-full justify-center"

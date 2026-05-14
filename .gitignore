@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,9 +13,11 @@
 
 # testing
 /coverage
+**/coverage/
 
 # next.js
 /.next/
+**/.next/
 /out/
 
 # production
@@ -23,6 +26,7 @@
 # misc
 .DS_Store
 *.pem
+**/*.bak
 
 # debug
 npm-debug.log*
@@ -30,16 +34,26 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 *.log
+tmp_*.cjs
 .playwright-cli/
+**/.playwright-mcp/
 output/
 playwright-report/
 test-results/
+qa/artifacts/
 
 # env files (can opt-in for committing if needed)
 .env*
 
 # vercel
 .vercel
+**/.vercel/
+**/.tmp/
+_audit/
+panel/pdf-check-current/
+panel/pdf-renders/
+panel/pdf-verification/
+.claude/sessions/
 
 # typescript
 *.tsbuildinfo
