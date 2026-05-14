@@ -38,6 +38,7 @@
     "panel/coverage",
     "portal",
     "_audit",
+    "scripts",
     "vitest.config.ts",
     "playwright.config.ts",
     "e2e"
