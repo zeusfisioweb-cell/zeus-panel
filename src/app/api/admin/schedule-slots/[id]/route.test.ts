@@ -41,7 +41,9 @@ describe('admin schedule slot delete route', () => {
     it('deletes slot and writes audit log', async () => {
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: '88888888-8888-8888-8888-888888888888' }, error: null }),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),
@@ -71,6 +73,32 @@ describe('admin schedule slot delete route', () => {
         );
     });
 
+    it('returns 404 when slot does not exist', async () => {
+        const deleteQuery = {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
+        const supabase = {
+            from: vi.fn().mockReturnValue(deleteQuery),
+        };
+        requirePanelAccessMock.mockResolvedValue({
+            supabase,
+            userId: 'owner-1',
+        });
+
+        const response = await DELETE(
+            new Request('http://localhost/api/admin/schedule-slots/slot-1', { method: 'DELETE' }),
+            { params: Promise.resolve({ id: '88888888-8888-8888-8888-888888888888' }) }
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(404);
+        expect(body).toEqual({ error: 'Schedule slot not found' });
+        expect(writeAuditLogMock).not.toHaveBeenCalled();
+    });
+
     it('returns 403 for non-owner access', async () => {
         requirePanelAccessMock.mockRejectedValue(
             new ApiRouteErrorMock(403, 'Forbidden: owner role required')
@@ -91,7 +119,9 @@ describe('admin schedule slot delete route', () => {
     it('returns 500 when Supabase delete fails', async () => {
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: { message: 'delete failed' } }),
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'delete failed' } }),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),

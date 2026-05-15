@@ -46,7 +46,11 @@ describe('admin schedule exception delete route', () => {
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            error: undefined,
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: '99999999-9999-9999-9999-999999999999' },
+                error: null,
+            }),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),
@@ -83,7 +87,11 @@ describe('admin schedule exception delete route', () => {
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            error: undefined,
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: '99999999-9999-9999-9999-999999999999' },
+                error: null,
+            }),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),
@@ -115,12 +123,14 @@ describe('admin schedule exception delete route', () => {
         );
     });
 
-    it('professional cannot delete another professional exception (DB filter blocks)', async () => {
+    it('returns 404 when professional tries to delete another professional exception (DB filter blocks)', async () => {
         resolveScopedProfessionalIdMock.mockReturnValue('33333333-3333-3333-3333-333333333333');
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            error: undefined,
+            select: vi.fn().mockReturnThis(),
+            // DB scope filter means 0 rows affected → data: null
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),
@@ -138,10 +148,11 @@ describe('admin schedule exception delete route', () => {
         );
         const body = await response.json();
 
-        expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true });
+        expect(response.status).toBe(404);
+        expect(body).toEqual({ error: 'Schedule exception not found or access denied' });
         expect(deleteQuery.eq).toHaveBeenCalledWith('id', '88888888-8888-8888-8888-888888888888');
         expect(deleteQuery.eq).toHaveBeenCalledWith('professional_id', '33333333-3333-3333-3333-333333333333');
+        expect(writeAuditLogMock).not.toHaveBeenCalled();
     });
 
     it('returns 403 for non-owner non-professional access', async () => {
@@ -163,7 +174,9 @@ describe('admin schedule exception delete route', () => {
     it('returns 500 when Supabase delete fails', async () => {
         const deleteQuery = {
             delete: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: { message: 'delete failed' } }),
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'delete failed' } }),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(deleteQuery),

@@ -40,7 +40,8 @@ describe('admin patient export route', () => {
         const patientLookup = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({
+            is: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
                 data: {
                     id: '11111111-1111-1111-1111-111111111111',
                     first_name: 'Ana',
@@ -135,6 +136,7 @@ describe('admin patient export route', () => {
         expect(body.personal_data.first_name).toBe('Ana');
         expect(body.export_metadata.format_version).toBe('1.0');
         expect(body.appointments[0]?.professional?.profile?.full_name).toBe('Pro Uno');
+        expect(patientLookup.is).toHaveBeenCalledWith('deleted_at', null);
         expect(writeAuditLogMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: 'owner-1',
@@ -149,9 +151,10 @@ describe('admin patient export route', () => {
         const patientLookup = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({
+            is: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
                 data: null,
-                error: { message: 'not found' },
+                error: null,
             }),
         };
         const supabase = {
@@ -178,7 +181,8 @@ describe('admin patient export route', () => {
         const patientLookup = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({
+            is: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
                 data: {
                     id: '11111111-1111-1111-1111-111111111111',
                     first_name: 'Ana',
