@@ -97,6 +97,7 @@ Registro operativo:
 - 2026-04-30: continuidad de sesión documentada en `production-readiness/2026-04-30/01-next-session-handoff.md` con checklist de deploy/smoke y cierre DB pendiente.
 - 2026-04-29 (pre-separación de despliegues): smoke HTTP del deployment `zeus-panel-three.vercel.app` mostró `GET /login` OK, pero rutas de portal no reflejaban el estado esperado. Desde la separación técnica, la validación de `/portal/*` ya no corresponde a este despliegue sino al proyecto `portal`.
 - 2026-04-30: validación manual de vista `professional` ejecutada en runtime local mediante Chrome MCP. Login correcto con cuenta profesional, acceso confirmado a `/` y `/citas`, y redirección automática confirmada desde rutas restringidas (`/profesionales`, `/analitica`) hacia `/`. Se creó una cuenta temporal de prueba para la validación y se eliminó completamente al cerrar la comprobación (`profiles`, `professionals` y `auth.users`).
+- 2026-05-15: auditoría de seguridad senior y remediación completa. 9 issues críticos/altos resueltos en código + 1 de infraestructura. Detalle en bloque "Auditoría de seguridad 2026-05-15". Tests: 257 en verde. Deploy a Vercel disparado con todas las correcciones y Upstash activado en producción.
 
 Rutas principales:
 
@@ -247,7 +248,72 @@ Anadido bloque entre 960px y 640px: padding reducido (12px 14px 10px), font-size
 
 **Verificacion:** 185 tests en verde, `tsc --noEmit` limpio.
 
+## Auditoría de seguridad 2026-05-15
+
+Auditoría senior completa del stack panel. 9 hallazgos críticos/altos resueltos + 1 de infraestructura.
+
+### CRITICAL — Middleware inactivo (proxy.ts no se ejecutaba)
+
+`src/proxy.ts` contiene toda la lógica de middleware (CSP con nonce, `updateSession()`, redirect a `/login`). En sesiones anteriores se asumía que Next.js no encontraba el archivo; se creó `src/middleware.ts` como re-export. Next.js 16.2.4 reconoce `proxy.ts` nativamente como middleware — el re-export causó conflicto de build. La corrección fue eliminar `src/middleware.ts` para que Next.js use `proxy.ts` directamente. El middleware nunca estuvo roto en producción con Next.js 16.
+
+### HIGH — Rate limiting ausente en endpoints de alta privilegiación
+
+`POST /api/admin/create-professional` y `POST /api/admin/portal/invite` no tenían rate limit. Añadido `checkRateLimit()` (Upstash sliding window) en ambas rutas:
+- `create-professional`: 10 peticiones/hora por `ownerUserId`, responde `429` con `Retry-After`.
+- `portal-invite`: 20 peticiones/hora por `userId`, misma respuesta.
+
+### HIGH — Rol en localStorage manipulable sin invalidación
+
+`src/lib/auth-context.tsx`: el caché de perfil en `localStorage` (`zeus_profile_cache_v1`, TTL 30 min) no se invalidaba si el servidor devolvía un rol diferente al cacheado. Un usuario podía modificar `localStorage` para suplantar privilegios durante la ventana de caché. Añadida comparación antes de escribir caché: si `cached.role !== nextProfile.role`, se borra el caché primero. El dato autoritativo siempre viene del servidor vía `/api/admin/profile`.
+
+### HIGH — JWT de cancelación filtrado en logs de desarrollo
+
+`src/lib/email.ts` registraba en `console.log` el `confirmLink` completo (que incluye el JWT firmado) cuando no había `RESEND_API_KEY`. Sustituido por log inocuo que solo muestra el destinatario.
+
+### HIGH — DELETE de schedule_slots y schedule_exceptions sin verificación de existencia
+
+Ambas rutas ejecutaban `DELETE` sin comprobar si la fila existía. Si no existía, retornaban `200 { success: true }` (silent no-op) e incluso podían escribir una entrada de auditoría huérfana.
+- `src/app/api/admin/schedule-slots/[id]/route.ts`: añadido `.select('id').maybeSingle()` + `throw new ApiRouteError(404, 'Schedule slot not found')`.
+- `src/app/api/admin/schedule-exceptions/[id]/route.ts`: mismo patrón; para profesionales, el filtro `eq('professional_id', scopedId)` ya actúa de scope — si el DELETE afecta 0 filas, `data` es `null` y se retorna `404`.
+
+### MEDIUM — Export RGPD incluía pacientes soft-deleted
+
+`GET /api/admin/patients/[id]/export`: la query usaba `.eq('id', id).single()` sin filtrar `deleted_at`. Un paciente eliminado por la clínica podía seguir siendo exportado. Añadido `.is('deleted_at', null).maybeSingle()` y respuesta `404` cuando el paciente no existe o está eliminado.
+
+### MEDIUM — URL de staging hardcodeada en mensajes WhatsApp de producción
+
+`src/lib/whatsapp.ts` usaba `PORTAL_URL ?? 'https://zeus-portal-testing.vercel.app'` como fallback. Los mensajes WhatsApp enviados en producción sin `PORTAL_URL` configurado apuntaban al entorno de testing. Fallback eliminado; si `PORTAL_URL` no está configurado, el sufijo de portal se omite del mensaje con un `console.warn`.
+
+### MEDIUM — VAPID subject ficticio en push notifications
+
+`src/lib/push-notifications.ts` tenía `PUSH_VAPID_SUBJECT ?? 'mailto:admin@zeus.local'`. Un dominio inexistente como subject VAPID puede causar rechazos silenciosos por parte de servicios push. Fallback eliminado; `PUSH_VAPID_SUBJECT` es ahora obligatorio — si falta, `ensureVapidConfig()` retorna `false` y desactiva push con `console.warn`.
+
+### INFRA — Upstash no configurado en Vercel (zeus-panel-testing)
+
+`UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` no estaban en el proyecto Vercel de producción, por lo que el rate limiting operaba siempre en modo fallback en memoria (sin persistencia entre instancias). Añadidas las variables vía `vercel env add` al entorno `production` de `zeus-panel-testing`.
+
+### Tests actualizados
+
+Tres archivos de test reescritos para reflejar los nuevos encadenamientos de query:
+- `schedule-slots/[id]/route.test.ts`: mock actualizado a `.delete().eq().select().maybeSingle()`; añadido test `404 when slot does not exist`.
+- `schedule-exceptions/[id]/route.test.ts`: mock actualizado; test de "acceso cruzado entre profesionales" corregido de `200` a `404`.
+- `patients/[id]/export/route.test.ts`: mock actualizado con `.is().maybeSingle()`; test `404` cambiado de error Supabase a `{ data: null }` de `maybeSingle`.
+
+### Verificación post-auditoría
+
+- `npx vitest run` → 257 tests en verde (37 archivos).
+- `npm run lint` → 0 errors, 2 warnings preexistentes (sin impacto en build).
+- `npm run build` → limpio con `ƒ Proxy (Middleware)` confirmado activo.
+- Deploy disparado a `panel-deploy-branch` → Vercel.
+
+---
+
 ## Verificacion Actual
+
+Ultima verificacion local ejecutada el 2026-05-15 (auditoría de seguridad):
+- `npx vitest run` → 257 tests en verde (37 archivos).
+- `npm run lint` → 0 errors, 2 warnings preexistentes.
+- `npm run build` → limpio.
 
 Ultima verificacion local ejecutada el 2026-05-04 (fix RBAC profesional):
 - `npx vitest run` → 293 tests en verde (44 archivos).
