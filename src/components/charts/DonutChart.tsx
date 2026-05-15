@@ -78,8 +78,8 @@ export function DonutChart({
 
     return (
         <div className="zs-donut-wrapper" style={{ minWidth: 0, width: '100%' }} role="img" aria-label={resolvedAriaLabel}>
-            <div style={{ position: 'relative', height }}>
-                <ResponsiveContainer width="100%" height="100%">
+            <div style={{ position: 'relative', height, overflow: 'hidden' }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
                         <Pie
                             data={chartData}

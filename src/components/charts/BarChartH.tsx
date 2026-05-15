@@ -55,8 +55,8 @@ export function BarChartH({ data, height = 200, ariaLabel, axisWidth = 72 }: Bar
     const resolvedAriaLabel = ariaLabel ?? `Gráfico de barras: ${data.map((d) => `${d.name} ${d.value}`).join(', ')}`;
 
     return (
-        <div role="img" aria-label={resolvedAriaLabel} style={{ width: '100%' }}>
-            <ResponsiveContainer width="100%" height={height}>
+        <div role="img" aria-label={resolvedAriaLabel} style={{ width: '100%', overflow: 'hidden' }}>
+            <ResponsiveContainer width="100%" height={height} minWidth={0}>
                 <BarChart
                     data={data}
                     layout="vertical"

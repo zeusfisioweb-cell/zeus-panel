@@ -117,6 +117,9 @@ export async function getDashboardData(
 
     // ── Compute global stats from raw rows ─────────────────────────────────────
     // Supabase returns joined relations as arrays even for to-one joins
+    if (globalRes.error) {
+        console.error('[getDashboardData] globalQuery failed:', globalRes.error.message);
+    }
     type RawRow = { status: string; patient_id: string | null; service_id: string | null; service: unknown };
     const allRows = (globalRes.data ?? []) as RawRow[];
 

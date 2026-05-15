@@ -145,6 +145,15 @@
   position: relative;
 }
 
+@media (max-width: 767px) {
+  .zc-cal-sidebar {
+    width: 100%;
+    position: relative;
+    top: auto;
+    align-self: stretch;
+  }
+}
+
 @media (max-width: 540px) {
   .zc-rdp .rdp-button_previous,
   .zc-rdp .rdp-button_next {

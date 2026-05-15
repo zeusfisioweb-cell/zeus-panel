@@ -22,7 +22,8 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
 
             const current = new URL(window.location.origin);
             if (current.hostname.startsWith('zeus-panel-testing-') && current.hostname.endsWith('.vercel.app')) {
-                setBookingUrl('https://zeus-portal-testing.vercel.app/portal/reservar');
+                const portalHost = current.hostname.replace('zeus-panel-testing-', 'zeus-portal-testing-');
+                setBookingUrl(`https://${portalHost}/portal/reservar`);
                 return;
             }
 
