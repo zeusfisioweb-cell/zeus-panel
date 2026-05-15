@@ -20,17 +20,24 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
                 return;
             }
 
-            const current = new URL(window.location.origin);
-            if (current.hostname.startsWith('zeus-panel-testing-') && current.hostname.endsWith('.vercel.app')) {
-                const portalHost = current.hostname.replace('zeus-panel-testing-', 'zeus-portal-testing-');
+            const { hostname } = window.location;
+
+            // Vercel preview/testing deployments: derive portal host from panel host
+            if (hostname.startsWith('zeus-panel-testing-') && hostname.endsWith('.vercel.app')) {
+                const portalHost = hostname.replace('zeus-panel-testing-', 'zeus-portal-testing-');
                 setBookingUrl(`https://${portalHost}/portal/reservar`);
                 return;
             }
 
-            if (current.hostname.includes('panel')) {
-                current.hostname = current.hostname.replace('panel', 'portal');
+            // Production domains where hostname contains 'panel'
+            if (hostname.includes('panel')) {
+                const portalOrigin = window.location.origin.replace('panel', 'portal');
+                setBookingUrl(`${portalOrigin}/portal/reservar`);
+                return;
             }
-            setBookingUrl(`${current.origin}/portal/reservar`);
+
+            // Localhost / unknown domain: leave empty so the modal shows an error state
+            setBookingUrl('');
         }
     }, []);
 
@@ -98,7 +105,7 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
                     <div className="bg-white p-4 rounded-2xl border border-[var(--border-color)] w-full max-w-[220px] aspect-square flex items-center justify-center mx-auto"
                         style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
                     >
-                        {bookingUrl && (
+                        {bookingUrl ? (
                             <QRCodeSVG
                                 value={bookingUrl}
                                 size={1000}
@@ -113,14 +120,20 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
                                     excavate: true,
                                 }}
                             />
+                        ) : (
+                            <p className="text-xs text-center text-[var(--text-muted)]">
+                                Configura <code>NEXT_PUBLIC_PORTAL_URL</code> para generar el QR.
+                            </p>
                         )}
                     </div>
 
+                    {bookingUrl && (
                     <div className="mt-6 bg-[var(--bg-surface-soft)] py-3 px-4 rounded-lg border border-[var(--border-color)] w-full text-center overflow-hidden">
                         <p className="text-xs font-mono text-[var(--text-secondary)] !m-0 whitespace-nowrap overflow-hidden overflow-ellipsis select-all">
                             {bookingUrl}
                         </p>
                     </div>
+                    )}
                 </div>
 
                 {/* Footer Actions */}
