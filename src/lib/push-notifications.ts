@@ -113,10 +113,10 @@ function ensureVapidConfig(): boolean {
 
     const publicKey = process.env.NEXT_PUBLIC_PUSH_VAPID_PUBLIC_KEY;
     const privateKey = process.env.PUSH_VAPID_PRIVATE_KEY;
-    const subject = process.env.PUSH_VAPID_SUBJECT ?? 'mailto:admin@zeus.local';
+    const subject = process.env.PUSH_VAPID_SUBJECT;
 
-    if (!publicKey || !privateKey) {
-        console.warn('[push] Missing VAPID keys. Push disabled.');
+    if (!publicKey || !privateKey || !subject) {
+        console.warn('[push] Missing VAPID config (keys or subject). Push disabled.');
         return false;
     }
 

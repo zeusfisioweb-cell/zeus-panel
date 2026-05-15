@@ -30,14 +30,16 @@ export async function GET(
         const { id } = paramsSchema.parse(await context.params);
         const format = new URL(request.url).searchParams.get('format');
 
-        // 1. Get patient record
+        // 1. Get patient record — exclude soft-deleted (RGPD Art. 17 right to erasure)
         const { data: patient, error: patientError } = await supabase
             .from('patients')
             .select('*')
             .eq('id', id)
-            .single();
+            .is('deleted_at', null)
+            .maybeSingle();
 
-        if (patientError || !patient) {
+        if (patientError) throw patientError;
+        if (!patient) {
             return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
         }
 

@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+import { checkRateLimit, getRetryAfterSeconds, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit';
+
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId: ownerUserId } = await requirePanelAccess({ ownerOnly: true });
+
+        const { success, reset } = await checkRateLimit(ownerUserId, 'create-professional', 10, 3600);
+        if (!success) {
+            return NextResponse.json(
+                { error: RATE_LIMIT_MESSAGE },
+                { status: 429, headers: { 'Retry-After': String(getRetryAfterSeconds(reset)) } }
+            );
+        }
+
         const adminAuthClient = getAdminSupabase();
 
         // Validate request body

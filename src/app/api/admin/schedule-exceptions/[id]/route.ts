@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assertSameOriginMutation, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../../_lib';
+import { ApiRouteError, assertSameOriginMutation, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../../_lib';
 const paramsSchema = z.object({
     id: z.string().uuid({ message: 'ID de excepción inválido' }),
 });
@@ -24,9 +24,10 @@ export async function DELETE(
             deleteQuery = deleteQuery.eq('professional_id', scopedProfessionalId);
         }
 
-        const { error } = await deleteQuery;
+        const { data, error } = await deleteQuery.select('id').maybeSingle();
 
         if (error) throw error;
+        if (!data) throw new ApiRouteError(404, 'Schedule exception not found or access denied');
 
         await writeAuditLog({
             supabase,

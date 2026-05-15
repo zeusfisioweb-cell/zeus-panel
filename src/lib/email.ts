@@ -20,7 +20,7 @@ export async function sendCancellationRequestEmail({
     confirmLink,
 }: CancellationRequestEmailParams): Promise<void> {
     if (!process.env.RESEND_API_KEY) {
-        console.log('[email:dev] Cancellation confirm link:', confirmLink);
+        console.log('[email:dev] Cancellation email skipped (no RESEND_API_KEY). to:', to);
         return;
     }
 

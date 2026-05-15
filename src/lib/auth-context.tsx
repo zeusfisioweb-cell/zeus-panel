@@ -178,6 +178,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 } else {
                     const nextProfile = data as Profile;
+                    // If the cached role differs from the server role, clear the stale cache
+                    // before writing the fresh one. This prevents a tampered localStorage role
+                    // from persisting until the TTL expires.
+                    const cached = readCachedProfile(userId);
+                    if (cached && cached.role !== nextProfile.role) {
+                        clearCachedProfile();
+                    }
                     profileRef.current = nextProfile;
                     setProfile(nextProfile);
                     setProfileError(false);

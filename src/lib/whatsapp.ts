@@ -1,5 +1,9 @@
-const PORTAL_URL = process.env.PORTAL_URL ?? 'https://zeus-portal-testing.vercel.app/portal/mis-citas';
+const PORTAL_URL = process.env.PORTAL_URL ?? '';
 const CLINIC_NAME = process.env.CLINIC_NAME ?? 'Zeus Fisioterapia';
+
+if (!process.env.PORTAL_URL) {
+    console.warn('[whatsapp] PORTAL_URL not configured — portal link will be omitted from messages');
+}
 
 export interface AppointmentWhatsAppParams {
     patientName: string;
@@ -66,9 +70,10 @@ export async function sendAppointmentWhatsApp(params: AppointmentWhatsAppParams)
     const to = _formatPhone(params.patientPhone);
     const dateStr = _formatDate(params.startTime);
 
+    const portalSuffix = PORTAL_URL ? `\n\nGestiona tus citas: ${PORTAL_URL}` : '';
     const body = params.isReschedule
-        ? `${CLINIC_NAME}: Tu cita de ${_escapeWaText(params.serviceName)} con ${_escapeWaText(params.professionalName)} se ha movido al ${dateStr}.\n\nGestiona tus citas: ${PORTAL_URL}`
-        : `${CLINIC_NAME}: Tu cita de ${_escapeWaText(params.serviceName)} con ${_escapeWaText(params.professionalName)} el ${dateStr} está confirmada.\n\nGestiona tus citas: ${PORTAL_URL}`;
+        ? `${CLINIC_NAME}: Tu cita de ${_escapeWaText(params.serviceName)} con ${_escapeWaText(params.professionalName)} se ha movido al ${dateStr}.${portalSuffix}`
+        : `${CLINIC_NAME}: Tu cita de ${_escapeWaText(params.serviceName)} con ${_escapeWaText(params.professionalName)} el ${dateStr} está confirmada.${portalSuffix}`;
 
     try {
         const res = await fetch(

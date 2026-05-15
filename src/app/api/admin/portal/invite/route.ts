@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../../_lib';
+import { checkRateLimit, getRetryAfterSeconds, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit';
 
 const InviteSchema = z.object({
     patient_id: z.string().uuid({ message: 'patient_id inválido' }),
@@ -10,6 +11,14 @@ export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess();
+
+        const { success, reset } = await checkRateLimit(userId, 'portal-invite', 20, 3600);
+        if (!success) {
+            return NextResponse.json(
+                { error: RATE_LIMIT_MESSAGE },
+                { status: 429, headers: { 'Retry-After': String(getRetryAfterSeconds(reset)) } }
+            );
+        }
         const adminClient = getAdminSupabase();
 
         const raw = await request.json();
