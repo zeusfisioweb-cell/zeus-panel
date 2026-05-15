@@ -218,7 +218,7 @@ export default function ProfesionalesPage() {
 
     const activeCount = professionals.filter((professional) => professional.is_active).length;
     const specialtiesCount = new Set(professionals.filter((p) => p.specialty).map((p) => p.specialty?.trim().toLowerCase())).size;
-    const totalServicesLinked = professionals.reduce((acc, p) => acc + (p.services?.length || 0), 0);
+    const totalServicesLinked = professionals.reduce((acc, p) => acc + (p.professional_services?.length || 0), 0);
     const avgServicesPerPro = professionals.length > 0 ? totalServicesLinked / professionals.length : 0;
 
     return (

@@ -69,9 +69,11 @@ export async function getDashboardData(
     }
 
     // ── Week count ─────────────────────────────────────────────────────────────
+    // head:true uses HTTP HEAD which doesn't reliably return count in server actions;
+    // selecting only id is still lightweight and the count comes via Content-Range.
     let weekQuery = supabase
         .from('appointments')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .not('status', 'eq', 'cancelled')
         .gte('start_time', weekStartIso)
         .lte('start_time', weekEndIso);

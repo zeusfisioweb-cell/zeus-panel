@@ -1139,6 +1139,7 @@
   }
 
   .admin-shell--modern.admin-shell--summary .summary-v5-timeline__wa {
-    display: none !important;
+    font-size: 11px;
+    padding: 4px 8px;
   }
 }
