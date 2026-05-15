@@ -137,17 +137,8 @@ export default function AnaliticaPage() {
                     </p>
                 </div>
 
-                {/* Global Period Toggle & Print */}
+                {/* Global Period Toggle */}
                 <div className="print-hide flex items-center gap-3 flex-wrap">
-                    <button
-                        type="button"
-                        onClick={() => window.print()}
-                        className="btn !py-2 !px-4 !h-auto !min-h-0 gap-1.5"
-                    >
-                        <Icon name="download" size={16} />
-                        Exportar a PDF
-                    </button>
-
                     <div className="flex bg-[var(--bg-body)] rounded-lg p-1 border border-[var(--border-color)] overflow-x-auto" role="group" aria-label="Seleccionar periodo de análisis">
                         {(Object.keys(periodLabels) as AnalyticsPeriod[]).map(p => (
                             <button

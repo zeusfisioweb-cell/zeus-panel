@@ -99,6 +99,13 @@ export default function CitasPage() {
         return appointments.filter((apt) => apt.professional_id === profId);
     }, [appointments, profId]);
 
+    // Display-only set: pending and unassigned appointments are hidden from
+    // every calendar surface. calendarAppointments stays full for conflict checks.
+    const visibleCalendarAppointments = useMemo(
+        () => calendarAppointments.filter((apt) => apt.status !== 'pending' && apt.professional_id),
+        [calendarAppointments]
+    );
+
     const { data: exceptions = [] } = useScheduleExceptions({
         startDate: rangeStart.split('T')[0],
         endDate: rangeEnd.split('T')[0],
@@ -118,6 +125,8 @@ export default function CitasPage() {
     const filteredAppointments = useMemo(() => {
         return appointments
             .filter((apt) => {
+                if (apt.status === 'pending') return false;
+                if (!apt.professional_id) return false;
                 if (profId && apt.professional_id !== profId) return false;
 
                 if (filter !== 'all') {
@@ -361,7 +370,7 @@ export default function CitasPage() {
                     <CalendarSidebar
                         selectedDate={selectedDate}
                         onSelectDate={setSelectedDate}
-                        appointments={calendarAppointments}
+                        appointments={visibleCalendarAppointments}
                     />
 
                     <div className="citas-stage__main flex-1 min-h-0 flex flex-col min-w-0">
@@ -398,7 +407,7 @@ export default function CitasPage() {
                             </div>
                         ) : (
                             <CitasTimeline
-                                appointments={calendarAppointments}
+                                appointments={visibleCalendarAppointments}
                                 professionals={professionals}
                                 selectedDate={selectedDate}
                                 setSelectedDate={setSelectedDate}

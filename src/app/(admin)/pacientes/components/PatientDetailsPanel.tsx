@@ -56,7 +56,6 @@ export function PatientDetailsPanel({
     const isOwner = userRole === 'owner';
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
     const [exporting, setExporting] = useState(false);
-    const [exportingCsv, setExportingCsv] = useState(false);
     const [unlinking, setUnlinking] = useState(false);
     const [inviting, setInviting] = useState(false);
     const [inviteSent, setInviteSent] = useState(false);
@@ -102,58 +101,30 @@ export function PatientDetailsPanel({
     const handleExportGdpr = async () => {
         setExporting(true);
         try {
-            const res = await fetch(`/api/admin/patients/${encodeURIComponent(patient.id)}/export`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({ error: 'Error de servidor' }));
-                throw new Error((body as { error?: string }).error || 'Error de servidor');
-            }
-
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `paciente_${patient.first_name}_${patient.last_name}_rgpd.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            toast.success('Datos exportados correctamente');
-        } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Error al exportar datos');
-        } finally {
-            setExporting(false);
-        }
-    };
-
-    const handleExportCsv = async () => {
-        setExportingCsv(true);
-        try {
             const res = await fetch(`/api/admin/patients/${encodeURIComponent(patient.id)}/export?format=csv`, {
                 method: 'GET',
                 credentials: 'same-origin',
             });
+
             if (!res.ok) {
                 const body = await res.json().catch(() => ({ error: 'Error de servidor' }));
                 throw new Error((body as { error?: string }).error || 'Error de servidor');
             }
+
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `paciente_${patient.first_name}_${patient.last_name}.csv`;
+            a.download = `paciente_${patient.first_name}_${patient.last_name}_rgpd.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            toast.success('CSV exportado correctamente');
+            toast.success('Datos RGPD exportados correctamente');
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Error al exportar CSV');
+            toast.error(error instanceof Error ? error.message : 'Error al exportar datos');
         } finally {
-            setExportingCsv(false);
+            setExporting(false);
         }
     };
 
@@ -254,16 +225,6 @@ export function PatientDetailsPanel({
                             isLoading={exporting}
                         >
                             Exportar datos (RGPD)
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleExportCsv}
-                            disabled={exportingCsv}
-                            leftIcon={<Icon name="download" size={14} />}
-                            isLoading={exportingCsv}
-                        >
-                            Exportar CSV
                         </Button>
                         <Button
                             variant="ghost"

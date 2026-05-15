@@ -2,6 +2,20 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { buildMultiSectionCsv } from '@/lib/csv';
 import { handleApiError, requirePanelAccess, writeAuditLog } from '../../../_lib';
+
+function flattenContent(content: unknown, depth = 0): string {
+    if (!content || typeof content !== 'object' || depth > 3) return '';
+    return Object.values(content as Record<string, unknown>)
+        .map((v) => {
+            if (v === null || v === undefined || v === '') return null;
+            if (typeof v === 'object') return flattenContent(v, depth + 1);
+            return String(v).trim();
+        })
+        .filter(Boolean)
+        .join(' | ')
+        .substring(0, 500);
+}
+
 const paramsSchema = z.object({
     id: z.string().uuid({ message: 'ID de paciente inválido' }),
 });
@@ -68,7 +82,7 @@ export async function GET(
 
             const recordRows: unknown[][] = (recordsCsv ?? []).map((r) => {
                 const created = r.created_at ? new Date(r.created_at).toISOString().substring(0, 10) : '';
-                const contentStr = JSON.stringify(r.content ?? {}).substring(0, 500);
+                const contentStr = flattenContent(r.content);
                 return [r.type ?? '', created, contentStr];
             });
 
