@@ -13,12 +13,12 @@ interface ServiciosTableProps {
 }
 
 const CATEGORY_ACCENTS = [
-    '#AD7332', // canela  — Fisioterapia
-    '#7C3AED', // purple  — Psicología
-    '#059669', // green
-    '#2563EB', // blue
-    '#D97706', // amber
-    '#0F766E', // teal
+    '#6366F1',
+    '#0EA5E9',
+    '#10B981',
+    '#F59E0B',
+    '#EC4899',
+    '#8B5CF6',
 ];
 
 export function ServiciosTable({ categories, services, onEdit, onDelete }: ServiciosTableProps) {
@@ -61,31 +61,44 @@ export function ServiciosTable({ categories, services, onEdit, onDelete }: Servi
                     ) : (
                         <div className="zs-svc-grid">
                             {catSvcs.map((svc) => (
-                                <article key={svc.id} className="zs-svc-tile">
-                                    {/* Badge (izq) + Precio hero (der) */}
-                                    <div className="zs-svc-tile__toprow">
-                                        <span className={`zs-svc-tile__badge ${svc.is_active ? 'zs-svc-tile__badge--active' : 'zs-svc-tile__badge--inactive'}`}>
-                                            {svc.is_active ? 'Activo' : 'Inactivo'}
-                                        </span>
-                                        <span className="zs-svc-tile__price">
-                                            {Number(svc.price).toFixed(0)}
-                                            <span className="zs-svc-tile__currency"> EUR</span>
-                                        </span>
+                                <article key={svc.id} className="zs-svc-card">
+
+                                    {/* Main body */}
+                                    <div className="zs-svc-card__body">
+                                        <h3 className="zs-svc-card__name">{svc.name}</h3>
+
+                                        {svc.description ? (
+                                            <p className="zs-svc-card__desc">{svc.description}</p>
+                                        ) : (
+                                            <div className="zs-svc-card__desc-placeholder" />
+                                        )}
+
+                                        <div className="zs-svc-card__meta">
+                                            <span className="zs-svc-card__duration">
+                                                <Icon name="clock" size={11} />
+                                                {svc.duration_minutes} min
+                                            </span>
+                                            <span className="zs-svc-card__price">
+                                                {Number(svc.price).toFixed(0)}
+                                                <span className="zs-svc-card__currency"> €</span>
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <h3 className="zs-svc-tile__name">{svc.name}</h3>
-
-                                    {svc.description && (
-                                        <p className="zs-svc-tile__desc">{svc.description}</p>
-                                    )}
-
-                                    <div className="zs-svc-tile__footer">
-                                        <span className="zs-svc-tile__duration">
-                                            <Icon name="clock" size={11} />
-                                            {svc.duration_minutes} min
+                                    {/* Footer */}
+                                    <div className="zs-svc-card__footer">
+                                        <span className={`zs-svc-card__status ${svc.is_active ? 'is-active' : 'is-inactive'}`}>
+                                            <span className="zs-svc-card__status-dot" />
+                                            {svc.is_active ? 'Activo' : 'Inactivo'}
                                         </span>
-                                        <div className="zs-svc-tile__actions">
-                                            <Button variant="ghost" size="sm" onClick={() => onEdit(svc)} aria-label={`Editar ${svc.name}`}>
+
+                                        <div className="zs-svc-card__actions">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => onEdit(svc)}
+                                                aria-label={`Editar ${svc.name}`}
+                                            >
                                                 <Icon name="edit" size={13} />
                                                 Editar
                                             </Button>

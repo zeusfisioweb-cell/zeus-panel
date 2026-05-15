@@ -1249,61 +1249,43 @@
    · Glow canela + badge flotante
    ============================================================ */
 .zs-pro-card {
-  background: #ffffff;
-  border: 1.5px solid rgba(173, 115, 50, 0.2);
-  border-radius: 18px;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.05),
-    0 8px 24px rgba(173, 115, 50, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
   transition:
-    box-shadow 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    transform 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 280ms ease;
+    box-shadow 240ms ease,
+    transform 240ms ease,
+    border-color 240ms ease;
   position: relative;
   overflow: hidden;
 }
 
 .zs-pro-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(173, 115, 50, 0.4);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.07),
-    0 20px 48px rgba(173, 115, 50, 0.18),
-    0 0 0 1px rgba(173, 115, 50, 0.12);
+  transform: translateY(-4px);
+  border-color: rgba(173, 115, 50, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(173, 115, 50, 0.12);
 }
 
-/* ── Hero zone (top light cream section) ── */
+/* ── Hero zone — clean, no background fill ── */
 .zs-pro-card__hero {
   position: relative;
-  padding: 26px 22px 20px;
-  background: linear-gradient(145deg, #fffcf8 0%, #fdf6ef 40%, #fdf1e4 100%);
+  padding: 28px 22px 20px;
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-align: center;
   overflow: hidden;
-  border-bottom: 1px solid rgba(173, 115, 50, 0.1);
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.07));
 }
 
-/* Canela glow radial de fondo */
+/* Removed glow effect for cleaner look */
 .zs-pro-card__hero::before {
-  content: "";
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(173, 115, 50, 0.15) 0%,
-    transparent 70%
-  );
-  pointer-events: none;
+  display: none;
 }
 
 /* Color strip superior con el color del profesional */
@@ -1345,8 +1327,8 @@
 
 /* ── Avatar ── */
 .zs-pro-avatar {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   padding: 3px;
   background: linear-gradient(
@@ -1357,9 +1339,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-  box-shadow:
-    0 0 0 4px rgba(255, 255, 255, 0.7),
-    0 4px 12px rgba(173, 115, 50, 0.15);
+  box-shadow: 0 0 0 3px var(--bg-surface, #fff), 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .zs-pro-avatar__initials {
@@ -1369,11 +1349,11 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: #ffffff;
-  font-size: 22px;
+  background: var(--bg-surface, #ffffff);
+  font-size: 24px;
   font-weight: 800;
   color: var(--pro-color, var(--brand-canela));
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 /* ── Identity en hero ── */
@@ -1383,53 +1363,55 @@
 }
 
 .zs-pro-card__name {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-main);
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .zs-pro-card__email {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
   margin: 0;
 }
 
-/* ── Body zone (bottom light section) ── */
+/* ── Body zone ── */
 .zs-pro-card__body {
-  padding: 18px 20px 20px;
+  padding: 16px 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   flex: 1;
 }
 
-/* Specialty */
+/* Specialty — shown as a compact pill */
 .zs-pro-card__specialty {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 6px;
 }
 
 .zs-pro-card__specialty-label {
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--brand-canela-text);
-  opacity: 0.7;
+  display: none;
 }
 
 .zs-pro-card__specialty-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-body, #f8f5f0);
+  border: 1px solid var(--border-color, rgba(0,0,0,0.08));
+  padding: 3px 10px;
+  border-radius: 9999px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 /* Service chips */
@@ -1622,21 +1604,19 @@
 
 /* ---- IMPACT CARD ---- */
 .zs-svc-tile {
-  background: #ffffff;
-  border: 1.5px solid var(--zs-cat-color, var(--brand-canela));
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-left: 3px solid var(--zs-cat-color, var(--brand-canela));
   border-radius: 14px;
   padding: 18px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   transition:
-    transform 200ms var(--ease-out-expo, ease),
-    box-shadow 200ms var(--ease-out-expo, ease),
-    outline 150ms ease;
+    transform 200ms ease,
+    box-shadow 200ms ease;
   position: relative;
-  outline: 2px solid transparent;
-  outline-offset: 2px;
 }
 
 .zs-svc-tile::before {
@@ -1644,9 +1624,8 @@
 }
 
 .zs-svc-tile:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-  outline-color: var(--zs-cat-color, var(--brand-canela));
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
 }
 
 /* Fila superior: badge (izq) + precio (der) */
@@ -1789,6 +1768,146 @@
   font-size: 13px;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* ============================================================
+   Servicios v5 — zs-svc-card__* (nuevo diseño limpio)
+   ============================================================ */
+
+.zs-svc-card {
+  position: relative;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, rgba(0,0,0,0.08));
+  border-left: 3px solid var(--zs-cat-color, #6366F1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.zs-svc-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Body */
+.zs-svc-card__body {
+  padding: 16px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.zs-svc-card__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.zs-svc-card__desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2lh;
+}
+
+.zs-svc-card__desc-placeholder {
+  min-height: 2lh;
+}
+
+/* Meta row: duration + price */
+.zs-svc-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.zs-svc-card__duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: #f4f4f5;
+  border: none;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.zs-svc-card__price {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.zs-svc-card__currency {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Footer */
+.zs-svc-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 18px 12px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  background: #fafafa;
+}
+
+/* Status badge */
+.zs-svc-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.zs-svc-card__status.is-active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.zs-svc-card__status.is-inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.zs-svc-card__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.zs-svc-card__status.is-active .zs-svc-card__status-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.zs-svc-card__actions {
+  display: flex;
+  gap: 2px;
 }
 
 /* ============================================================

@@ -5,20 +5,9 @@ import type {
     Appointment,
     DashboardData,
     DashboardGlobalStats,
-    DashboardGlobalStatus,
-    DashboardSessionBreakdownItem,
     Professional,
     Service,
 } from '@/lib/types';
-
-interface DashboardRpcStats {
-    totalPatients: number;
-    weekCount: number;
-    totalGlobalAppointments: number;
-    estimatedRevenue: number;
-    sessionBreakdown: DashboardSessionBreakdownItem[];
-    globalStatus: DashboardGlobalStatus;
-}
 
 export async function getDashboardData(
     dayStartIso: string,
@@ -29,9 +18,7 @@ export async function getDashboardData(
     const supabase = await createClient();
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-        throw new Error('Unauthorized');
-    }
+    if (userError || !user) throw new Error('Unauthorized');
 
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -39,37 +26,25 @@ export async function getDashboardData(
         .eq('id', user.id)
         .maybeSingle();
 
-    if (profileError || !profile) {
-        throw new Error('Profile not found');
-    }
+    if (profileError || !profile) throw new Error('Profile not found');
 
     const isOwner = profile.role === 'owner';
     let currentProfessionalId: string | null = null;
 
     if (profile.role === 'professional') {
-        const { data: professional, error: professionalError } = await supabase
+        const { data: professional } = await supabase
             .from('professionals')
             .select('id, is_active')
             .eq('user_id', user.id)
             .maybeSingle();
 
-        if (professionalError) {
-            throw professionalError;
-        }
-
-        if (professional?.is_active) {
-            currentProfessionalId = professional.id;
-        }
+        if (professional?.is_active) currentProfessionalId = professional.id;
     }
 
     if (!isOwner && !currentProfessionalId) {
         return {
             todayAppointments: [],
-            stats: {
-                todayCount: 0,
-                weekCount: 0,
-                totalPatients: 0,
-            },
+            stats: { todayCount: 0, weekCount: 0, totalPatients: 0 },
             globalStats: {
                 estimatedRevenue: 0,
                 totalGlobalAppointments: 0,
@@ -81,7 +56,8 @@ export async function getDashboardData(
         };
     }
 
-    let appointmentsQuery = supabase
+    // ── Today's appointments (full join for display) ───────────────────────────
+    let todayQuery = supabase
         .from('appointments')
         .select('*, service:services(*), professional:professionals(*, profile:profiles(*))')
         .gte('start_time', dayStartIso)
@@ -89,9 +65,31 @@ export async function getDashboardData(
         .order('start_time', { ascending: true });
 
     if (!isOwner && currentProfessionalId) {
-        appointmentsQuery = appointmentsQuery.eq('professional_id', currentProfessionalId);
+        todayQuery = todayQuery.eq('professional_id', currentProfessionalId);
     }
 
+    // ── Week count ─────────────────────────────────────────────────────────────
+    let weekQuery = supabase
+        .from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .not('status', 'eq', 'cancelled')
+        .gte('start_time', weekStartIso)
+        .lte('start_time', weekEndIso);
+
+    if (!isOwner && currentProfessionalId) {
+        weekQuery = weekQuery.eq('professional_id', currentProfessionalId);
+    }
+
+    // ── All-time stats: status counts + session breakdown + revenue ────────────
+    let globalQuery = supabase
+        .from('appointments')
+        .select('status, patient_id, service_id, service:services(name, price)');
+
+    if (!isOwner && currentProfessionalId) {
+        globalQuery = globalQuery.eq('professional_id', currentProfessionalId);
+    }
+
+    // ── Services + Professionals ───────────────────────────────────────────────
     const servicesPromise = isOwner
         ? supabase.from('services').select('*').eq('is_active', true).order('name')
         : supabase
@@ -100,55 +98,75 @@ export async function getDashboardData(
             .eq('professional_id', currentProfessionalId as string);
 
     const professionalsPromise = isOwner
-        ? supabase
-            .from('professionals')
-            .select('*, profile:profiles(*)')
-            .eq('is_active', true)
+        ? supabase.from('professionals').select('*, profile:profiles(*)').eq('is_active', true)
         : supabase
             .from('professionals')
             .select('*, profile:profiles(*)')
             .eq('id', currentProfessionalId as string)
             .eq('is_active', true);
 
-    const [appointmentsRes, servicesRes, profRes, statsRes] = await Promise.all([
-        appointmentsQuery,
+    const [todayRes, weekRes, globalRes, servicesRes, profRes] = await Promise.all([
+        todayQuery,
+        weekQuery,
+        globalQuery,
         servicesPromise,
         professionalsPromise,
-        supabase.rpc('get_dashboard_stats', {
-            p_professional_id: isOwner ? null : currentProfessionalId,
-            p_week_start: weekStartIso,
-            p_week_end: weekEndIso
-        })
     ]);
 
-    const statsData: DashboardRpcStats = (statsRes.data as DashboardRpcStats | null) || {
-        totalPatients: 0,
-        weekCount: 0,
-        globalStatus: { confirmed: 0, completed: 0, cancelled: 0 },
-        totalGlobalAppointments: 0,
-        estimatedRevenue: 0,
-        sessionBreakdown: [],
-    };
+    // ── Compute global stats from raw rows ─────────────────────────────────────
+    // Supabase returns joined relations as arrays even for to-one joins
+    type RawRow = { status: string; patient_id: string | null; service_id: string | null; service: unknown };
+    const allRows = (globalRes.data ?? []) as RawRow[];
+
+    const globalStatus = { confirmed: 0, completed: 0, cancelled: 0 };
+    const sessionCounts: Record<string, number> = {};
+    let estimatedRevenue = 0;
+    const patientIds = new Set<string>();
+
+    for (const row of allRows) {
+        if (row.status === 'confirmed')  globalStatus.confirmed++;
+        if (row.status === 'completed')  globalStatus.completed++;
+        if (row.status === 'cancelled')  globalStatus.cancelled++;
+        if (row.patient_id)              patientIds.add(row.patient_id);
+
+        if (row.status === 'completed') {
+            // Supabase may return the join as object or single-element array
+            const svcRaw = Array.isArray(row.service) ? row.service[0] : row.service;
+            const svc = svcRaw as { name: string; price: number } | null;
+            if (svc?.name) {
+                sessionCounts[svc.name] = (sessionCounts[svc.name] ?? 0) + 1;
+                estimatedRevenue += svc.price ?? 0;
+            }
+        }
+    }
+
+    const sessionBreakdown = Object.entries(sessionCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 8)
+        .map(([name, value]) => ({ name, value }));
+
+    const totalGlobalAppointments =
+        globalStatus.confirmed + globalStatus.completed + globalStatus.cancelled;
 
     const globalStats: DashboardGlobalStats = {
-        estimatedRevenue: statsData.estimatedRevenue || 0,
-        totalGlobalAppointments: statsData.totalGlobalAppointments || 0,
-        sessionBreakdown: statsData.sessionBreakdown || [],
-        globalStatus: statsData.globalStatus || { confirmed: 0, completed: 0, cancelled: 0 },
+        estimatedRevenue,
+        totalGlobalAppointments,
+        sessionBreakdown,
+        globalStatus,
     };
 
     const services = isOwner
         ? ((servicesRes.data as Service[]) || [])
         : ((servicesRes.data || [])
             .map((row) => (row as Record<string, unknown>).service as Service | null | undefined)
-            .filter((service): service is Service => service != null && service.is_active === true));
+            .filter((s): s is Service => s != null && s.is_active === true));
 
     return {
-        todayAppointments: (appointmentsRes.data as Appointment[]) || [],
+        todayAppointments: (todayRes.data as Appointment[]) || [],
         stats: {
-            todayCount: (appointmentsRes.data || []).filter((a: Appointment) => a.status !== 'cancelled').length,
-            weekCount: statsData.weekCount || 0,
-            totalPatients: statsData.totalPatients || 0,
+            todayCount: (todayRes.data || []).filter((a: Appointment) => a.status !== 'cancelled').length,
+            weekCount: weekRes.count ?? 0,
+            totalPatients: patientIds.size,
         },
         globalStats,
         services,

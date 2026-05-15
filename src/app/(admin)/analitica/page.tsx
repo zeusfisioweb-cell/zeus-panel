@@ -124,7 +124,7 @@ export default function AnaliticaPage() {
     };
 
     return (
-        <div className="content-shell section-shell animate-in fade-in duration-500">
+        <div className="content-shell section-shell animate-in fade-in duration-500 print:hidden">
 
             {/* ── Header ── */}
             <div className="mb-6 flex justify-between items-end flex-wrap gap-4">

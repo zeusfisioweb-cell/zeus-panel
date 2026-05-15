@@ -244,9 +244,7 @@ export function CitasTimeline({
     // ── Filtered ──────────────────────────────────────────────────────────────
     const filtered = useMemo(() => {
         return dayApts.filter(a => {
-            if (profFilter === 'unassigned') { if (a.professional_id) return false; }
-            else if (profFilter !== 'all' && a.professional_id !== profFilter) return false;
-
+            if (profFilter !== 'all' && a.professional_id !== profFilter) return false;
             if (statusFilter === 'active') return a.status === 'confirmed';
             if (statusFilter !== 'all' && a.status !== statusFilter) return false;
             return true;
@@ -369,7 +367,7 @@ export function CitasTimeline({
     const onSlot = useCallback((min: number) => {
         const d = new Date(selectedDate);
         d.setHours(Math.floor(min / 60), min % 60, 0, 0);
-        onSlotClick(d, profFilter !== 'all' && profFilter !== 'unassigned' ? profFilter : null);
+        onSlotClick(d, profFilter !== 'all' ? profFilter : null);
     }, [selectedDate, onSlotClick, profFilter]);
 
     const handleCardDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, pos: PositionedAppointment) => {
@@ -458,7 +456,6 @@ export function CitasTimeline({
                                         {p.profile?.full_name || 'Profesional'}
                                     </option>
                                 ))}
-                                <option value="unassigned">Sin asignar</option>
                             </select>
                         </label>
 
