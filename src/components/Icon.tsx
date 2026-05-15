@@ -95,6 +95,8 @@ const paths: Record<string, string> = {
         'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
     'refresh-cw':
         'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z',
+    'qr-code':
+        'M3 3h7v7H3V3zm2 2v3h3V5H5zm8-2h7v7h-7V3zm2 2v3h3V5h-3zM3 13h7v7H3v-7zm2 2v3h3v-3H5zm11 0h-3v2h3v-2zm-3-2h-2v2h2v-2zm2 4h-2v2h2v-2zm2-2h-2v2h2v-2zm0 4h-2v2h2v-2zm2-4h-2v2h2v-2z',
 };
 
 export default function Icon({ name, size = 20, className, style }: IconProps) {

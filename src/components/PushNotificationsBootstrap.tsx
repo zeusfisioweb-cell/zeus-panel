@@ -113,6 +113,10 @@ export function PushNotificationsBootstrap() {
                             toast.success('Notificaciones activadas');
                         },
                     },
+                    cancel: {
+                        label: 'Ahora no',
+                        onClick: () => window.localStorage.setItem(DISMISS_KEY, '1'),
+                    },
                     onDismiss: () => window.localStorage.setItem(DISMISS_KEY, '1'),
                     duration: 10000,
                 });

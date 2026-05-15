@@ -794,6 +794,7 @@
 }
 
 .admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout {
+  display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
   gap: 12px !important;
 }
@@ -801,6 +802,7 @@
 .admin-shell--modern:not(.admin-shell--summary)
   .citas-shell--clean
   .zc-layout--detail {
+  display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 350px) minmax(
       300px,
       360px

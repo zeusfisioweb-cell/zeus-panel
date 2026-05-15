@@ -185,7 +185,22 @@ export function CitasTimeline({
     const scrollRef    = useRef<HTMLDivElement>(null);
     const animFrameRef = useRef<number>(0);
     const eventsAreaRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const dragInfoRef   = useRef<{ id: string; durationMin: number; offsetMin: number } | null>(null);
+    const [containerWidth, setContainerWidth] = useState(1200);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(entries => {
+            const w = entries[0]?.contentRect.width ?? el.offsetWidth;
+            setContainerWidth(w);
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    const maxOverlapCols = containerWidth < 500 ? 2 : MAX_VISIBLE_COLS;
     const [dragOverMin, setDragOverMin]   = useState<number | null>(null);
     const [draggingOverDay, setDraggingOverDay] = useState<string | null>(null);
 
@@ -284,6 +299,8 @@ export function CitasTimeline({
 
     // ── Overlap-aware positioning ─────────────────────────────────────────────
     const positioned = useMemo<PositionedItem[]>(() => {
+        // maxOverlapCols captured in closure so the memo re-runs on resize
+        const cap = maxOverlapCols;
         interface N { apt: Appointment; startM: number; endM: number; }
         const norm: N[] = filtered
             .map(apt => {
@@ -320,14 +337,14 @@ export function CitasTimeline({
             });
 
             // Cap visible columns so cards stay readable on mobile
-            const totalLanes = Math.min(lanes.length, MAX_VISIBLE_COLS);
+            const totalLanes = Math.min(lanes.length, cap);
             let overflowCount = 0;
             let overflowTopPx = 0;
             let overflowHeightPx = 0;
 
             cluster.forEach((ev, idx) => {
                 const lane = laneOf[idx];
-                if (lane >= MAX_VISIBLE_COLS) {
+                if (lane >= cap) {
                     overflowCount++;
                     overflowTopPx    = (ev.startM - dayStart) * PX_PER_MIN;
                     overflowHeightPx = Math.max(MIN_DUR_MIN, ev.endM - ev.startM) * PX_PER_MIN;
@@ -362,7 +379,7 @@ export function CitasTimeline({
         });
 
         return result;
-    }, [filtered, dayStart, dayEnd, profColorMap, profNameMap]);
+    }, [filtered, dayStart, dayEnd, profColorMap, profNameMap, maxOverlapCols]);
 
     const onSlot = useCallback((min: number) => {
         const d = new Date(selectedDate);
@@ -434,7 +451,7 @@ export function CitasTimeline({
 
     // ─── Render ───────────────────────────────────────────────────────────────
     return (
-        <div className="zc-vcal">
+        <div className="zc-vcal" ref={containerRef}>
 
             {/* ── Header ── */}
             <header className="zc-vcal__header">

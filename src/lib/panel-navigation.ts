@@ -32,6 +32,8 @@ const SECTION_TITLE_MAP: Array<{ prefix: string; title: string }> = [
   { prefix: '/servicios', title: 'Servicios' },
   { prefix: '/horarios', title: 'Horarios' },
   { prefix: '/configuracion', title: 'Configuración' },
+  { prefix: '/analitica', title: 'Analítica' },
+  { prefix: '/analytics', title: 'Analítica' },
 ];
 
 export function getPanelSectionTitle(pathname: string): string {
