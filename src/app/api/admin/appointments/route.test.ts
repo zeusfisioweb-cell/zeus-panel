@@ -26,6 +26,13 @@ vi.mock('../_lib', () => ({
     requirePanelAccess: requirePanelAccessMock,
     assertSameOriginMutation: vi.fn(),
     resolveScopedProfessionalId: resolveScopedProfessionalIdMock,
+    selectAllRows: async (
+        buildQuery: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>
+    ) => {
+        const { data, error } = await buildQuery(0, 999);
+        if (error) throw error;
+        return (data ?? []) as unknown[];
+    },
     writeAuditLog: writeAuditLogMock,
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
@@ -272,15 +279,13 @@ describe('admin appointments route GET', () => {
             order: vi.fn().mockReturnThis(),
             gte: vi.fn().mockReturnThis(),
             lt: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            range: vi.fn().mockResolvedValue({
+                data: [{ id: '66666666-6666-6666-6666-666666666666', professional: null }],
+                error: null,
+            }),
         };
-        Object.assign(query, { then: undefined });
-        const resolvedQuery = {
-            ...query,
-            then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
-                resolve({ data: [{ id: '66666666-6666-6666-6666-666666666666', professional: null }], error: null }),
-        };
-        const selectMock = vi.fn().mockReturnValue(resolvedQuery);
-        const supabase = { from: vi.fn().mockReturnValue({ select: selectMock, order: vi.fn().mockReturnThis() }) };
+        const supabase = { from: vi.fn().mockReturnValue(query) };
 
         requirePanelAccessMock.mockResolvedValue({
             supabase,
@@ -297,14 +302,17 @@ describe('admin appointments route GET', () => {
     });
 
     it('filters appointments by professional when role is professional', async () => {
-        const eqMock = vi.fn().mockResolvedValue({
-            data: [{ id: '66666666-6666-6666-6666-666666666666', professional: null }],
-            error: null,
-        });
+        const eqMock = vi.fn().mockReturnThis();
         const query = {
             select: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            lt: vi.fn().mockReturnThis(),
             eq: eqMock,
+            range: vi.fn().mockResolvedValue({
+                data: [{ id: '66666666-6666-6666-6666-666666666666', professional: null }],
+                error: null,
+            }),
         };
         const supabase = { from: vi.fn().mockReturnValue(query) };
 
@@ -323,15 +331,17 @@ describe('admin appointments route GET', () => {
 
     it('accepts YYYY-MM-DD filters and normalizes them to ISO start-of-day', async () => {
         const gteMock = vi.fn().mockReturnThis();
-        const ltMock = vi.fn().mockResolvedValue({
-            data: [{ id: '77777777-7777-7777-7777-777777777777', professional: null }],
-            error: null,
-        });
+        const ltMock = vi.fn().mockReturnThis();
         const query = {
             select: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
             gte: gteMock,
             lt: ltMock,
+            range: vi.fn().mockResolvedValue({
+                data: [{ id: '77777777-7777-7777-7777-777777777777', professional: null }],
+                error: null,
+            }),
         };
         const supabase = { from: vi.fn().mockReturnValue(query) };
 

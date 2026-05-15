@@ -120,7 +120,9 @@ describe('patient access helpers', () => {
     it('collects patient ids linked through assignments, appointments and clinical records', async () => {
         const assignmentsQuery = {
             select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            range: vi.fn().mockResolvedValue({
                 data: [{ patient_id: '00000000-0000-0000-0000-000000000000' }],
                 error: null,
             }),
@@ -128,14 +130,18 @@ describe('patient access helpers', () => {
         const appointmentQuery = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            not: vi.fn().mockResolvedValue({
+            not: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            range: vi.fn().mockResolvedValue({
                 data: [{ patient_id: '11111111-1111-1111-1111-111111111111' }, { patient_id: '22222222-2222-2222-2222-222222222222' }],
                 error: null,
             }),
         };
         const recordsQuery = {
             select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            range: vi.fn().mockResolvedValue({
                 data: [{ patient_id: '22222222-2222-2222-2222-222222222222' }, { patient_id: 'patient-3' }],
                 error: null,
             }),

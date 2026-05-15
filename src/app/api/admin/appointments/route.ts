@@ -8,6 +8,7 @@ import {
     handleApiError,
     requirePanelAccess,
     resolveScopedProfessionalId,
+    selectAllRows,
     writeAuditLog,
 } from '../_lib';
 import { isAlignedToInterval, findConflict, canCancel } from '@/lib/booking-validation';
@@ -136,27 +137,25 @@ export async function GET(request: Request) {
             end_date: url.searchParams.get('end_date') ?? undefined,
         });
 
-        let query = supabase
-            .from('appointments')
-            .select(appointmentSelect)
-            .order('start_time', { ascending: true });
+        const rows = await selectAllRows<unknown>((from, to) => {
+            let query = supabase.from('appointments').select(appointmentSelect);
 
-        if (parsed.start_date) {
-            query = query.gte('start_time', normalizeDateFilter(parsed.start_date));
-        }
+            if (parsed.start_date) {
+                query = query.gte('start_time', normalizeDateFilter(parsed.start_date));
+            }
 
-        if (parsed.end_date) {
-            query = query.lt('start_time', normalizeDateFilter(parsed.end_date));
-        }
+            if (parsed.end_date) {
+                query = query.lt('start_time', normalizeDateFilter(parsed.end_date));
+            }
 
-        if (scopedProfessionalId) {
-            query = query.eq('professional_id', scopedProfessionalId);
-        }
+            if (scopedProfessionalId) {
+                query = query.eq('professional_id', scopedProfessionalId);
+            }
 
-        const { data, error } = await query;
-        if (error) throw error;
+            return query.order('start_time', { ascending: true }).range(from, to);
+        });
 
-        return NextResponse.json((data ?? []).map(normalizeAppointmentRow));
+        return NextResponse.json(rows.map(normalizeAppointmentRow));
     } catch (error: unknown) {
         return handleApiError(error);
     }

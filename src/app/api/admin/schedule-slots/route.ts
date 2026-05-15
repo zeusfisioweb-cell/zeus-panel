@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+import { ApiRouteError, assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
+
+function toMinutes(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+}
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const createScheduleSlotSchema = z.object({
@@ -19,6 +24,24 @@ export async function POST(request: Request) {
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
         const parsed = createScheduleSlotSchema.parse(rawBody);
+
+        const { data: existingSlots, error: existingError } = await supabase
+            .from('schedule_slots')
+            .select('start_time, end_time')
+            .eq('professional_id', parsed.professional_id)
+            .eq('day_of_week', parsed.day_of_week);
+
+        if (existingError) throw existingError;
+
+        const newStart = toMinutes(parsed.start_time);
+        const newEnd = toMinutes(parsed.end_time);
+        const overlaps = (existingSlots ?? []).some(
+            (slot) => newStart < toMinutes(slot.end_time) && newEnd > toMinutes(slot.start_time)
+        );
+
+        if (overlaps) {
+            throw new ApiRouteError(422, 'El horario se solapa con otro tramo existente para ese día');
+        }
 
         const { data, error } = await supabase
             .from('schedule_slots')

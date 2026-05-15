@@ -186,36 +186,43 @@ async function markSubscriptionDelivered(subscriptionId: string): Promise<void> 
 }
 
 export async function sendPanelAppointmentPush(params: SendPanelAppointmentPushParams): Promise<void> {
-    if (!ensureVapidConfig()) return;
+    // Always called fire-and-forget (void). Must never reject, or it becomes an
+    // unhandled promise rejection (e.g. getAdminSupabase() throws if the service
+    // role key is missing).
+    try {
+        if (!ensureVapidConfig()) return;
 
-    const userIds = await getPanelUserIds();
-    const subscriptions = await getActiveSubscriptions(userIds);
-    if (subscriptions.length === 0) return;
+        const userIds = await getPanelUserIds();
+        const subscriptions = await getActiveSubscriptions(userIds);
+        if (subscriptions.length === 0) return;
 
-    const payload = JSON.stringify(buildPanelAppointmentPushPayload(params));
+        const payload = JSON.stringify(buildPanelAppointmentPushPayload(params));
 
-    await Promise.allSettled(
-        subscriptions.map(async (subscription) => {
-            try {
-                await webpush.sendNotification(
-                    {
-                        endpoint: subscription.endpoint,
-                        keys: {
-                            p256dh: subscription.p256dh,
-                            auth: subscription.auth,
+        await Promise.allSettled(
+            subscriptions.map(async (subscription) => {
+                try {
+                    await webpush.sendNotification(
+                        {
+                            endpoint: subscription.endpoint,
+                            keys: {
+                                p256dh: subscription.p256dh,
+                                auth: subscription.auth,
+                            },
                         },
-                    },
-                    payload
-                );
-                await markSubscriptionDelivered(subscription.id);
-            } catch (error) {
-                const statusCode = (error as { statusCode?: number })?.statusCode;
-                if (statusCode === 404 || statusCode === 410) {
-                    await disableSubscription(subscription.id);
-                } else {
-                    console.error('[push] sendNotification failed:', error);
+                        payload
+                    );
+                    await markSubscriptionDelivered(subscription.id);
+                } catch (error) {
+                    const statusCode = (error as { statusCode?: number })?.statusCode;
+                    if (statusCode === 404 || statusCode === 410) {
+                        await disableSubscription(subscription.id);
+                    } else {
+                        console.error('[push] sendNotification failed:', error);
+                    }
                 }
-            }
-        })
-    );
+            })
+        );
+    } catch (error) {
+        console.error('[push] sendPanelAppointmentPush failed:', error);
+    }
 }

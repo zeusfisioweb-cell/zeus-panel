@@ -1,5 +1,16 @@
 import { NextResponse } from 'next/server';
-import { handleApiError, requirePanelAccess } from '../_lib';
+import { handleApiError, requirePanelAccess, selectAllRows } from '../_lib';
+
+interface AnalyticsApt {
+    patient_id: string | null;
+    professional_id: string | null;
+    service_id: string | null;
+    status: string;
+    source: string | null;
+    start_time: string;
+    end_time: string;
+    service: { name: string; price: number; duration_minutes: number } | null;
+}
 
 const CLINIC_TZ = 'Europe/Madrid';
 
@@ -61,13 +72,14 @@ export async function GET(request: Request) {
             .reduce((earliest, d) => d < earliest ? d : earliest);
 
         // ── Fetch appointments with DB-level filter (covers period + occupancy windows) ──
-        const aptsQuery = supabase
-            .from('appointments')
-            .select('patient_id, professional_id, service_id, status, source, start_time, end_time, service:services(name, price, duration_minutes)')
-            .gte('start_time', dbLowerBound.toISOString());
-
-        const { data: allApts, error: aptError } = await aptsQuery;
-        if (aptError) throw aptError;
+        const allApts = await selectAllRows<AnalyticsApt>((from, to) =>
+            supabase
+                .from('appointments')
+                .select('patient_id, professional_id, service_id, status, source, start_time, end_time, service:services(name, price, duration_minutes)')
+                .gte('start_time', dbLowerBound.toISOString())
+                .order('start_time', { ascending: true })
+                .range(from, to)
+        );
 
         const periodApts = (allApts ?? []).filter(a => {
             const start = new Date(a.start_time);
@@ -183,9 +195,11 @@ export async function GET(request: Request) {
             .select('id', { count: 'exact', head: true })
             .eq('is_active', true);
 
+        const activeProIds = (profData ?? []).map((p) => p.id as string);
         const { data: slotsData } = await supabase
             .from('schedule_slots')
-            .select('start_time, end_time');
+            .select('start_time, end_time')
+            .in('professional_id', activeProIds);
 
         const realWeeklyMinutes = (slotsData ?? []).reduce((sum, slot) => {
             const [sh, sm] = slot.start_time.split(':').map(Number);

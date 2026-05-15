@@ -167,6 +167,27 @@ export async function requirePanelAccess(
     };
 }
 
+function mapPostgresError(error: unknown): { status: number; message: string } | null {
+    if (!error || typeof error !== 'object') return null;
+    const code = (error as { code?: unknown }).code;
+    if (typeof code !== 'string') return null;
+
+    switch (code) {
+        case '23505': // unique_violation
+            return { status: 409, message: 'Ya existe un registro con esos datos' };
+        case '23503': // foreign_key_violation
+            return { status: 400, message: 'Referencia inválida: el registro relacionado no existe' };
+        case '23502': // not_null_violation
+            return { status: 400, message: 'Falta un campo obligatorio' };
+        case '23514': // check_violation
+            return { status: 400, message: 'Valor no permitido para uno de los campos' };
+        case '22P02': // invalid_text_representation (e.g. malformed uuid)
+            return { status: 400, message: 'Formato de dato inválido' };
+        default:
+            return null;
+    }
+}
+
 export function handleApiError(error: unknown): NextResponse {
     if (error instanceof ApiRouteError) {
         return NextResponse.json({ error: error.message }, { status: error.status });
@@ -186,6 +207,11 @@ export function handleApiError(error: unknown): NextResponse {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
+    const pg = mapPostgresError(error);
+    if (pg) {
+        return NextResponse.json({ error: pg.message }, { status: pg.status });
+    }
+
     console.error('[admin-api] Unhandled error:', error);
     const message = process.env.NODE_ENV === 'development' && error instanceof Error
         ? error.message
@@ -199,38 +225,67 @@ export function normalizeNullableText(value: string | null | undefined): string 
     return trimmed.length > 0 ? trimmed : null;
 }
 
+const SUPABASE_PAGE_SIZE = 1000;
+
+/**
+ * Fetches every row for a query, paging past PostgREST's default 1000-row cap.
+ * buildQuery must apply .range(from, to) (and a stable .order) so pages don't
+ * overlap or skip rows.
+ */
+export async function selectAllRows<T>(
+    buildQuery: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>
+): Promise<T[]> {
+    const rows: T[] = [];
+
+    for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
+        const { data, error } = await buildQuery(from, from + SUPABASE_PAGE_SIZE - 1);
+        if (error) throw error;
+
+        const page = (data ?? []) as T[];
+        rows.push(...page);
+
+        if (page.length < SUPABASE_PAGE_SIZE) break;
+    }
+
+    return rows;
+}
+
 export async function getProfessionalPatientIds(
     supabase: PanelSupabaseClient,
     professionalId: string
 ): Promise<string[]> {
-    const [assignmentsRes, appointmentsRes, recordsRes] = await Promise.all([
-        supabase
-            .from('patient_professionals')
-            .select('patient_id')
-            .eq('professional_id', professionalId),
-        supabase
-            .from('appointments')
-            .select('patient_id')
-            .eq('professional_id', professionalId)
-            .not('patient_id', 'is', null),
-        supabase
-            .from('clinical_records')
-            .select('patient_id')
-            .eq('professional_id', professionalId),
+    type PatientIdRow = { patient_id: string | null };
+
+    const [assignments, appointments, records] = await Promise.all([
+        selectAllRows<PatientIdRow>((from, to) =>
+            supabase
+                .from('patient_professionals')
+                .select('patient_id')
+                .eq('professional_id', professionalId)
+                .order('patient_id')
+                .range(from, to)
+        ),
+        selectAllRows<PatientIdRow>((from, to) =>
+            supabase
+                .from('appointments')
+                .select('patient_id')
+                .eq('professional_id', professionalId)
+                .not('patient_id', 'is', null)
+                .order('patient_id')
+                .range(from, to)
+        ),
+        selectAllRows<PatientIdRow>((from, to) =>
+            supabase
+                .from('clinical_records')
+                .select('patient_id')
+                .eq('professional_id', professionalId)
+                .order('patient_id')
+                .range(from, to)
+        ),
     ]);
 
-    if (assignmentsRes.error) throw assignmentsRes.error;
-    if (appointmentsRes.error) throw appointmentsRes.error;
-    if (recordsRes.error) throw recordsRes.error;
-
     const ids = new Set<string>();
-    for (const row of assignmentsRes.data ?? []) {
-        if (typeof row.patient_id === 'string') ids.add(row.patient_id);
-    }
-    for (const row of appointmentsRes.data ?? []) {
-        if (typeof row.patient_id === 'string') ids.add(row.patient_id);
-    }
-    for (const row of recordsRes.data ?? []) {
+    for (const row of [...assignments, ...appointments, ...records]) {
         if (typeof row.patient_id === 'string') ids.add(row.patient_id);
     }
 

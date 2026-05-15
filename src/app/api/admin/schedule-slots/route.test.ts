@@ -45,8 +45,13 @@ describe('admin schedule slots route', () => {
         });
         const select = vi.fn().mockReturnValue({ single });
         const insert = vi.fn().mockReturnValue({ select });
+        const overlapSelect = vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+        });
         const supabase = {
-            from: vi.fn().mockReturnValue({ insert }),
+            from: vi.fn().mockReturnValue({ select: overlapSelect, insert }),
         };
 
         requirePanelAccessMock.mockResolvedValue({
@@ -111,8 +116,13 @@ describe('admin schedule slots route', () => {
         });
         const select = vi.fn().mockReturnValue({ single });
         const insert = vi.fn().mockReturnValue({ select });
+        const overlapSelect = vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+        });
         const supabase = {
-            from: vi.fn().mockReturnValue({ insert }),
+            from: vi.fn().mockReturnValue({ select: overlapSelect, insert }),
         };
 
         requirePanelAccessMock.mockResolvedValue({

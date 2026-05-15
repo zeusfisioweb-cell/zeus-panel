@@ -16,6 +16,13 @@ const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 vi.mock('../_lib', () => ({
     ApiRouteError: ApiRouteErrorMock,
     requirePanelAccess: requirePanelAccessMock,
+    selectAllRows: async (
+        buildQuery: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>
+    ) => {
+        const { data, error } = await buildQuery(0, 999);
+        if (error) throw error;
+        return (data ?? []) as unknown[];
+    },
     handleApiError: (error: unknown) => {
         if (error instanceof ApiRouteErrorMock) {
             return Response.json({ error: error.message }, { status: error.status });
@@ -25,29 +32,32 @@ vi.mock('../_lib', () => ({
 }));
 
 function makeSupabaseMock(appointments: unknown[] = [], profCount = 2) {
-    const selectChain = {
-        select: vi.fn().mockReturnThis(),
-        gte: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        head: undefined as unknown,
-    };
-
     return {
         from: vi.fn((table: string) => {
             if (table === 'professionals') {
                 return {
                     select: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockResolvedValue({ data: Array.from({ length: profCount }, (_, i) => ({ id: `prof-${i}`, profile: { full_name: `Prof ${i}` } })), error: null }),
+                        eq: vi.fn().mockResolvedValue({
+                            data: Array.from({ length: profCount }, (_, i) => ({ id: `prof-${i}`, profile: { full_name: `Prof ${i}` } })),
+                            count: profCount,
+                            error: null,
+                        }),
                     }),
                 };
             }
+            if (table === 'appointments') {
+                return {
+                    select: vi.fn().mockReturnValue({
+                        gte: vi.fn().mockReturnThis(),
+                        order: vi.fn().mockReturnThis(),
+                        range: vi.fn().mockResolvedValue({ data: appointments, error: null }),
+                    }),
+                };
+            }
+            // schedule_slots and any other table
             return {
-                ...selectChain,
                 select: vi.fn().mockReturnValue({
-                    ...selectChain,
-                    gte: vi.fn().mockResolvedValue({ data: appointments, error: null }),
-                    head: true,
-                    eq: vi.fn().mockResolvedValue({ count: profCount, error: null }),
+                    in: vi.fn().mockResolvedValue({ data: [], error: null }),
                 }),
             };
         }),
