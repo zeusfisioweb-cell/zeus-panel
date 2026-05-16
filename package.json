@@ -8,6 +8,7 @@
     "build:turbopack": "next build",
     "start": "next start",
     "lint": "eslint",
+    "build:pdf-templates": "tsx scripts/build-pdf-templates.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

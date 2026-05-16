@@ -30,14 +30,22 @@ function slugify(label: string): string {
 export async function POST(request: Request) {
     try {
         assertSameOriginMutation(request);
-        await requirePanelAccess();
+        const { supabase } = await requirePanelAccess();
 
         const payload = schema.parse(await request.json());
+
+        const { data: settings } = await supabase
+            .from('booking_settings')
+            .select('clinic_name, address')
+            .maybeSingle();
+
         const bytes = await renderPatientDocumentPdf({
             documentType: payload.document_type,
             patientName: payload.patient_name ?? '',
             patientDocumentId: payload.patient_document_id ?? '',
             visitDate: payload.visit_date ?? null,
+            clinicName: settings?.clinic_name ?? null,
+            clinicAddress: settings?.address ?? null,
             formData: payload.form_data,
         });
 

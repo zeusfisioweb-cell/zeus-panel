@@ -2,39 +2,56 @@ import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
 import { renderPatientDocumentPdf } from './patient-document-pdf';
 
+const BASE = {
+    patientName: 'Paciente de Prueba',
+    patientDocumentId: '12345678Z',
+    visitDate: '2026-05-10',
+    clinicName: 'Zeus Fisioterapia',
+    clinicAddress: 'Calle Mayor 1, 45500 Torrijos',
+    formData: {
+        edad: '38',
+        sexo: 'Mujer',
+        ocupacion: 'Administrativa',
+        motivo_consulta: 'Dolor de cuello',
+        fecha_consentimiento: '2026-05-10',
+        nombre_firmante: 'Paciente de Prueba',
+        dni_firmante: '12345678Z',
+        nombre_tutor: 'Tutor Opcional',
+        dni_tutor: 'X1234567L',
+        nombre_fisioterapeuta: 'Jorge Munoz',
+        num_colegiado: 'CLM-1234',
+    },
+};
+
 describe('renderPatientDocumentPdf', () => {
-    it('uses the sanitized template page counts for each document type', async () => {
+    it('fills consent templates from the original legal PDFs (no AcroForm fields left)', async () => {
         const cases = [
+            { type: 'data_consent' as const, expectedPages: 2 },
+            { type: 'intervention_consent' as const, expectedPages: 6 },
             { type: 'clinical_history' as const, expectedPages: 2 },
-            { type: 'intervention_consent' as const, expectedPages: 1 },
-            { type: 'data_consent' as const, expectedPages: 1 },
         ];
 
         for (const testCase of cases) {
             const bytes = await renderPatientDocumentPdf({
                 documentType: testCase.type,
-                patientName: 'Paciente de Prueba',
-                patientDocumentId: '12345678Z',
-                visitDate: '2026-05-10',
-                formData: {
-                    edad: '38',
-                    sexo: 'Mujer',
-                    ocupacion: 'Administrativa',
-                    motivo_consulta: 'Dolor de cuello',
-                    antecedentes_personales: 'Sin incidencias',
-                    historial_familiar: 'Sin antecedentes relevantes',
-                    sintomatologia: 'Rigidez y molestias al girar',
-                    fecha_consentimiento: '2026-05-10',
-                    nombre_firmante: 'Paciente de Prueba',
-                    dni_firmante: '12345678Z',
-                    nombre_tutor: 'Tutor opcional',
-                    dni_tutor: 'X1234567L',
-                },
+                ...BASE,
             });
 
             const pdf = await PDFDocument.load(bytes);
             expect(pdf.getPageCount()).toBe(testCase.expectedPages);
+            // Flattened: values baked into page content, no interactive fields.
+            expect(pdf.getForm().getFields()).toHaveLength(0);
             expect(bytes.byteLength).toBeGreaterThan(1000);
         }
+    });
+
+    it('throws for an unconfigured document type', async () => {
+        await expect(
+            renderPatientDocumentPdf({
+                // @ts-expect-error intentionally invalid document type
+                documentType: 'unknown_type',
+                ...BASE,
+            })
+        ).rejects.toThrow(/No template configured/);
     });
 });
