@@ -127,13 +127,6 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
                         )}
                     </div>
 
-                    {bookingUrl && (
-                    <div className="mt-6 bg-[var(--bg-surface-soft)] py-3 px-4 rounded-lg border border-[var(--border-color)] w-full text-center overflow-hidden">
-                        <p className="text-xs font-mono text-[var(--text-secondary)] !m-0 whitespace-nowrap overflow-hidden overflow-ellipsis select-all">
-                            {bookingUrl}
-                        </p>
-                    </div>
-                    )}
                 </div>
 
                 {/* Footer Actions */}
