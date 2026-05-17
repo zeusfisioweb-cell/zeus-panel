@@ -3,6 +3,8 @@
 import { useAuth } from '@/lib/auth-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Sidebar from '@/components/Sidebar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppointmentRealtimeNotifications } from '@/components/AppointmentRealtimeNotifications';
@@ -218,11 +220,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                             <div className="panel-topbar__date-block">
                                 <span className="panel-topbar__date-label">Hoy</span>
                                 <span className="panel-topbar__date">
-                                    {new Date().toLocaleDateString('es-ES', {
-                                        weekday: 'long',
-                                        day: '2-digit',
-                                        month: 'long',
-                                    })}
+                                    {format(new Date(), "EEEE, d 'de' MMMM", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
                                 </span>
                             </div>
                             <div className="panel-topbar__user-block">

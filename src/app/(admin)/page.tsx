@@ -224,7 +224,7 @@ export default function DashboardPage() {
         value: globalStats.globalStatus[status.key as keyof typeof globalStats.globalStatus] || 0,
     }));
 
-    const selectedDateLabel = format(dateRange.start, "EEEE, d 'de' MMMM", { locale: es });
+    const selectedDateLabel = format(dateRange.start, "EEEE, d 'de' MMMM", { locale: es }).replace(/^\w/, c => c.toUpperCase());
     const selectedDateShort = format(dateRange.start, 'dd MMM yyyy', { locale: es });
 
     const isToday = dateRange.start.toDateString() === new Date().toDateString();

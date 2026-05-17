@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { addDays, format, isToday, startOfWeek, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Icon from '@/components/Icon';
@@ -38,6 +39,7 @@ interface OverflowBadge {
     topPx: number;
     heightPx: number;
     count: number;
+    appointments: Appointment[];
 }
 
 type PositionedItem = PositionedAppointment | OverflowBadge;
@@ -188,6 +190,11 @@ export function CitasTimeline({
     const containerRef = useRef<HTMLDivElement>(null);
     const dragInfoRef   = useRef<{ id: string; durationMin: number; offsetMin: number } | null>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
+    const [overflowPopover, setOverflowPopover] = useState<{
+        appointments: Appointment[];
+        top: number;
+        left: number;
+    } | null>(null);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -199,6 +206,40 @@ export function CitasTimeline({
         ro.observe(el);
         return () => ro.disconnect();
     }, []);
+
+    useEffect(() => {
+        if (!overflowPopover) return;
+        const close = () => setOverflowPopover(null);
+        // setTimeout(0) ensures the listener is attached after the current click event
+        // fully propagates, preventing immediate self-close on the opening click.
+        const timer = setTimeout(() => {
+            document.addEventListener('click', close, { once: true });
+        }, 0);
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('click', close);
+        };
+    }, [overflowPopover]);
+
+    // Close popover when the user navigates to a different day
+    useEffect(() => { setOverflowPopover(null); }, [selectedDate]);
+
+    const openPopoverForElement = useCallback((el: HTMLElement, apts: Appointment[]) => {
+        const rect = el.getBoundingClientRect();
+        const POPOVER_W = 240;
+        const POPOVER_H_APPROX = apts.length * 52 + 40;
+        const left = rect.right - POPOVER_W < 0 ? rect.left : rect.right - POPOVER_W;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const top = spaceBelow < POPOVER_H_APPROX
+            ? Math.max(4, rect.top - POPOVER_H_APPROX)
+            : rect.bottom + 4;
+        setOverflowPopover({ appointments: apts, top, left });
+    }, []);
+
+    const handleOverflowClick = useCallback((e: React.MouseEvent, apts: Appointment[]) => {
+        e.stopPropagation();
+        openPopoverForElement(e.currentTarget as HTMLElement, apts);
+    }, [openPopoverForElement]);
 
     const maxOverlapCols = containerWidth < 500 ? 2 : MAX_VISIBLE_COLS;
     const [dragOverMin, setDragOverMin]   = useState<number | null>(null);
@@ -297,10 +338,19 @@ export function CitasTimeline({
         return () => cancelAnimationFrame(animFrameRef.current);
     }, [nowTopPx, selectedDate]);
 
+    // Unique professionals with appointments on the filtered view
+    const activeProfCount = useMemo(
+        () => new Set(filtered.map(a => a.professional_id).filter(Boolean)).size,
+        [filtered]
+    );
+
     // ── Overlap-aware positioning ─────────────────────────────────────────────
     const positioned = useMemo<PositionedItem[]>(() => {
-        // maxOverlapCols captured in closure so the memo re-runs on resize
         const cap = maxOverlapCols;
+        // px the overflow badge occupies at the right edge of the events area
+        const OVERFLOW_BADGE_PX = 36; // min-width:28 + right:4 + gap:4
+        const eventsAreaPx = Math.max(1, containerWidth - TIME_W);
+        const overflowBadgePct = (OVERFLOW_BADGE_PX / eventsAreaPx) * 100;
         interface N { apt: Appointment; startM: number; endM: number; }
         const norm: N[] = filtered
             .map(apt => {
@@ -338,16 +388,16 @@ export function CitasTimeline({
 
             // Cap visible columns so cards stay readable on mobile
             const totalLanes = Math.min(lanes.length, cap);
-            let overflowCount = 0;
-            let overflowTopPx = 0;
-            let overflowHeightPx = 0;
+            let overflowTopM = Infinity;
+            let overflowEndM = 0;
+            const overflowApts: Appointment[] = [];
 
             cluster.forEach((ev, idx) => {
                 const lane = laneOf[idx];
                 if (lane >= cap) {
-                    overflowCount++;
-                    overflowTopPx    = (ev.startM - dayStart) * PX_PER_MIN;
-                    overflowHeightPx = Math.max(MIN_DUR_MIN, ev.endM - ev.startM) * PX_PER_MIN;
+                    overflowApts.push(ev.apt);
+                    overflowTopM = Math.min(overflowTopM, ev.startM);
+                    overflowEndM = Math.max(overflowEndM, ev.endM);
                     return;
                 }
                 const profColor = ev.apt.professional_id
@@ -357,29 +407,38 @@ export function CitasTimeline({
                     ? (profNameMap.get(ev.apt.professional_id) ?? 'Sin asignar')
                     : 'Sin asignar';
 
+                const baseWidthPct = (1 / totalLanes) * 100;
+                // Pre-compute: will there be overflow in this cluster? Check if any lane >= cap
+                const clusterHasOverflow = cluster.some((_, idx) => laneOf[idx] >= cap);
+                const isRightmostLane = lane === totalLanes - 1;
+                const widthPct = clusterHasOverflow && isRightmostLane
+                    ? Math.max(10, baseWidthPct - overflowBadgePct)
+                    : baseWidthPct;
+
                 result.push({
                     appointment: ev.apt,
                     topPx:     (ev.startM - dayStart) * PX_PER_MIN,
                     heightPx:  Math.max(MIN_DUR_MIN, ev.endM - ev.startM) * PX_PER_MIN,
                     leftPct:   (lane / totalLanes) * 100,
-                    widthPct:  (1 / totalLanes) * 100,
+                    widthPct,
                     profColor,
                     profName,
                 });
             });
 
-            if (overflowCount > 0) {
+            if (overflowApts.length > 0) {
                 result.push({
-                    type: 'overflow',
-                    topPx:    overflowTopPx,
-                    heightPx: overflowHeightPx,
-                    count:    overflowCount,
+                    type:         'overflow',
+                    topPx:        (overflowTopM - dayStart) * PX_PER_MIN,
+                    heightPx:     Math.max(MIN_DUR_MIN, overflowEndM - overflowTopM) * PX_PER_MIN,
+                    count:        overflowApts.length,
+                    appointments: overflowApts,
                 });
             }
         });
 
         return result;
-    }, [filtered, dayStart, dayEnd, profColorMap, profNameMap, maxOverlapCols]);
+    }, [filtered, dayStart, dayEnd, profColorMap, profNameMap, maxOverlapCols, containerWidth]);
 
     const onSlot = useCallback((min: number) => {
         const d = new Date(selectedDate);
@@ -459,7 +518,7 @@ export function CitasTimeline({
                     <div className="zc-vcal__heading">
                         <span className="zc-vcal__eyebrow">Agenda Clínica</span>
                         <h2 className="zc-vcal__date-title">
-                            {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: es })}
+                            {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase())}
                         </h2>
                     </div>
 
@@ -674,8 +733,18 @@ export function CitasTimeline({
                                     <div
                                         key={`overflow-${i}`}
                                         className="zc-vcal__overflow"
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Ver ${item.count} citas ocultas`}
                                         style={{ top: `${item.topPx + 2}px`, height: `${Math.max(22, item.heightPx - 4)}px` }}
-                                        title="Filtra por profesional para ver todas las citas"
+                                        onClick={e => handleOverflowClick(e, item.appointments)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                openPopoverForElement(e.currentTarget as HTMLElement, item.appointments);
+                                            }
+                                        }}
                                     >
                                         +{item.count}
                                     </div>
@@ -700,9 +769,57 @@ export function CitasTimeline({
             {/* ── Footer ── */}
             <footer className="zc-vcal__footer">
                 <span>{filtered.length} cita{filtered.length !== 1 ? 's' : ''}</span>
-                <span>{professionals.length} profesional{professionals.length !== 1 ? 'es' : ''}</span>
+                <span>{activeProfCount} profesional{activeProfCount !== 1 ? 'es' : ''}</span>
                 <span>{format(selectedDate, 'dd MMM yyyy', { locale: es })}</span>
             </footer>
+
+            {/* ── Overflow popover (portal to avoid stacking-context issues) ── */}
+            {overflowPopover && createPortal(
+                <div
+                    className="zc-vcal__overflow-popover"
+                    style={{ top: overflowPopover.top, left: overflowPopover.left }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="zc-vcal__overflow-popover-header">
+                        {overflowPopover.appointments.length} cita{overflowPopover.appointments.length !== 1 ? 's' : ''} más
+                    </div>
+                    {overflowPopover.appointments.map(apt => {
+                        const patName = apt.patient
+                            ? `${apt.patient.first_name} ${apt.patient.last_name}`
+                            : apt.patient_name ?? 'Paciente';
+                        const profColor = apt.professional_id
+                            ? (profColorMap.get(apt.professional_id) ?? UNASSIGNED_COLOR)
+                            : UNASSIGNED_COLOR;
+                        return (
+                            <div
+                                key={apt.id}
+                                className="zc-vcal__overflow-item"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => { setOverflowPopover(null); onAppointmentClick(apt); }}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setOverflowPopover(null);
+                                        onAppointmentClick(apt);
+                                    }
+                                }}
+                            >
+                                <span className="zc-vcal__overflow-item-name">{patName}</span>
+                                <div className="zc-vcal__overflow-item-meta">
+                                    <span
+                                        className="zc-vcal__overflow-item-dot"
+                                        style={{ background: profColor }}
+                                    />
+                                    <span>{fmtTime(apt.start_time)}</span>
+                                    {apt.service?.name && <span>· {apt.service.name}</span>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>,
+                document.body
+            )}
         </div>
     );
 }

@@ -74,7 +74,6 @@
   font-weight: 800;
   letter-spacing: -0.028em;
   color: var(--vc-text);
-  text-transform: capitalize;
   line-height: 1.1;
 }
 
@@ -536,7 +535,6 @@
   z-index: 2;
   overflow: hidden;
   cursor: pointer;
-
   /* Color from professional — CSS custom property --pc */
   border-radius: 7px;
   border-left: 3.5px solid var(--pc, #b97734);
@@ -701,8 +699,83 @@
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  pointer-events: none;
+  cursor: pointer;
   opacity: 0.85;
+  transition: opacity 0.15s, background 0.15s;
+}
+.zc-vcal__overflow:hover {
+  opacity: 1;
+  background: var(--vc-border-strong);
+  color: var(--vc-text);
+}
+
+/* ─── Overflow popover ─────────────────────────────────────────── */
+.zc-vcal__overflow-popover {
+  position: fixed;
+  z-index: 9999;
+  min-width: 220px;
+  max-width: 280px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--vc-border-strong);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  padding: 6px 0;
+  animation: zc-pop-in 0.12s ease;
+}
+@keyframes zc-pop-in {
+  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.zc-vcal__overflow-popover-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--vc-muted);
+  text-transform: uppercase;
+  padding: 4px 14px 6px;
+  border-bottom: 1px solid var(--vc-border);
+  margin-bottom: 4px;
+}
+.zc-vcal__overflow-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.zc-vcal__overflow-item:hover {
+  background: var(--vc-bg-alt);
+}
+.zc-vcal__overflow:focus-visible {
+  outline: 2px solid var(--vc-accent);
+  outline-offset: 2px;
+}
+.zc-vcal__overflow-item:focus-visible {
+  outline: 2px solid var(--vc-accent);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.zc-vcal__overflow-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vc-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zc-vcal__overflow-item-meta {
+  font-size: 11px;
+  color: var(--vc-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.zc-vcal__overflow-item-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* ─── Now indicator ─────────────────────────────────────────── */

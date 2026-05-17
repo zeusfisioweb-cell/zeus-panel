@@ -97,7 +97,6 @@
   font-size: 13px;
   color: var(--text-main);
   font-weight: 700;
-  text-transform: capitalize;
 }
 
 .panel-topbar__user-block {
