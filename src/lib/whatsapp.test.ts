@@ -123,11 +123,13 @@ describe('sendAppointmentWhatsApp', () => {
             '[whatsapp:dev]',
             'Appointment confirmed',
             expect.objectContaining({
-                patient: 'María García',
+                phone: '*******5678',
                 service: 'Fisioterapia Deportiva',
-                professional: 'Dr. Carlos Ruiz',
             })
         );
+        const logged = consoleLogSpy.mock.calls[0][2] as Record<string, unknown>;
+        expect(logged).not.toHaveProperty('patient');
+        expect(logged).not.toHaveProperty('professional');
         expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 

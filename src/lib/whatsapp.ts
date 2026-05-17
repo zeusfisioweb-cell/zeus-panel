@@ -56,14 +56,15 @@ export async function sendAppointmentWhatsApp(params: AppointmentWhatsAppParams)
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
     if (!token || !phoneNumberId) {
-        console.log('[whatsapp:dev]', params.isReschedule ? 'Appointment rescheduled' : 'Appointment confirmed', {
-            patient: params.patientName,
-            phone: params.patientPhone,
-            service: params.serviceName,
-            professional: params.professionalName,
-            date: _formatDate(params.startTime),
-            portalUrl: PORTAL_URL,
-        });
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[whatsapp:dev]', params.isReschedule ? 'Appointment rescheduled' : 'Appointment confirmed', {
+                phone: _maskPhone(params.patientPhone),
+                service: params.serviceName,
+                date: _formatDate(params.startTime),
+            });
+        } else {
+            console.warn('[whatsapp] WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID not configured — message not sent');
+        }
         return;
     }
 
