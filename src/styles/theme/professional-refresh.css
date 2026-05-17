@@ -100,6 +100,18 @@
   gap: 14px !important;
 }
 
+/* Fix detail panel grid placement: panel-v6 sets display:grid without grid-template-areas,
+   causing grid-area:detail to create an implicit row 2. Explicit column/row placement fixes this. */
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout--detail {
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(300px, 360px) !important;
+}
+
+.admin-shell--modern:not(.admin-shell--summary) .citas-shell--clean .zc-layout--detail > .zc-detail-panel--inline {
+  grid-area: unset !important;
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+}
+
 .citas-shell--clean .zc-sidebar-cal,
 .citas-shell--clean .zc-mini-cal,
 .citas-shell--clean .zc-upcoming,
@@ -783,6 +795,12 @@
   .citas-shell--clean.citas-shell--calendar .citas-stage__main {
     width: 100%;
     min-width: 0;
+  }
+
+  /* Detail panel floats above timeline on mobile so it's immediately visible after click */
+  .citas-shell--clean.citas-shell--calendar .citas-stage.zc-layout--detail .zc-detail-panel--inline {
+    order: -1;
+    width: 100%;
   }
 
   .citas-actions {
@@ -3183,7 +3201,6 @@
   color: var(--text-muted);
   font-weight: 500;
   margin: 0;
-  text-transform: capitalize;
 }
 
 .zs-dash-header__tools {
@@ -3267,6 +3284,12 @@
   .zs-dash-header__top {
     align-items: stretch;
     gap: 10px;
+  }
+
+  /* Push lead text right of fixed hamburger button (44px wide, left:14px → ends at 58px;
+     header content starts at ≈26px → need 44px extra to clear with gap) */
+  .zs-dash-header__lead {
+    padding-left: 44px;
   }
 
   .zs-dash-header__title {
