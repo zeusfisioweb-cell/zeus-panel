@@ -99,7 +99,7 @@ export default function ServiciosPage() {
     function handleDeleteServiceRequest(id: string) {
         setConfirmAction({
             title: 'Eliminar servicio',
-            message: 'Seguro que quieres eliminar este servicio de forma permanente? Esta accion no se puede deshacer.',
+            message: '¿Seguro que quieres eliminar este servicio de forma permanente? Esta acción no se puede deshacer.',
             onConfirm: async () => {
                 setConfirmAction(null);
                 try {

@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 export const professionalFormSchema = z.object({
     full_name: z.string().min(3, 'El nombre completo es requerido'),
-    email: z.string().email('Correo electronico invalido'),
+    email: z.string().email('Correo electrónico inválido'),
     specialty: z.string().optional().or(z.literal('')),
     bio: z.string().optional().or(z.literal('')),
     color_code: z.string().min(1),
@@ -161,7 +161,7 @@ export function ProfessionalFormModal({
 
                     <div>
                         <Input
-                            label="Correo electronico"
+                            label="Correo electrónico"
                             type="email"
                             required
                             {...register('email')}
@@ -175,7 +175,7 @@ export function ProfessionalFormModal({
 
             <section className="pro-form__block">
                 <header className="pro-form__block-head">
-                    <h4>Perfil publico</h4>
+                    <h4>Perfil público</h4>
                 </header>
 
                 <div className="pro-form__grid pro-form__grid--2">
@@ -196,11 +196,11 @@ export function ProfessionalFormModal({
                 </div>
 
                 <div>
-                    <label className="pro-form__label">Ficha biografica</label>
+                    <label className="pro-form__label">Ficha biográfica</label>
                     <textarea
                         className="form-input pro-form__textarea"
                         {...register('bio')}
-                        placeholder="Trayectoria, formacion tecnica..."
+                        placeholder="Trayectoria, formación técnica..."
                     />
                 </div>
 
@@ -407,7 +407,7 @@ export function ProfessionalFormModal({
                         Cancelar
                     </Button>
                     <Button type="submit" variant="primary" disabled={isSubmitting} isLoading={isSubmitting}>
-                        Guardar configuracion
+                        Guardar configuración
                     </Button>
                 </div>
             </form>

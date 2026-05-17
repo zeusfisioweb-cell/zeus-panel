@@ -105,7 +105,7 @@ export default function ProfesionalesPage() {
     const handleDeleteRequest = (id: string) => {
         setConfirmAction({
             title: 'Eliminar profesional',
-            message: 'Seguro que deseas eliminar este profesional? Si tiene citas futuras, se desasignaran automaticamente.',
+            message: '¿Seguro que deseas eliminar este profesional? Si tiene citas futuras, se desasignarán automáticamente.',
             onConfirm: async () => {
                 setConfirmAction(null);
                 try {

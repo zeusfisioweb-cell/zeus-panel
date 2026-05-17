@@ -82,7 +82,7 @@ export function CancelCitaModal({ appointment, isOpen, isLoading, onClose, onCon
                         Volver
                     </Button>
                     <Button type="submit" variant="danger" isLoading={isLoading} disabled={isLoading}>
-                        {isLoading ? 'Cancelando…' : 'Confirmar cancelacion'}
+                        {isLoading ? 'Cancelando…' : 'Confirmar cancelación'}
                     </Button>
                 </div>
             </form>
