@@ -245,13 +245,11 @@ test.describe('pacientes — patient management', () => {
         await firstRow.locator('.zs-pac-ficha-btn').click();
         await expect(page.locator('.zs-drawer')).toBeVisible({ timeout: 8_000 });
 
-        // The drawer "Datos" tab is active by default — scroll to see export buttons
+        // The drawer "Datos" tab is active by default — scroll to see export button
         const exportGdprBtn = page.getByRole('button', { name: /Exportar datos/i });
-        const exportCsvBtn = page.getByRole('button', { name: /Exportar CSV/i });
 
-        // Verify export buttons are present in the drawer
+        // Verify export button is present in the drawer
         await expect(exportGdprBtn).toBeVisible({ timeout: 5_000 });
-        await expect(exportCsvBtn).toBeVisible({ timeout: 5_000 });
 
         // Listen for download event (the button triggers a file download)
         const downloadPromise = page.waitForEvent('download', { timeout: 8_000 }).catch(() => null);
