@@ -1,6 +1,14 @@
+/**
+ * Render de PDFs clínico-legales del paciente: carga la plantilla AcroForm,
+ * resuelve y escribe el valor de cada campo, y devuelve los bytes.
+ *
+ * Arquitectura, diagnóstico de los 2 bugs (letras superpuestas / campos en
+ * blanco por corrupción de flatten) y razón de NO usar `form.flatten()`:
+ * ver `docs/patient-document-pdf.md`.
+ */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFTextField } from 'pdf-lib';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
 import {
     PATIENT_DOCUMENT_TEMPLATES,
@@ -84,13 +92,33 @@ async function fillTemplate(
     const form = pdfDoc.getForm();
 
     for (const acroField of form.getFields()) {
-        const name = acroField.getName();
+        // Templates only carry text fields, but a future template could add a
+        // checkbox/dropdown — skip non-text fields rather than throw.
+        if (!(acroField instanceof PDFTextField)) continue;
+        const textField = acroField;
+        const name = textField.getName();
+        // The rendered document is final: lock every field (even unfilled
+        // blanks) so it cannot be edited in a PDF viewer.
+        textField.enableReadOnly();
         const value = resolveFieldValue(name, spec, input);
         if (!value) continue;
-        form.getTextField(name).setText(value);
+        textField.setText(value);
+        // Single-line slots are sized to the original (short) placeholder. A
+        // longer real value at the template's fixed font size overruns the box
+        // and collides with the surrounding legal prose. Auto-size (0) makes
+        // pdf-lib shrink the value to fit the slot. Multiline blocks keep their
+        // fixed size so wrapped text stays legible.
+        if (!textField.isMultiline()) {
+            textField.setFontSize(0);
+        }
     }
 
-    form.flatten();
+    // NOTE: do NOT call form.flatten(). pdf-lib's flatten corrupts the
+    // cross-reference table of these surgically-built templates (truncated
+    // appearance streams -> blank lower-page fields in every reader). Baking
+    // the appearances and leaving the fields read-only renders identically
+    // and stays structurally valid.
+    form.updateFieldAppearances();
     return pdfDoc.save();
 }
 

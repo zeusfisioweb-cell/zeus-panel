@@ -1081,6 +1081,27 @@ textarea.form-input:focus,
   line-height: 1.3;
 }
 
+.patient-record-item__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-light);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.patient-record-item__toggle:hover {
+  color: var(--brand-canela);
+  border-color: var(--brand-canela);
+}
+
 .patient-record-item__content {
   display: grid;
   gap: 8px;

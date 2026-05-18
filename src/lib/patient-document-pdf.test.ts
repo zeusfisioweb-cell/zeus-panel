@@ -39,8 +39,12 @@ describe('renderPatientDocumentPdf', () => {
 
             const pdf = await PDFDocument.load(bytes);
             expect(pdf.getPageCount()).toBe(testCase.expectedPages);
-            // Flattened: values baked into page content, no interactive fields.
-            expect(pdf.getForm().getFields()).toHaveLength(0);
+            // Not flattened (pdf-lib flatten corrupts these templates): the
+            // value-bearing fields remain but are locked read-only so the
+            // rendered document cannot be edited.
+            const fields = pdf.getForm().getFields();
+            expect(fields.length).toBeGreaterThan(0);
+            expect(fields.every((f) => f.isReadOnly())).toBe(true);
             expect(bytes.byteLength).toBeGreaterThan(1000);
         }
     });

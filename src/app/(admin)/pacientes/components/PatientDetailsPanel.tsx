@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/Badge';
@@ -11,6 +11,106 @@ import { getDocumentFields } from '@/lib/patient-document-definitions';
 import { sanitizeDocumentFormData } from '@/lib/patient-document-definitions';
 
 type DetailTab = 'datos' | 'citas' | 'clinico';
+
+interface PatientDocumentItemProps {
+    document: PatientDocument;
+    isExpanded: boolean;
+    onToggle: (id: string) => void;
+    fieldLabels: Map<string, string>;
+    onEdit: (document: PatientDocument) => void;
+    onDelete: (id: string) => void;
+}
+
+function formatDocDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function PatientDocumentItem({
+    document,
+    isExpanded,
+    onToggle,
+    fieldLabels,
+    onEdit,
+    onDelete,
+}: PatientDocumentItemProps) {
+    const entries = useMemo(
+        () => Object.entries(sanitizeDocumentFormData(document.document_type, document.form_data)),
+        [document.document_type, document.form_data]
+    );
+
+    return (
+        <article className="patient-record-item">
+            <div className="patient-record-item__head">
+                <div>
+                    <span>{formatDocDate(document.visit_date ?? document.created_at)}</span>
+                    <small>Actualizado: {formatDocDate(document.updated_at)}</small>
+                </div>
+                <Badge
+                    variant={
+                        document.status === 'signed'
+                            ? 'success'
+                            : document.status === 'completed'
+                                ? 'default'
+                                : 'warning'
+                    }
+                >
+                    {PATIENT_DOCUMENT_STATUS_LABELS[document.status]}
+                </Badge>
+            </div>
+
+            <button
+                type="button"
+                className="patient-record-item__toggle"
+                aria-expanded={isExpanded}
+                onClick={() => onToggle(document.id)}
+            >
+                <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} size={13} />
+                <span>
+                    {isExpanded
+                        ? 'Ocultar datos'
+                        : `Ver datos${entries.length ? ` (${entries.length})` : ''}`}
+                </span>
+            </button>
+            {isExpanded && (
+                <div className="patient-record-item__content">
+                    {entries.length === 0 ? (
+                        <div>
+                            <span>Campos del documento</span>
+                            <p>Sin datos rellenados todavía.</p>
+                        </div>
+                    ) : (
+                        entries.map(([key, value]) => (
+                            <div key={key}>
+                                <span>{fieldLabels.get(key) ?? key}</span>
+                                <p>{typeof value === 'boolean' ? (value ? 'Sí' : 'No') : String(value || '—')}</p>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            <div className="patient-clinical__actions">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<Icon name="edit" size={14} />}
+                    onClick={() => onEdit(document)}
+                >
+                    Rellenar / editar
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    leftIcon={<Icon name="trash" size={13} />}
+                    onClick={() => onDelete(document.id)}
+                >
+                    Eliminar
+                </Button>
+            </div>
+        </article>
+    );
+}
 
 interface PatientDetailsPanelProps {
     patient: Patient;
@@ -47,20 +147,33 @@ export function PatientDetailsPanel({
     onUnlinkPortal,
     userRole,
 }: PatientDetailsPanelProps) {
-    const documentFieldLabels = new Map(
-        (['clinical_history', 'intervention_consent', 'data_consent'] as const).flatMap((type) =>
-            getDocumentFields(type).map((field) => [field.key, field.label] as const)
-        )
+    const documentFieldLabels = useMemo(
+        () =>
+            new Map(
+                (['clinical_history', 'intervention_consent', 'data_consent'] as const).flatMap((type) =>
+                    getDocumentFields(type).map((field) => [field.key, field.label] as const)
+                )
+            ),
+        []
     );
 
     const isOwner = userRole === 'owner';
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
+    const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
     const [exporting, setExporting] = useState(false);
+
+    const toggleDocExpanded = (id: string) =>
+        setExpandedDocs((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     const [unlinking, setUnlinking] = useState(false);
     const [inviting, setInviting] = useState(false);
     const [inviteSent, setInviteSent] = useState(false);
 
-    useEffect(() => { setInviteSent(false); }, [patient.id]);
+    useEffect(() => { setInviteSent(false); setExpandedDocs(new Set()); }, [patient.id]);
 
     const age = patient.birth_date ? getAge(patient.birth_date) : null;
     const isMinorApproachingAutonomy = age !== null && age >= 15 && age < 16;
@@ -324,80 +437,15 @@ export function PatientDetailsPanel({
                             <h4 className="patient-doc-group__title">{label}</h4>
                             <div className="patient-record-list">
                                 {docs.map((document) => (
-                                    <article key={document.id} className="patient-record-item">
-                                        <div className="patient-record-item__head">
-                                            <div>
-                                                <span>
-                                                    {document.visit_date
-                                                        ? new Date(document.visit_date).toLocaleDateString('es-ES', {
-                                                              day: '2-digit',
-                                                              month: 'short',
-                                                              year: 'numeric',
-                                                          })
-                                                        : new Date(document.created_at).toLocaleDateString('es-ES', {
-                                                              day: '2-digit',
-                                                              month: 'short',
-                                                              year: 'numeric',
-                                                          })}
-                                                </span>
-                                                <small>
-                                                    Actualizado:{' '}
-                                                    {new Date(document.updated_at).toLocaleDateString('es-ES', {
-                                                        day: '2-digit',
-                                                        month: 'short',
-                                                        year: 'numeric',
-                                                    })}
-                                                </small>
-                                            </div>
-                                            <Badge
-                                                variant={
-                                                    document.status === 'signed'
-                                                        ? 'success'
-                                                        : document.status === 'completed'
-                                                            ? 'default'
-                                                            : 'warning'
-                                                }
-                                            >
-                                                {PATIENT_DOCUMENT_STATUS_LABELS[document.status]}
-                                            </Badge>
-                                        </div>
-
-                                        <div className="patient-record-item__content">
-                                            {Object.entries(sanitizeDocumentFormData(document.document_type, document.form_data)).length === 0 ? (
-                                                <div>
-                                                    <span>Campos del documento</span>
-                                                    <p>Sin datos rellenados todavía.</p>
-                                                </div>
-                                            ) : (
-                                                Object.entries(sanitizeDocumentFormData(document.document_type, document.form_data)).map(([key, value]) => (
-                                                    <div key={key}>
-                                                        <span>{documentFieldLabels.get(key) ?? key}</span>
-                                                        <p>{typeof value === 'boolean' ? (value ? 'Sí' : 'No') : String(value || '—')}</p>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-
-                                        <div className="patient-clinical__actions">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                leftIcon={<Icon name="edit" size={14} />}
-                                                onClick={() => onEditDocument(document)}
-                                            >
-                                                Rellenar / editar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                leftIcon={<Icon name="trash" size={13} />}
-                                                onClick={() => onDeleteDocument(document.id)}
-                                            >
-                                                Eliminar
-                                            </Button>
-                                        </div>
-                                    </article>
+                                    <PatientDocumentItem
+                                        key={document.id}
+                                        document={document}
+                                        isExpanded={expandedDocs.has(document.id)}
+                                        onToggle={toggleDocExpanded}
+                                        fieldLabels={documentFieldLabels}
+                                        onEdit={onEditDocument}
+                                        onDelete={onDeleteDocument}
+                                    />
                                 ))}
                             </div>
                         </section>
