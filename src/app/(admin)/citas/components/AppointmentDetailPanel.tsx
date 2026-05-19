@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import ConfirmModal from '@/components/ConfirmModal';
 import { getAvatarColor, getInitials } from '@/lib/utils';
 import type { Appointment } from '@/lib/types';
 import { STATUS_LABELS } from '@/lib/types';
@@ -34,6 +35,8 @@ export function AppointmentDetailPanel({
     onInitiateReschedule,
     variant = 'overlay',
 }: AppointmentDetailPanelProps) {
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+
     if (!appointment) return null;
 
     const formatTime = (iso: string) => {
@@ -52,6 +55,7 @@ export function AppointmentDetailPanel({
             : 'zc-detail-panel zc-detail-panel--overlay animate-in slide-in-from-right duration-300';
 
     return (
+        <>
         <aside className={panelClassName}>
             <div className="zc-detail-panel__head">
                 <h3>Detalle de cita</h3>
@@ -152,7 +156,7 @@ export function AppointmentDetailPanel({
                     <Button
                         variant="secondary"
                         className="w-full justify-center"
-                        onClick={() => onUpdateStatus(appointment.id, 'completed')}
+                        onClick={() => setShowCompleteConfirm(true)}
                         leftIcon={<Icon name="check" size={14} />}
                     >
                         Marcar completada
@@ -169,5 +173,21 @@ export function AppointmentDetailPanel({
                 </div>
             )}
         </aside>
+
+        {showCompleteConfirm && (
+            <ConfirmModal
+                title="Marcar como completada"
+                message="¿Confirmas que esta cita ha finalizado? Esta acción cambia el estado a completada."
+                confirmLabel="Marcar completada"
+                cancelLabel="Cancelar"
+                variant="info"
+                onConfirm={() => {
+                    setShowCompleteConfirm(false);
+                    void onUpdateStatus(appointment.id, 'completed');
+                }}
+                onCancel={() => setShowCompleteConfirm(false)}
+            />
+        )}
+        </>
     );
 }

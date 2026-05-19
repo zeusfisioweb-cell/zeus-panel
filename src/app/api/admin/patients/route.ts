@@ -98,9 +98,22 @@ export async function GET(request: Request) {
 
         if (error) throw error;
 
+        let consentQuery = supabase
+            .from('patients')
+            .select('id', { count: 'exact', head: true })
+            .is('deleted_at', null)
+            .eq('gdpr_consent', true);
+
+        if (accessiblePatientIds) {
+            consentQuery = consentQuery.in('id', accessiblePatientIds);
+        }
+
+        const { count: consentCount } = await consentQuery;
+
         return NextResponse.json({
             data: data ?? [],
             count: count ?? 0,
+            consentCount: consentCount ?? 0,
         });
     } catch (error: unknown) {
         return handleApiError(error);

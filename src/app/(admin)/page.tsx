@@ -16,14 +16,16 @@ import type {
     DashboardGlobalStats,
     DashboardStatsSummary,
 } from '@/lib/types';
+import dynamic from 'next/dynamic';
 import { DashboardStats } from './components/DashboardStats';
-import { DashboardCharts } from './components/DashboardCharts';
 import { DashboardAgenda } from './components/DashboardAgenda';
 import { AppointmentFormModal, AppointmentFormData } from './citas/components/AppointmentFormModal';
 import { useCreateCita, useCitas, useUpdateCitaStatus } from '@/hooks/useCitas';
 import { getDashboardData } from './actions';
 import { QRModal } from '@/components/QRModal';
 import Icon from '@/components/Icon';
+
+const DashboardCharts = dynamic(() => import('./components/DashboardCharts').then(m => ({ default: m.DashboardCharts })), { ssr: false });
 
 const CLINIC_TIME_ZONE = 'Europe/Madrid';
 
@@ -101,16 +103,16 @@ export default function DashboardPage() {
     const createCita = useCreateCita();
     const updateCitaStatus = useUpdateCitaStatus();
 
-    // Load today's appointments for overlap validation on dashboard quick-create
-    // Memoize so query keys don't shift on every render
-    const { todayIso, tomorrowIso } = useMemo(() => {
-        const today = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day');
+    // Load selected-day appointments for overlap validation on dashboard quick-create.
+    // Tracks selectedDate so creating on a non-today date still catches conflicts.
+    const { selectedDayIso, nextDayIso } = useMemo(() => {
+        const day = DateTime.fromJSDate(selectedDate, { zone: CLINIC_TIME_ZONE }).startOf('day');
         return {
-            todayIso: today.toISO() ?? '',
-            tomorrowIso: today.plus({ days: 1 }).toISO() ?? '',
+            selectedDayIso: day.toISO() ?? '',
+            nextDayIso: day.plus({ days: 1 }).toISO() ?? '',
         };
-    }, []);
-    const { data: todayAllAppointments = [] } = useCitas(todayIso, tomorrowIso);
+    }, [selectedDate]);
+    const { data: selectedDayAppointments = [] } = useCitas(selectedDayIso, nextDayIso);
 
     const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
         try {
@@ -144,7 +146,7 @@ export default function DashboardPage() {
             profile?.role === 'professional' ? (profile?.professional_id ?? null) : (form.professional_id || null);
 
         if (effectiveProfessionalId) {
-            const overlaps = hasProfessionalOverlap(todayAllAppointments, {
+            const overlaps = hasProfessionalOverlap(selectedDayAppointments, {
                 professionalId: effectiveProfessionalId,
                 start: startDateTime.toJSDate(),
                 end: endDateTime.toJSDate(),

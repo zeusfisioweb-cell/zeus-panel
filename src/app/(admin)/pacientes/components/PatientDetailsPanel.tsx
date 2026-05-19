@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import ConfirmModal from '@/components/ConfirmModal';
 import type { Patient, Appointment, PatientDocument, UserRole } from '@/lib/types';
 import { PATIENT_DOCUMENT_STATUS_LABELS, PATIENT_DOCUMENT_TYPE_LABELS, STATUS_LABELS } from '@/lib/types';
 import { getDocumentFields } from '@/lib/patient-document-definitions';
@@ -161,6 +162,7 @@ export function PatientDetailsPanel({
     const [activeTab, setActiveTab] = useState<DetailTab>('datos');
     const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
     const [exporting, setExporting] = useState(false);
+    const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
 
     const toggleDocExpanded = (id: string) =>
         setExpandedDocs((prev) => {
@@ -173,15 +175,14 @@ export function PatientDetailsPanel({
     const [inviting, setInviting] = useState(false);
     const [inviteSent, setInviteSent] = useState(false);
 
-    useEffect(() => { setInviteSent(false); setExpandedDocs(new Set()); }, [patient.id]);
+    useEffect(() => { setInviteSent(false); setExpandedDocs(new Set()); setActiveTab('datos'); }, [patient.id]);
 
     const age = patient.birth_date ? getAge(patient.birth_date) : null;
     const isMinorApproachingAutonomy = age !== null && age >= 15 && age < 16;
     const hasPortalAccount = Boolean(patient.auth_user_id);
     const isManagedByGuardian = Boolean(patient.guardian_auth_user_id);
 
-    async function handleUnlinkPortal() {
-        if (!confirm('¿Desvincular la cuenta del portal? El paciente deberá completar el perfil de nuevo para volver a acceder.')) return;
+    async function doUnlinkPortal() {
         setUnlinking(true);
         const res = await fetch(`/api/admin/patients/${patient.id}/unlink-portal`, { method: 'POST' });
         setUnlinking(false);
@@ -321,7 +322,7 @@ export function PatientDetailsPanel({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={handleUnlinkPortal}
+                                onClick={() => setShowUnlinkConfirm(true)}
                                 disabled={unlinking}
                                 isLoading={unlinking}
                                 leftIcon={<Icon name="close" size={14} />}
@@ -469,6 +470,7 @@ export function PatientDetailsPanel({
     }, [onClose, patient.id]);
 
     return (
+        <>
         <div
             ref={drawerRef}
             className="zs-drawer"
@@ -494,7 +496,7 @@ export function PatientDetailsPanel({
             </div>
 
             {/* Tabs */}
-            <div className="zs-drawer__tabs">
+            <div className="zs-drawer__tabs" role="tablist" aria-label="Secciones de la ficha del paciente">
                 {([
                     { key: 'datos', label: 'Datos', icon: 'user' },
                     { key: 'citas', label: `Citas (${appointments.length})`, icon: 'calendar' },
@@ -503,8 +505,11 @@ export function PatientDetailsPanel({
                     <button
                         key={tab.key}
                         type="button"
+                        role="tab"
+                        id={`drawer-tab-${tab.key}`}
+                        aria-selected={activeTab === tab.key}
+                        aria-controls={`drawer-panel-${tab.key}`}
                         onClick={() => setActiveTab(tab.key)}
-                        aria-pressed={activeTab === tab.key}
                         className={`zs-drawer__tab ${activeTab === tab.key ? 'is-active' : ''}`}
                     >
                         <Icon name={tab.icon} size={13} />
@@ -513,11 +518,29 @@ export function PatientDetailsPanel({
                 ))}
             </div>
 
-            <div className="zs-drawer__body">
+            <div
+                className="zs-drawer__body"
+                role="tabpanel"
+                id={`drawer-panel-${activeTab}`}
+                aria-labelledby={`drawer-tab-${activeTab}`}
+            >
                 {activeTab === 'datos' && renderDatos()}
                 {activeTab === 'citas' && renderCitas()}
                 {activeTab === 'clinico' && renderClinico()}
             </div>
         </div>
+
+        {showUnlinkConfirm && (
+            <ConfirmModal
+                title="Desvincular cuenta del portal"
+                message="El paciente perderá acceso al portal y deberá completar el perfil de nuevo para volver a entrar."
+                confirmLabel="Desvincular"
+                cancelLabel="Cancelar"
+                variant="warning"
+                onConfirm={() => { setShowUnlinkConfirm(false); void doUnlinkPortal(); }}
+                onCancel={() => setShowUnlinkConfirm(false)}
+            />
+        )}
+        </>
     );
 }

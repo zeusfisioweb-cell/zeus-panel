@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useId, useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import Icon from '@/components/Icon';
@@ -21,6 +21,8 @@ export function RescheduleModal({ appointment, isOpen, isLoading, onClose, onSub
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [error, setError] = useState('');
+    const dateId = useId();
+    const timeId = useId();
 
     useEffect(() => {
         if (!appointment || !isOpen) return;
@@ -70,8 +72,9 @@ export function RescheduleModal({ appointment, isOpen, isLoading, onClose, onSub
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-[var(--text-secondary)]">Nueva fecha</label>
+                        <label htmlFor={dateId} className="text-xs font-medium text-[var(--text-secondary)]">Nueva fecha</label>
                         <input
+                            id={dateId}
                             type="date"
                             className="input-base"
                             value={date}
@@ -81,8 +84,9 @@ export function RescheduleModal({ appointment, isOpen, isLoading, onClose, onSub
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-[var(--text-secondary)]">Nueva hora</label>
+                        <label htmlFor={timeId} className="text-xs font-medium text-[var(--text-secondary)]">Nueva hora</label>
                         <input
+                            id={timeId}
                             type="time"
                             className="input-base"
                             value={time}

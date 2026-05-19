@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Patient } from '@/lib/types';
 import { readApiError } from '@/lib/api-helpers';
 
@@ -26,12 +26,14 @@ export function usePacientes(options?: { searchTerm?: string; page?: number; pag
                 throw new Error(await readApiError(response));
             }
 
-            const payload = (await response.json()) as { data: Patient[]; count: number };
+            const payload = (await response.json()) as { data: Patient[]; count: number; consentCount: number };
             return {
                 data: payload.data ?? [],
                 count: payload.count ?? 0,
+                consentCount: payload.consentCount ?? 0,
             };
         },
+        placeholderData: keepPreviousData,
     });
 }
 

@@ -22,13 +22,14 @@ export default function PacientesPage() {
     const [page, setPage] = useState(1);
     const pageSize = 50;
 
-    const { data: result, isLoading: isLoadingPatients, refetch: refetchPatients } = usePacientes({
+    const { data: result, refetch: refetchPatients } = usePacientes({
         searchTerm: debouncedSearch,
         page,
         pageSize,
     });
     const patients = result?.data || [];
     const totalCount = result?.count || 0;
+    const consentCount = result?.consentCount ?? 0;
 
     const { profile } = useAuth();
 
@@ -223,19 +224,11 @@ export default function PacientesPage() {
         setEditingDocument(null);
     };
 
-    if (isLoadingPatients) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="spinner" />
-            </div>
-        );
-    }
-
     return (
         <div className="content-shell section-shell section-shell--pacientes ops-screen animate-in fade-in duration-500">
             <PacientesHeader
                 totalCount={totalCount}
-                consentCount={patients.filter((p) => p.gdpr_consent).length}
+                consentCount={consentCount}
                 onNewPaciente={() => setShowNewModal(true)}
                 onOpenTemplates={() => setIsTemplateGeneratorOpen(true)}
             />

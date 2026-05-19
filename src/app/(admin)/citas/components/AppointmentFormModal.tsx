@@ -62,10 +62,12 @@ export function AppointmentFormModal({
 }: AppointmentFormModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const searchAbortRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         return () => {
             if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+            searchAbortRef.current?.abort();
         };
     }, []);
 
@@ -145,19 +147,25 @@ export function AppointmentFormModal({
             return;
         }
 
+        searchAbortRef.current?.abort();
+        const controller = new AbortController();
+        searchAbortRef.current = controller;
+
         searchTimerRef.current = setTimeout(async () => {
             try {
                 const params = new URLSearchParams({ search: query, page: '1', pageSize: '5' });
                 const response = await fetch(`/api/admin/patients?${params.toString()}`, {
                     method: 'GET',
                     credentials: 'same-origin',
+                    signal: controller.signal,
                 });
                 if (!response.ok) throw new Error();
                 const payload = (await response.json()) as { data: PatientSearchResult[] };
                 const results = payload.data ?? [];
                 setPatientResults(results);
                 setShowPatientDropdown(results.length > 0);
-            } catch {
+            } catch (err) {
+                if (err instanceof Error && err.name === 'AbortError') return;
                 setPatientResults([]);
                 setShowPatientDropdown(false);
             }
