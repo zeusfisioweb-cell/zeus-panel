@@ -41,7 +41,8 @@ describe('renderPatientDocumentPdf', () => {
             expect(pdf.getPageCount()).toBe(testCase.expectedPages);
             // Not flattened (pdf-lib flatten corrupts these templates): the
             // value-bearing fields remain but are locked read-only so the
-            // rendered document cannot be edited.
+            // rendered document cannot be edited. Signature areas are printed
+            // lines, not form fields.
             const fields = pdf.getForm().getFields();
             expect(fields.length).toBeGreaterThan(0);
             expect(fields.every((f) => f.isReadOnly())).toBe(true);

@@ -117,7 +117,7 @@ export function DashboardStats({ stats, globalStats, todayAppointments }: Dashbo
                     <MetricCard
                         tone={globalStats.estimatedRevenue > 0 ? 'success' : 'neutral'}
                         label="Ingresos completados"
-                        value={`€${globalStats.estimatedRevenue.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                        value={globalStats.estimatedRevenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                         hint={`${stats.totalPatients} pacientes registrados`}
                         href="/pacientes"
                         icon={

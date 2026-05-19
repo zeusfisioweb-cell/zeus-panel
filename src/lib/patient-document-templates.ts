@@ -35,12 +35,23 @@ export interface HistoriaAnchor {
     kind: 'inline' | 'block';
 }
 
+// A handwritten-signature area. The original's blank guide + baked sample
+// signature are covered with a white band and replaced by one clean printed
+// line just below the "Firma" label (no AcroForm field — an editable field
+// renders as a tinted box in Chrome and reads as broken).
+export interface SignatureField {
+    page: number;
+    // PDF-point baseline of the "Firma" label this area belongs to.
+    labelBaseline: number;
+}
+
 export interface TemplateSpec {
     sourcePdf: string;
     slots: TemplateSlot[];
     fieldSources: Record<string, FieldSource>;
     mode?: 'slots' | 'historia';
     historiaAnchors?: HistoriaAnchor[];
+    signatureFields?: SignatureField[];
 }
 
 export function normalizeLine(s: string): string {
@@ -91,16 +102,33 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
     intervention_consent: {
         sourcePdf: 'consentimiento_intervencion_original.pdf',
         slots: [
-            ...DATE_LINE(4, 734.7),
-            { field: 'nombre_firmante', page: 4, x0: 106.4, x1: 204.1, baseline: 645.4, sampleSize: 15.6 },
-            { field: 'dni_firmante', page: 4, x0: 243.5, x1: 308.1, baseline: 645.4, sampleSize: 15.6 },
-            { field: 'nombre_firmante', page: 4, x0: 229.2, x1: 326.9, baseline: 197.7, sampleSize: 15.6 },
-            { field: 'dni_firmante', page: 4, x0: 366.3, x1: 430.9, baseline: 197.7, sampleSize: 15.6 },
-            { field: 'nombre_tutor', page: 4, x0: 107, x1: 290, baseline: 147.4, sampleSize: 15.6 },
-            { field: 'dni_tutor', page: 4, x0: 340, x1: 410, baseline: 147.4, sampleSize: 15.6 },
-            { field: 'nombre_fisioterapeuta', page: 5, x0: 106.4, x1: 208.5, baseline: 562.9, sampleSize: 15.6 },
-            { field: 'num_colegiado', page: 5, x0: 248.5, x1: 313.1, baseline: 562.9, sampleSize: 15.6 },
-            { field: 'clinic_name', page: 5, x0: 147.5, x1: 270.1, baseline: 540.4, sampleSize: 15.6 },
+            // Page idx4 ("Página 5 de 6"). Coordinates measured from the
+            // surrounding static prose in the original PDF; baselines match the
+            // body text (9.9pt) so filled values sit on the same line.
+            // "En ___ el ___ de ___ de ___"
+            { field: 'lugar', page: 4, x0: 86, x1: 127, baseline: 731.2, sampleSize: 15.6 },
+            { field: 'dia', page: 4, x0: 139, x1: 155, baseline: 731.2, sampleSize: 15.6 },
+            { field: 'mes', page: 4, x0: 172, x1: 225, baseline: 731.2, sampleSize: 15.6 },
+            { field: 'anio', page: 4, x0: 242, x1: 300, baseline: 731.2, sampleSize: 15.6 },
+            // PACIENTE: "D/Dña ___ con DNI ___"
+            { field: 'nombre_firmante', page: 4, x0: 106, x1: 201, baseline: 641.9, sampleSize: 15.6 },
+            { field: 'dni_firmante', page: 4, x0: 243, x1: 360, baseline: 641.9, sampleSize: 15.6 },
+            // TUTOR line 1: "Ante la imposibilidad de D/Dña ___ con DNI ___ de prestar..."
+            { field: 'nombre_tutor', page: 4, x0: 229, x1: 323, baseline: 194.2, sampleSize: 15.6 },
+            { field: 'dni_tutor', page: 4, x0: 366, x1: 425, baseline: 194.2, sampleSize: 15.6 },
+            // TUTOR line 2: "D/Dña ___ con DNI ___ . En calidad de ___"
+            { field: 'nombre_tutor', page: 4, x0: 106, x1: 294, baseline: 143.9, sampleSize: 15.6 },
+            { field: 'dni_tutor', page: 4, x0: 337, x1: 412, baseline: 143.9, sampleSize: 15.6 },
+            { field: 'relacion_tutor', page: 4, x0: 489, x1: 523, baseline: 143.9, sampleSize: 15.6 },
+            // Page idx5 ("Página 6 de 6"). FISIOTERAPEUTA block.
+            { field: 'nombre_fisioterapeuta', page: 5, x0: 106, x1: 206, baseline: 559.4, sampleSize: 15.6 },
+            { field: 'num_colegiado', page: 5, x0: 248, x1: 311, baseline: 559.4, sampleSize: 15.6 },
+            { field: 'clinic_name', page: 5, x0: 147, x1: 270, baseline: 536.9, sampleSize: 15.6 },
+        ],
+        signatureFields: [
+            { page: 4, labelBaseline: 371.2 }, // PACIENTE
+            { page: 5, labelBaseline: 736.4 }, // TUTOR
+            { page: 5, labelBaseline: 428.2 }, // FISIOTERAPEUTA
         ],
         fieldSources: {
             lugar: { kind: 'config', key: 'city' },
@@ -112,6 +140,7 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
             dni_firmante: { kind: 'form', key: 'dni_firmante' },
             nombre_tutor: { kind: 'form', key: 'nombre_tutor' },
             dni_tutor: { kind: 'form', key: 'dni_tutor' },
+            relacion_tutor: { kind: 'form', key: 'relacion_tutor' },
             nombre_fisioterapeuta: { kind: 'form', key: 'nombre_fisioterapeuta' },
             num_colegiado: { kind: 'form', key: 'num_colegiado' },
         },
@@ -210,7 +239,10 @@ export function slotRect(slot: TemplateSlot): {
     fontSize: number;
 } {
     const fontSize = Math.min(11, Math.max(8, slot.sampleSize * 0.62));
-    const y0 = slot.baseline - fontSize * 0.28;
-    const y1 = slot.baseline + fontSize * 1.0;
+    // pdfium/Chrome render the value at the bottom of the widget rect, so the
+    // box is placed one line ABOVE the prose baseline to bring the value onto
+    // the same line as the surrounding legal text.
+    const y0 = slot.baseline + fontSize * 0.32;
+    const y1 = slot.baseline + fontSize * 1.6;
     return { rect: [slot.x0, y0, slot.x1, y1], fontSize };
 }

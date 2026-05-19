@@ -98,6 +98,8 @@ Registro operativo:
 - 2026-04-29 (pre-separación de despliegues): smoke HTTP del deployment `zeus-panel-three.vercel.app` mostró `GET /login` OK, pero rutas de portal no reflejaban el estado esperado. Desde la separación técnica, la validación de `/portal/*` ya no corresponde a este despliegue sino al proyecto `portal`.
 - 2026-04-30: validación manual de vista `professional` ejecutada en runtime local mediante Chrome MCP. Login correcto con cuenta profesional, acceso confirmado a `/` y `/citas`, y redirección automática confirmada desde rutas restringidas (`/profesionales`, `/analitica`) hacia `/`. Se creó una cuenta temporal de prueba para la validación y se eliminó completamente al cerrar la comprobación (`profiles`, `professionals` y `auth.users`).
 - 2026-05-15: auditoría de seguridad senior y remediación completa. 9 issues críticos/altos resueltos en código + 1 de infraestructura. Detalle en bloque "Auditoría de seguridad 2026-05-15". Tests: 257 en verde. Deploy a Vercel disparado con todas las correcciones y Upstash activado en producción.
+- 2026-05-18: fix pipeline PDF (`docs/patient-document-pdf.md`). `form.flatten()` de pdf-lib corrompe plantillas AcroForm → campos en blanco. Fix: campos rellenados como read-only sin flatten. Panel: panel de documentos clínicos colapsable por tipo.
+- 2026-05-19: QA frontend completa previa a deploy (`docs/qa-audit-2026-05-19.md`). 2 CRITICAL + 4 HIGH + 3 MEDIUM corregidos. 0 errores TS tras fixes. Detalle en bloque "QA Frontend 2026-05-19" abajo.
 
 Rutas principales:
 
@@ -778,3 +780,64 @@ Migración `20260504170000_add_push_subscriptions` aplicada en Supabase remoto. 
 
 - Panel: 244/244 tests, lint 0 errors, build OK
 - Portal: 61/61 tests, build OK
+
+---
+
+## QA Frontend 2026-05-19
+
+Auditoría completa sobre rama `panel-deploy-branch` antes del deploy. Informe completo en `docs/qa-audit-2026-05-19.md`.
+
+### Bugs corregidos
+
+#### CRITICAL
+
+**C1 · `window.confirm()` en desvincular portal** (`PatientDetailsPanel.tsx:184`)
+- Diálogo nativo bloqueado silenciosamente en Safari/iOS, iframes (Vercel Preview) y Playwright.
+- Fix: `doUnlinkPortal()` + estado `showUnlinkConfirm` + `<ConfirmModal variant="warning">`.
+
+**C2 · Overlap check dashboard usaba siempre citas de HOY** (`page.tsx:106-115`)
+- `useMemo` con deps `[]` → `todayIso`/`tomorrowIso` constantes. Crear cita para mañana no detectaba conflictos.
+- Fix: `useMemo` depende de `selectedDate` → `selectedDayIso`/`nextDayIso`. `useCitas` carga el día correcto.
+
+#### HIGH
+
+**H1 · Race condition búsqueda de paciente** (`AppointmentFormModal.tsx:148-165`)
+- Sin `AbortController`: fetch antiguo podía sobreescribir resultados de búsqueda más reciente.
+- Fix: `searchAbortRef = useRef<AbortController>`, abort + nuevo controller antes de cada fetch, `signal` pasado al fetch, `AbortError` ignorado en catch.
+
+**H2 · `consentCount` KPI calculado solo de página actual** (3 archivos)
+- `patients.filter(p => p.gdpr_consent).length` usaba solo los 50 registros de la página.
+- Fix: API devuelve `consentCount` real (query HEAD `eq('gdpr_consent', true)` sobre todos los pacientes visibles). Hook tipado. Page usa `result?.consentCount`.
+
+**H3 · "Marcar completada" sin confirmación** (`AppointmentDetailPanel.tsx:154`)
+- Click único ejecutaba status terminal sin confirm. Estado `completed` no tiene transición de vuelta.
+- Fix: estado `showCompleteConfirm` + `<ConfirmModal variant="info">` antes de ejecutar.
+
+**H4 · Búsqueda de pacientes destruía tabla con spinner full-page** (`usePacientes.ts`)
+- Cada búsqueda cambiaba query key → `isLoading=true` → early-return destruía tabla y panel de detalle.
+- Fix: `placeholderData: keepPreviousData`. Tabla visible durante refetch.
+
+#### MEDIUM
+
+**M1 · Labels sin `htmlFor` en RescheduleModal** (`RescheduleModal.tsx:73-86`)
+- Fix: `useId()` + `htmlFor`/`id` en ambos campos (fecha y hora).
+
+**M2 · Tabs con semántica incorrecta** (`PatientDetailsPanel.tsx:498-513`)
+- `aria-pressed` → Fix: `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"`, `aria-labelledby`.
+
+**M3 · `activeTab` no se reseteaba al cambiar paciente** (`PatientDetailsPanel.tsx:176`)
+- Fix: `setActiveTab('datos')` añadido al `useEffect` de `patient.id`.
+
+### Pendientes documentados (no bloqueantes)
+
+- **P1:** `hasProfessionalOverlap` duplicada en `citas/page.tsx` y `page.tsx` → extraer a `src/lib/appointment-utils.ts`.
+- **P2:** Bulk confirm sin batching (`CitasTable.tsx`) → endpoint batch o `pLimit(3)`.
+- **P3:** `ErrorBoundary` sin `componentDidCatch` → añadir logging antes de integración Sentry.
+- **E2E:** 8 flujos sin cobertura (rol profesional RBAC, validación client-side por campo, sesión expirada, PDF, API 500, paginación, analytics custom, bulk confirm).
+- **Responsive:** 3 breakpoints con overflow menor en analytics toggle, CitasTable mobile y paginación pacientes.
+
+### Verificación
+
+```
+npx tsc --noEmit → TypeScript: No errors found
+```

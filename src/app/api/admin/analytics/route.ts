@@ -72,6 +72,16 @@ export async function GET(request: Request) {
             .reduce((earliest, d) => d < earliest ? d : earliest);
 
         // ── Fetch appointments with DB-level filter (covers period + occupancy windows) ──
+        // Kick off independent professional queries in parallel while appointments are fetched.
+        const profDataPromise = supabase
+            .from('professionals')
+            .select('id, profile:profiles(full_name)')
+            .eq('is_active', true);
+        const prosCountPromise = supabase
+            .from('professionals')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_active', true);
+
         const allApts = await selectAllRows<AnalyticsApt>((from, to) =>
             supabase
                 .from('appointments')
@@ -126,10 +136,7 @@ export async function GET(request: Request) {
         // ═══════════════════════════════════════════════════════════
         // 3. SESIONES POR PROFESIONAL
         // ═══════════════════════════════════════════════════════════
-        const { data: profData } = await supabase
-            .from('professionals')
-            .select('id, profile:profiles(full_name)')
-            .eq('is_active', true);
+        const [{ data: profData }, { count: prosCount }] = await Promise.all([profDataPromise, prosCountPromise]);
 
         const sessionsByPro: Record<string, { name: string; sessions: number }> = {};
         for (const p of profData ?? []) {
@@ -189,11 +196,6 @@ export async function GET(request: Request) {
                 weeklyBookedMinutes += duration;
             }
         }
-
-        const { count: prosCount } = await supabase
-            .from('professionals')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_active', true);
 
         const activeProIds = (profData ?? []).map((p) => p.id as string);
         const { data: slotsData } = await supabase

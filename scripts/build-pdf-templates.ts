@@ -89,6 +89,12 @@ async function buildOne(docType: string, spec: TemplateSpec): Promise<void> {
     const doc = await PDFDocument.load(await readFile(srcPath), { updateMetadata: false });
     const pages = doc.getPages();
 
+    // 0. Strip every pre-existing annotation. The original carries Ink
+    //    scribbles + Popups that were drawn over the sample data to redact it
+    //    (they survive sample-font stripping and show as struck-through/cut
+    //    blanks). addToPage repopulates Annots with only our widgets.
+    for (const page of pages) page.node.delete(PDFName.of('Annots'));
+
     // 1. Score every font resource across all pages; the sample/test-data font
     //    is a usage-ordered subset that does not decode under the +29 heuristic.
     const fontGids: Record<string, number[]> = {};
@@ -190,6 +196,33 @@ async function buildOne(docType: string, spec: TemplateSpec): Promise<void> {
         // Fixed size derived from the original blank: the slot width equals the
         // sample-text extent, so Helvetica at this size always fits.
         field.setFontSize(fontSize);
+    }
+
+    // Signature areas: a clean printed line under each "Firma" label. No
+    // AcroForm field — an editable field renders as a tinted box in Chrome,
+    // which reads as broken. The line is signable on paper or with any PDF
+    // viewer's annotate/sign tool.
+    for (const sig of spec.signatureFields ?? []) {
+        // White band from just under the "Firma" label down past where the
+        // original guide + baked sample signature sit (vector ink that the
+        // annotation/font strips don't remove). Clear of the label and prose.
+        const top = sig.labelBaseline - 4;
+        const bottom = sig.labelBaseline - 118;
+        pages[sig.page].drawRectangle({
+            x: 64,
+            y: bottom,
+            width: 472,
+            height: top - bottom,
+            color: rgb(1, 1, 1),
+            borderWidth: 0,
+        });
+        // One clean signature line a short gap below the label.
+        pages[sig.page].drawLine({
+            start: { x: 76, y: sig.labelBaseline - 24 },
+            end: { x: 320, y: sig.labelBaseline - 24 },
+            thickness: 0.75,
+            color: rgb(0.4, 0.4, 0.4),
+        });
     }
 
     // Remove widget border/background dicts so no box is drawn over the legal

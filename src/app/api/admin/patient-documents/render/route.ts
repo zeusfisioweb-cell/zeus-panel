@@ -50,7 +50,14 @@ export async function POST(request: Request) {
         });
 
         const label = PATIENT_DOCUMENT_TYPE_LABELS[payload.document_type];
-        const fileName = `${slugify(label)}.pdf`;
+        const datePart = payload.visit_date ?? new Date().toISOString().slice(0, 10);
+        const fileName = [
+            slugify(label),
+            payload.patient_name ? slugify(payload.patient_name) : null,
+            datePart,
+        ]
+            .filter(Boolean)
+            .join('-') + '.pdf';
 
         return new NextResponse(Buffer.from(bytes), {
             headers: {

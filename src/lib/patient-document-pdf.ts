@@ -8,7 +8,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { PDFDocument, PDFTextField } from 'pdf-lib';
+import { PDFDocument, PDFTextField, StandardFonts } from 'pdf-lib';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
 import {
     PATIENT_DOCUMENT_TEMPLATES,
@@ -60,7 +60,11 @@ function resolveFieldValue(
     if (source.kind === 'config') {
         if (source.key === 'clinic_name') return normalizeText(input.clinicName ?? '');
         if (source.key === 'address') return normalizeText(input.clinicAddress ?? '');
-        return cityFromAddress(input.clinicAddress);
+        const city = cityFromAddress(input.clinicAddress);
+        // The "En ___ el" place blank is very narrow; drop the province so the
+        // city alone fits at the prose size instead of being shrunk.
+        if (field === 'lugar') return city.split(',')[0].trim();
+        return city;
     }
 
     if (source.kind === 'date') {
@@ -90,6 +94,11 @@ async function fillTemplate(
     const templatePath = path.join(process.cwd(), 'public', 'consentimientos', templateFile);
     const pdfDoc = await PDFDocument.load(await readFile(templatePath));
     const form = pdfDoc.getForm();
+    const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    // Match the body prose (~9.9pt). The original blanks were sized for tiny
+    // handwriting samples, so values are kept at this fixed size and only
+    // shrunk when they would actually overrun the blank.
+    const PROSE_SIZE = 9.5;
 
     for (const acroField of form.getFields()) {
         // Templates only carry text fields, but a future template could add a
@@ -103,22 +112,25 @@ async function fillTemplate(
         const value = resolveFieldValue(name, spec, input);
         if (!value) continue;
         textField.setText(value);
-        // Single-line slots are sized to the original (short) placeholder. A
-        // longer real value at the template's fixed font size overruns the box
-        // and collides with the surrounding legal prose. Auto-size (0) makes
-        // pdf-lib shrink the value to fit the slot. Multiline blocks keep their
-        // fixed size so wrapped text stays legible.
-        if (!textField.isMultiline()) {
-            textField.setFontSize(0);
-        }
+        if (textField.isMultiline()) continue;
+        // Render at the prose size so values match the surrounding legal text.
+        // Only fall back to auto-shrink (0) when the value is genuinely wider
+        // than the blank, so a long name/city stays inside the line instead of
+        // overrunning it.
+        const widget = textField.acroField.getWidgets()[0];
+        const { width, height } = widget.getRectangle();
+        const size = Math.min(PROSE_SIZE, height - 2);
+        const fits = helv.widthOfTextAtSize(value, size) <= width - 2;
+        textField.setFontSize(fits ? size : 0);
     }
 
     // NOTE: do NOT call form.flatten(). pdf-lib's flatten corrupts the
     // cross-reference table of these surgically-built templates (truncated
     // appearance streams -> blank lower-page fields in every reader). Baking
     // the appearances and leaving the fields read-only renders identically
-    // and stays structurally valid.
-    form.updateFieldAppearances();
+    // and stays structurally valid. Bake with the embedded Helvetica so the
+    // appearance is self-contained and viewers don't re-flow it.
+    form.updateFieldAppearances(helv);
     return pdfDoc.save();
 }
 
