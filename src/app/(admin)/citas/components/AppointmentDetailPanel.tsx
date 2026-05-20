@@ -236,13 +236,16 @@ export function AppointmentDetailPanel({
         {showCompleteConfirm && (
             <ConfirmModal
                 title="Marcar como completada"
-                message="¿Confirmas que esta cita ha finalizado? Esta acción cambia el estado a completada."
+                message="¿Confirmas que esta cita ha finalizado? Al confirmar te abrirá el cobro automáticamente."
                 confirmLabel="Marcar completada"
                 cancelLabel="Cancelar"
                 variant="info"
-                onConfirm={() => {
+                onConfirm={async () => {
                     setShowCompleteConfirm(false);
-                    void onUpdateStatus(appointment.id, 'completed');
+                    await onUpdateStatus(appointment.id, 'completed');
+                    if (!existingPayment) {
+                        setPaymentModalOpen(true);
+                    }
                 }}
                 onCancel={() => setShowCompleteConfirm(false)}
             />
