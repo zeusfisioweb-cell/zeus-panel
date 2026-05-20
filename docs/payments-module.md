@@ -152,6 +152,12 @@ Requiere `PANEL_E2E_EMAIL` y `PANEL_E2E_PASSWORD` (igual que el resto de E2E del
 
 El `PaymentModal` es el mismo componente que en `/facturacion`, parametrizado con `appointmentId` para bloquear el selector de cita.
 
+### Auto-cobro al marcar completada
+Cuando el usuario confirma "Marcar completada" en el detalle de la cita y no hay cobro previo, el `PaymentModal` se abre automáticamente con el importe del servicio precargado. Reduce el flujo presencial de 4 a 2 clics:
+1. Abrir cita → 2. Marcar completada → 3. Confirmar (status pasa a completed + modal aparece) → 4. Elegir método → 5. Registrar.
+
+El `StatusDropdown` inline de la tabla **no** dispara el auto-modal: ese atajo se reserva al detalle para no sorprender en cambios de estado masivos.
+
 ## Fuera de alcance (Fase 2 o más tarde)
 
 - Facturas legales (numeración serie, NIF obligatorio, rectificativas).
