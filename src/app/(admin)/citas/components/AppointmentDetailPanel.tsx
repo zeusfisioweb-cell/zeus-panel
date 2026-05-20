@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/Badge';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getAvatarColor, getInitials } from '@/lib/utils';
 import type { Appointment } from '@/lib/types';
-import { STATUS_LABELS } from '@/lib/types';
+import { PAYMENT_METHOD_LABELS, STATUS_LABELS } from '@/lib/types';
+import { getReceiptDownloadUrl, usePayments } from '@/hooks/usePayments';
+import { PaymentModal } from '@/app/(admin)/facturacion/components/PaymentModal';
 
 interface AppointmentDetailPanelProps {
     appointment: Appointment | null;
@@ -36,8 +38,16 @@ export function AppointmentDetailPanel({
     variant = 'overlay',
 }: AppointmentDetailPanelProps) {
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const { data: paymentsForAppt = [] } = usePayments(
+        appointment ? { appointment_id: appointment.id } : {}
+    );
 
     if (!appointment) return null;
+
+    const existingPayment = paymentsForAppt[0] ?? null;
+    const isCancelled = appointment.status === 'cancelled';
+    const canRegisterPayment = !isCancelled && !existingPayment;
 
     const formatTime = (iso: string) => {
         try {
@@ -131,6 +141,28 @@ export function AppointmentDetailPanel({
                         </Badge>
                     </div>
 
+                    <div className="zc-detail-row">
+                        <span>Cobro</span>
+                        {existingPayment ? (
+                            <div className="flex flex-col items-end gap-1">
+                                <Badge variant="success">
+                                    Pagado · {new Intl.NumberFormat('es-ES', {
+                                        style: 'currency',
+                                        currency: 'EUR',
+                                    }).format(Number(existingPayment.amount))}
+                                </Badge>
+                                <span className="text-xs text-[var(--text-muted)]">
+                                    {PAYMENT_METHOD_LABELS[existingPayment.method]} ·{' '}
+                                    <span className="font-mono">{existingPayment.receipt_number}</span>
+                                </span>
+                            </div>
+                        ) : (
+                            <Badge variant={isCancelled ? 'default' : 'warning'}>
+                                {isCancelled ? 'No aplica' : 'Pendiente'}
+                            </Badge>
+                        )}
+                    </div>
+
                     {appointment.notes && (
                         <div className="zc-detail-row zc-detail-row--notes">
                             <span>Notas</span>
@@ -140,9 +172,32 @@ export function AppointmentDetailPanel({
                 </div>
             </div>
 
-            {isActionable && (
+            {(isActionable || canRegisterPayment || existingPayment) && (
                 <div className="zc-detail-panel__actions">
-                    {onInitiateReschedule && (
+                    {canRegisterPayment && (
+                        <Button
+                            variant="primary"
+                            className="w-full justify-center"
+                            onClick={() => setPaymentModalOpen(true)}
+                            leftIcon={<Icon name="wallet" size={14} />}
+                        >
+                            Registrar cobro
+                        </Button>
+                    )}
+
+                    {existingPayment && (
+                        <a
+                            href={getReceiptDownloadUrl(existingPayment.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn--secondary w-full justify-center"
+                        >
+                            <Icon name="download" size={14} />
+                            Descargar recibo
+                        </a>
+                    )}
+
+                    {isActionable && onInitiateReschedule && (
                         <Button
                             variant="secondary"
                             className="w-full justify-center"
@@ -153,23 +208,27 @@ export function AppointmentDetailPanel({
                         </Button>
                     )}
 
-                    <Button
-                        variant="secondary"
-                        className="w-full justify-center"
-                        onClick={() => setShowCompleteConfirm(true)}
-                        leftIcon={<Icon name="check" size={14} />}
-                    >
-                        Marcar completada
-                    </Button>
+                    {isActionable && (
+                        <Button
+                            variant="secondary"
+                            className="w-full justify-center"
+                            onClick={() => setShowCompleteConfirm(true)}
+                            leftIcon={<Icon name="check" size={14} />}
+                        >
+                            Marcar completada
+                        </Button>
+                    )}
 
-                    <Button
-                        variant="secondary"
-                        className="w-full justify-center text-red-600 bg-red-50 hover:bg-red-100 border-red-200"
-                        onClick={() => onInitiateCancel(appointment)}
-                        leftIcon={<Icon name="close" size={14} />}
-                    >
-                        Cancelar cita
-                    </Button>
+                    {isActionable && (
+                        <Button
+                            variant="secondary"
+                            className="w-full justify-center text-red-600 bg-red-50 hover:bg-red-100 border-red-200"
+                            onClick={() => onInitiateCancel(appointment)}
+                            leftIcon={<Icon name="close" size={14} />}
+                        >
+                            Cancelar cita
+                        </Button>
+                    )}
                 </div>
             )}
         </aside>
@@ -188,6 +247,13 @@ export function AppointmentDetailPanel({
                 onCancel={() => setShowCompleteConfirm(false)}
             />
         )}
+
+        <PaymentModal
+            isOpen={paymentModalOpen}
+            onClose={() => setPaymentModalOpen(false)}
+            appointmentId={appointment.id}
+            defaultAmount={appointment.service?.price}
+        />
         </>
     );
 }

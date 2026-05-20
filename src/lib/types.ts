@@ -7,6 +7,7 @@ export type ConsentType = 'gdpr' | 'informed' | 'marketing';
 export type AppointmentSource = 'web' | 'admin' | 'phone';
 export type PatientDocumentType = 'clinical_history' | 'intervention_consent' | 'data_consent';
 export type PatientDocumentStatus = 'draft' | 'completed' | 'signed';
+export type PaymentMethod = 'cash' | 'card' | 'bizum' | 'transfer' | 'other';
 
 export interface Profile {
     id: string;
@@ -265,6 +266,30 @@ export const PATIENT_DOCUMENT_STATUS_LABELS: Record<PatientDocumentStatus, strin
     draft: 'Borrador',
     completed: 'Completado',
     signed: 'Firmado',
+};
+
+export interface Payment {
+    id: string;
+    appointment_id: string;
+    patient_id: string;
+    amount: number;
+    method: PaymentMethod;
+    paid_at: string;
+    notes: string | null;
+    receipt_number: string;
+    created_by: string | null;
+    created_at: string;
+    // Joined
+    appointment?: Appointment;
+    patient?: Patient;
+}
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+    cash: 'Efectivo',
+    card: 'Tarjeta',
+    bizum: 'Bizum',
+    transfer: 'Transferencia',
+    other: 'Otro',
 };
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {

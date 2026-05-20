@@ -10,6 +10,7 @@ export const PROFESSIONAL_RESTRICTED_PATHS = [
   '/horarios',
   '/configuracion',
   '/analitica',
+  '/facturacion',
 ] as const;
 
 export const PANEL_NAV_ITEMS: PanelNavItem[] = [
@@ -21,6 +22,7 @@ export const PANEL_NAV_ITEMS: PanelNavItem[] = [
   { href: '/servicios', icon: 'spa', label: 'Servicios', ownerOnly: true },
   { href: '/pacientes', icon: 'users', label: 'Pacientes' },
   { href: '/horarios', icon: 'clock', label: 'Horarios', ownerOnly: true },
+  { href: '/facturacion', icon: 'wallet', label: 'Facturación', ownerOnly: true },
   { href: '/analitica', icon: 'chart', label: 'Analítica', ownerOnly: true },
   { href: '/configuracion', icon: 'settings', label: 'Configuración', ownerOnly: true },
 ];
@@ -34,6 +36,7 @@ const SECTION_TITLE_MAP: Array<{ prefix: string; title: string }> = [
   { prefix: '/configuracion', title: 'Configuración' },
   { prefix: '/analitica', title: 'Analítica' },
   { prefix: '/analytics', title: 'Analítica' },
+  { prefix: '/facturacion', title: 'Facturación' },
 ];
 
 export function getPanelSectionTitle(pathname: string): string {

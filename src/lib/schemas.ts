@@ -115,6 +115,18 @@ export const AppointmentUpdateSchema = AppointmentInsertSchema.partial();
 // Backward-compatible alias
 export const AppointmentSchema = AppointmentFormSchema;
 
+// ─── Payment ───────────────────────────────────────────────
+
+export const PaymentSchema = z.object({
+    appointment_id: z.string().uuid({ message: 'ID de cita inválido' }),
+    amount: z.coerce.number().positive({ message: 'El importe debe ser mayor que 0' }).max(99999),
+    method: z.enum(['cash', 'card', 'bizum', 'transfer', 'other'], {
+        errorMap: () => ({ message: 'Método de pago inválido' }),
+    }),
+    paid_at: z.string().datetime({ message: 'Formato de fecha/hora inválido (ISO 8601)' }).optional(),
+    notes: z.string().max(500).optional().nullable(),
+});
+
 // ─── Schedule Exception ────────────────────────────────────
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;

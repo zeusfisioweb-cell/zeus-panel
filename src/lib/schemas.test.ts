@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
+import { PaymentSchema, ProfessionalCreateSchema, validateData } from '@/lib/schemas';
 
 describe('validateData', () => {
     it('returns parsed data for a valid professional payload', () => {
@@ -51,5 +51,58 @@ describe('validateData', () => {
             expect(result.errors.full_name).toBeDefined();
             expect(result.errors.service_ids).toBeDefined();
         }
+    });
+});
+
+describe('PaymentSchema', () => {
+    const validPayload = {
+        appointment_id: '11111111-1111-1111-1111-111111111111',
+        amount: 40,
+        method: 'cash' as const,
+    };
+
+    it('accepts a minimal valid payload', () => {
+        const result = PaymentSchema.safeParse(validPayload);
+        expect(result.success).toBe(true);
+    });
+
+    it('coerces string amounts to numbers', () => {
+        const result = PaymentSchema.safeParse({ ...validPayload, amount: '35.50' });
+        expect(result.success).toBe(true);
+        if (result.success) expect(result.data.amount).toBe(35.5);
+    });
+
+    it('rejects negative or zero amounts', () => {
+        expect(PaymentSchema.safeParse({ ...validPayload, amount: 0 }).success).toBe(false);
+        expect(PaymentSchema.safeParse({ ...validPayload, amount: -10 }).success).toBe(false);
+    });
+
+    it('rejects amounts above the cap', () => {
+        const result = PaymentSchema.safeParse({ ...validPayload, amount: 100000 });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejects unknown payment methods', () => {
+        const result = PaymentSchema.safeParse({ ...validPayload, method: 'paypal' });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejects malformed appointment_id', () => {
+        const result = PaymentSchema.safeParse({ ...validPayload, appointment_id: 'not-a-uuid' });
+        expect(result.success).toBe(false);
+    });
+
+    it('accepts optional ISO paid_at and trims trailing notes', () => {
+        const result = PaymentSchema.safeParse({
+            ...validPayload,
+            paid_at: '2026-05-20T15:30:00.000Z',
+            notes: 'Cobro en efectivo',
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('rejects notes longer than 500 chars', () => {
+        const result = PaymentSchema.safeParse({ ...validPayload, notes: 'a'.repeat(501) });
+        expect(result.success).toBe(false);
     });
 });
