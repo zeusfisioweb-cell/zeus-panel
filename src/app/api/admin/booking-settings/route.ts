@@ -5,6 +5,8 @@ const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const updateBookingSettingsSchema = z.object({
     clinic_name: z.string().min(1),
+    legal_name: z.string().nullable().optional(),
+    tax_id: z.string().nullable().optional(),
     phone: z.string().nullable().optional(),
     email: z.string().email().nullable().optional(),
     address: z.string().nullable().optional(),
@@ -66,6 +68,12 @@ export async function PATCH(request: Request) {
         const payload = {
             ...parsed,
             buffer_minutes: 0,
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'legal_name')
+                ? { legal_name: normalizeNullableText(parsed.legal_name) }
+                : {}),
+            ...(Object.prototype.hasOwnProperty.call(parsed, 'tax_id')
+                ? { tax_id: normalizeNullableText(parsed.tax_id) }
+                : {}),
             ...(Object.prototype.hasOwnProperty.call(parsed, 'phone')
                 ? { phone: normalizeNullableText(parsed.phone) }
                 : {}),

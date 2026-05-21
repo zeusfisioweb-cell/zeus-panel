@@ -97,8 +97,8 @@ export async function GET(
                 appointmentStart: payment.appointment?.start_time ?? payment.paid_at,
             },
             clinic: {
-                name: settings.clinic_name,
-                nif: null,
+                name: settings.legal_name ?? settings.clinic_name,
+                nif: settings.tax_id,
                 address: settings.address,
                 phone: settings.phone,
                 email: settings.email,

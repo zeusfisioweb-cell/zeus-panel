@@ -65,4 +65,35 @@ describe('renderReceiptPdf', () => {
         const bytes = await renderReceiptPdf(buildInput({ amount: 1234.56 }));
         expect(bytes.length).toBeGreaterThan(1000);
     });
+
+    it('renders without nif when tax id missing', async () => {
+        const bytes = await renderReceiptPdf(
+            buildInput({
+                clinic: {
+                    name: 'Zeus Fisioterapia',
+                    nif: null,
+                    address: 'Av. Salud 10, Madrid',
+                    phone: '910000000',
+                    email: 'hola@zeus.com',
+                },
+            })
+        );
+        expect(bytes.length).toBeGreaterThan(1000);
+    });
+
+    it('renders with nif when tax id present', async () => {
+        const withNif = await renderReceiptPdf(buildInput());
+        const withoutNif = await renderReceiptPdf(
+            buildInput({
+                clinic: {
+                    name: 'Zeus Fisioterapia',
+                    nif: null,
+                    address: 'Av. Salud 10, Madrid',
+                    phone: '910000000',
+                    email: 'hola@zeus.com',
+                },
+            })
+        );
+        expect(withNif.length).not.toBe(withoutNif.length);
+    });
 });

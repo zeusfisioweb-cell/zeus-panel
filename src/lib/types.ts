@@ -130,6 +130,8 @@ export interface ProfessionalOption {
 export interface BookingSettings {
     id: string;
     clinic_name: string;
+    legal_name: string | null;
+    tax_id: string | null;
     phone: string | null;
     email: string | null;
     address: string | null;
