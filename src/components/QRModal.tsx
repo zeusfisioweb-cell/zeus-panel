@@ -12,33 +12,7 @@ export function QRModal({ isOpen, onClose }: QRModalProps) {
     const titleId = useId();
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const portalBase = process.env.NEXT_PUBLIC_PORTAL_URL?.trim().replace(/\/+$/, '');
-
-            if (portalBase) {
-                setBookingUrl(`${portalBase}/portal/reservar`);
-                return;
-            }
-
-            const { hostname } = window.location;
-
-            // Vercel preview/testing deployments: derive portal host from panel host
-            if (hostname.startsWith('zeus-panel-testing-') && hostname.endsWith('.vercel.app')) {
-                const portalHost = hostname.replace('zeus-panel-testing-', 'zeus-portal-testing-');
-                setBookingUrl(`https://${portalHost}/portal/reservar`);
-                return;
-            }
-
-            // Production domains where hostname contains 'panel'
-            if (hostname.includes('panel')) {
-                const portalOrigin = window.location.origin.replace('panel', 'portal');
-                setBookingUrl(`${portalOrigin}/portal/reservar`);
-                return;
-            }
-
-            // Localhost / unknown domain: leave empty so the modal shows an error state
-            setBookingUrl('');
-        }
+        setBookingUrl('https://zeusfisioterapiatorrijos.com/portal/login?returnUrl=%2F');
     }, []);
 
     useEffect(() => {
