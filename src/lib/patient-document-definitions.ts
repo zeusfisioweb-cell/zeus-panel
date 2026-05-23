@@ -1,6 +1,12 @@
 import type { PatientDocumentType } from '@/lib/types';
 
-export type PatientDocumentFieldType = 'text' | 'textarea' | 'date' | 'checkbox' | 'professional_select';
+export type PatientDocumentFieldType =
+    | 'text'
+    | 'textarea'
+    | 'date'
+    | 'checkbox'
+    | 'professional_select'
+    | 'signature';
 
 export interface PatientDocumentField {
     key: string;
@@ -75,6 +81,13 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
                     { key: 'relacion_tutor', label: 'En calidad de (padre, madre, tutor legal…)', type: 'text' },
                 ],
             },
+            {
+                title: 'Firmas',
+                fields: [
+                    { key: 'signature_firmante', label: 'Firma del paciente', type: 'signature' },
+                    { key: 'signature_tutor', label: 'Firma del tutor/familiar (si aplica)', type: 'signature' },
+                ],
+            },
         ],
     },
     data_consent: {
@@ -89,6 +102,13 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
                     { key: 'dni_firmante', label: 'DNI/NIE del firmante', type: 'text' },
                     { key: 'nombre_tutor', label: 'Nombre tutor/familiar (si aplica)', type: 'text' },
                     { key: 'dni_tutor', label: 'DNI/NIE tutor/familiar (si aplica)', type: 'text' },
+                ],
+            },
+            {
+                title: 'Firmas',
+                fields: [
+                    { key: 'signature_firmante', label: 'Firma del paciente', type: 'signature' },
+                    { key: 'signature_tutor', label: 'Firma del tutor/familiar (si aplica)', type: 'signature' },
                 ],
             },
         ],

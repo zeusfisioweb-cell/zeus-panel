@@ -199,6 +199,17 @@ class HistoriaBuilder {
         }
     }
 
+    /**
+     * Salta a nueva página salvo que ya se haya acabado de crear una.
+     * Idempotente: si la última sección llenó la página justo hasta forzar
+     * un `addPage` automático (cursorY == CONTENT_TOP), no añade hoja extra.
+     */
+    forcePageBreak(): void {
+        if (this.cursorY < CONTENT_TOP - 1) {
+            this.addPage();
+        }
+    }
+
     drawTitle(text: string): void {
         this.ensureSpace(TITLE_SIZE + TITLE_GAP_AFTER);
         this.page.drawText(sanitize(text), {
@@ -414,6 +425,7 @@ export async function renderHistoriaClinicaDynamic(
     b.drawHeading('Diagnóstico del problema presentado por el paciente');
     b.drawParagraph(f('diagnostico'));
 
+    b.forcePageBreak();
     b.drawHeading('Tratamiento recomendado');
     b.drawParagraph(f('tratamiento_recomendado'));
 

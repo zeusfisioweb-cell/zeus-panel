@@ -15,6 +15,7 @@ import {
     DOCUMENT_TYPE_OPTIONS,
     printDocument,
 } from './document-fields';
+import { SignaturePad } from './SignaturePad';
 
 interface PatientDocumentModalProps {
     isOpen: boolean;
@@ -192,53 +193,77 @@ export function PatientDocumentModal({
                     <section key={section.title} className="border border-[var(--border-color)] rounded-lg p-3">
                         <h3 className="text-sm font-semibold mb-3">{section.title}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {section.fields.map((field) => (
-                                <label
-                                    className={`settings-field ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}
-                                    key={field.key}
-                                >
-                                    <span className="form-label">{field.label}</span>
-                                    {field.type === 'textarea' ? (
-                                        <textarea
-                                            className="form-input settings-textarea"
-                                            rows={4}
-                                            value={String(formData[field.key] ?? '')}
-                                            placeholder={field.placeholder}
-                                            onChange={(e) => updateField(field.key, e.target.value)}
-                                        />
-                                    ) : field.type === 'checkbox' ? (
-                                        <input
-                                            type="checkbox"
-                                            checked={Boolean(formData[field.key])}
-                                            onChange={(e) => updateField(field.key, e.target.checked)}
-                                        />
-                                    ) : field.type === 'professional_select' ? (
-                                        <select
-                                            className="form-input"
-                                            value={String(formData[field.key] ?? '')}
-                                            onChange={(e) => updateField(field.key, e.target.value)}
-                                        >
-                                            <option value="">— Seleccionar profesional —</option>
-                                            {professionals
-                                                .filter((p) => p.is_active)
-                                                .map((p) => (
-                                                    <option key={p.id} value={p.profile?.full_name ?? p.id}>
-                                                        {p.profile?.full_name ?? 'Sin nombre'}
-                                                        {p.specialty ? ` · ${p.specialty}` : ''}
-                                                    </option>
-                                                ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type={field.type}
-                                            className="form-input"
-                                            value={String(formData[field.key] ?? '')}
-                                            placeholder={field.placeholder}
-                                            onChange={(e) => updateField(field.key, e.target.value)}
-                                        />
-                                    )}
-                                </label>
-                            ))}
+                            {section.fields.map((field) => {
+                                if (field.type === 'signature') {
+                                    // Firma tutor solo si nombre_tutor presente.
+                                    if (
+                                        field.key === 'signature_tutor' &&
+                                        !String(formData.nombre_tutor ?? '').trim()
+                                    ) {
+                                        return null;
+                                    }
+                                    return (
+                                        <div className="md:col-span-2" key={field.key}>
+                                            <SignaturePad
+                                                label={field.label}
+                                                value={
+                                                    typeof formData[field.key] === 'string'
+                                                        ? (formData[field.key] as string)
+                                                        : null
+                                                }
+                                                onChange={(dataUrl) => updateField(field.key, dataUrl ?? '')}
+                                            />
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <label
+                                        className={`settings-field ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}
+                                        key={field.key}
+                                    >
+                                        <span className="form-label">{field.label}</span>
+                                        {field.type === 'textarea' ? (
+                                            <textarea
+                                                className="form-input settings-textarea"
+                                                rows={4}
+                                                value={String(formData[field.key] ?? '')}
+                                                placeholder={field.placeholder}
+                                                onChange={(e) => updateField(field.key, e.target.value)}
+                                            />
+                                        ) : field.type === 'checkbox' ? (
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(formData[field.key])}
+                                                onChange={(e) => updateField(field.key, e.target.checked)}
+                                            />
+                                        ) : field.type === 'professional_select' ? (
+                                            <select
+                                                className="form-input"
+                                                value={String(formData[field.key] ?? '')}
+                                                onChange={(e) => updateField(field.key, e.target.value)}
+                                            >
+                                                <option value="">— Seleccionar profesional —</option>
+                                                {professionals
+                                                    .filter((p) => p.is_active)
+                                                    .map((p) => (
+                                                        <option key={p.id} value={p.profile?.full_name ?? p.id}>
+                                                            {p.profile?.full_name ?? 'Sin nombre'}
+                                                            {p.specialty ? ` · ${p.specialty}` : ''}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type={field.type}
+                                                className="form-input"
+                                                value={String(formData[field.key] ?? '')}
+                                                placeholder={field.placeholder}
+                                                onChange={(e) => updateField(field.key, e.target.value)}
+                                            />
+                                        )}
+                                    </label>
+                                );
+                            })}
                         </div>
                     </section>
                 ))}

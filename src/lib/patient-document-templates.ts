@@ -33,6 +33,19 @@ export interface HistoriaAnchor {
     kind: 'inline' | 'block';
 }
 
+// Caja de firma (rectángulo punteado) en el PDF original donde se embebe la
+// imagen PNG capturada por el SignaturePad. `source` mapea a la clave del
+// formData (`signature_firmante` o `signature_tutor`). Coords en puntos PDF
+// (origen abajo-izquierda).
+export interface SignatureBox {
+    page: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    source: 'firmante' | 'tutor';
+}
+
 export interface TemplateSpec {
     sourcePdf: string;
     slots: TemplateSlot[];
@@ -43,6 +56,7 @@ export interface TemplateSpec {
     // baked-in clinic data (clinic name, address, responsible therapist, etc.)
     // intact on other rows.
     slotBaselines?: { page: number; y: number }[];
+    signatureBoxes?: SignatureBox[];
 }
 
 export function normalizeLine(s: string): string {
@@ -79,6 +93,10 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
             { page: 0, y: 190.9 },
             { page: 1, y: 607.9 },
         ],
+        signatureBoxes: [
+            { page: 0, x: 76, y: 30, width: 244, height: 100, source: 'firmante' },
+            { page: 1, x: 76, y: 440, width: 244, height: 100, source: 'tutor' },
+        ],
         fieldSources: {
             lugar: { kind: 'config', key: 'city' },
             dia: { kind: 'date', part: 'day' },
@@ -110,6 +128,10 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
             { page: 4, y: 645.4 },
             { page: 4, y: 197.7 },
             { page: 4, y: 147.4 },
+        ],
+        signatureBoxes: [
+            { page: 4, x: 76, y: 250, width: 244, height: 100, source: 'firmante' },
+            { page: 5, x: 76, y: 620, width: 244, height: 100, source: 'tutor' },
         ],
         fieldSources: {
             lugar: { kind: 'config', key: 'city' },

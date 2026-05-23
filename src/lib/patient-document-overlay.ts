@@ -18,12 +18,13 @@ import path from 'node:path';
 import {
     PDFDocument,
     PDFFont,
+    PDFImage,
     PDFPage,
     PDFTextField,
     StandardFonts,
 } from 'pdf-lib';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
-import type { TemplateSpec } from '@/lib/patient-document-templates';
+import type { SignatureBox, TemplateSpec } from '@/lib/patient-document-templates';
 import { resolvePatientDocumentFieldValue, type PatientDocumentPdfInput } from '@/lib/patient-document-pdf-resolve';
 
 // Tamaño del cuerpo legal en los templates Zeus (≈9.9pt en el original; usamos
@@ -240,5 +241,48 @@ export async function renderPatientDocumentPdfOverlay(
     // Repintar appearances vacías para que los widgets invisibles no muestren
     // basura en viewers estrictos.
     form.updateFieldAppearances(helv);
+
+    // Embeber firmas (PNG base64 capturadas por SignaturePad) en cajas
+    // punteadas. Cada box mapea a `signature_firmante` o `signature_tutor`.
+    await embedSignatures(pdfDoc, pages, spec.signatureBoxes ?? [], input);
+
     return pdfDoc.save();
+}
+
+async function embedSignatures(
+    pdfDoc: PDFDocument,
+    pages: PDFPage[],
+    boxes: SignatureBox[],
+    input: PatientDocumentPdfInput
+): Promise<void> {
+    for (const box of boxes) {
+        const key = box.source === 'firmante' ? 'signature_firmante' : 'signature_tutor';
+        const raw = input.formData[key];
+        if (typeof raw !== 'string' || !raw.startsWith('data:image/png;base64,')) continue;
+        const base64 = raw.slice('data:image/png;base64,'.length);
+        let image: PDFImage;
+        try {
+            image = await pdfDoc.embedPng(Buffer.from(base64, 'base64'));
+        } catch {
+            // Imagen corrupta o no PNG válido — skip silenciosamente.
+            continue;
+        }
+        const page = pages[box.page];
+        if (!page) continue;
+        // Escalar manteniendo aspect ratio dentro de la caja.
+        const imgRatio = image.width / image.height;
+        const boxRatio = box.width / box.height;
+        let drawW: number;
+        let drawH: number;
+        if (imgRatio > boxRatio) {
+            drawW = box.width;
+            drawH = box.width / imgRatio;
+        } else {
+            drawH = box.height;
+            drawW = box.height * imgRatio;
+        }
+        const x = box.x + (box.width - drawW) / 2;
+        const y = box.y + (box.height - drawH) / 2;
+        page.drawImage(image, { x, y, width: drawW, height: drawH });
+    }
 }
