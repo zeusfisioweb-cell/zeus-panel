@@ -161,7 +161,7 @@ export async function sendProfessionalWelcomeEmail({
               <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#4a4a4a;">
                 Se ha creado tu cuenta como profesional en el panel de Zeus Fisioterapia.
                 Para acceder, primero establece tu contraseña con el botón de abajo.
-                <strong>Este enlace caduca en 24 horas.</strong>
+                <strong>Este enlace caduca en 1 hora.</strong>
               </p>
               <table cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:24px;">
                 <tr>
