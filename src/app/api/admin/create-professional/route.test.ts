@@ -116,8 +116,14 @@ describe('admin create professional route', () => {
                 },
             },
             from: vi.fn((table: string) => {
-                if (table === 'profiles') return { upsert: profileUpsert };
-                if (table === 'professionals') return { upsert: professionalUpsert };
+                if (table === 'profiles') return {
+                    upsert: profileUpsert,
+                    select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }),
+                };
+                if (table === 'professionals') return {
+                    upsert: professionalUpsert,
+                    select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }),
+                };
                 if (table === 'professional_services') return { insert: serviceInsert };
                 if (table === 'schedule_slots') return { insert: scheduleInsert };
                 throw new Error(`Unexpected table ${table}`);

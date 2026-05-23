@@ -44,6 +44,110 @@ export async function POST(request: Request) {
 
         const normalizedFullName = full_name.trim();
 
+        // 0. Reactivation path: if a soft-deleted professional exists with this
+        //    email, revive that account instead of creating a duplicate.
+        const { data: existingProfile } = await adminAuthClient
+            .from('profiles')
+            .select('id, role')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (existingProfile && existingProfile.role === 'professional') {
+            const { data: existingPro } = await adminAuthClient
+                .from('professionals')
+                .select('id, is_active')
+                .eq('id', existingProfile.id)
+                .maybeSingle();
+
+            if (existingPro && existingPro.is_active === false) {
+                const reactivatedId = existingProfile.id;
+
+                await adminAuthClient.auth.admin.updateUserById(reactivatedId, { ban_duration: 'none' });
+
+                const { error: profileUpdateError } = await adminAuthClient
+                    .from('profiles')
+                    .update({ full_name: normalizedFullName })
+                    .eq('id', reactivatedId);
+                if (profileUpdateError) {
+                    console.error('Reactivate: profile update failed', profileUpdateError);
+                    return NextResponse.json({ error: 'Error al reactivar el perfil' }, { status: 500 });
+                }
+
+                const { error: proUpdateError } = await adminAuthClient
+                    .from('professionals')
+                    .update({
+                        specialty: specialty || null,
+                        bio: bio || null,
+                        color_code: color_code || '#AD7332',
+                        is_active: is_active ?? true,
+                    })
+                    .eq('id', reactivatedId);
+                if (proUpdateError) {
+                    console.error('Reactivate: professional update failed', proUpdateError);
+                    return NextResponse.json({ error: 'Error al reactivar el profesional' }, { status: 500 });
+                }
+
+                await adminAuthClient.from('professional_services').delete().eq('professional_id', reactivatedId);
+                if (service_ids && service_ids.length > 0) {
+                    const serviceRows = service_ids.map((serviceId) => ({ professional_id: reactivatedId, service_id: serviceId }));
+                    const { error: serviceLinksError } = await adminAuthClient.from('professional_services').insert(serviceRows);
+                    if (serviceLinksError) {
+                        console.error('Reactivate: service links failed', serviceLinksError);
+                        return NextResponse.json({ error: 'Error al asociar servicios' }, { status: 500 });
+                    }
+                }
+
+                await adminAuthClient.from('schedule_slots').delete().eq('professional_id', reactivatedId);
+                if (schedule_slots && schedule_slots.length > 0) {
+                    const slotRows = schedule_slots.map((slot) => ({
+                        professional_id: reactivatedId,
+                        day_of_week: slot.day_of_week,
+                        start_time: slot.start_time,
+                        end_time: slot.end_time,
+                    }));
+                    const { error: scheduleError } = await adminAuthClient.from('schedule_slots').insert(slotRows);
+                    if (scheduleError) {
+                        console.error('Reactivate: schedule slots failed', scheduleError);
+                        return NextResponse.json({ error: 'Error al crear el horario' }, { status: 500 });
+                    }
+                }
+
+                let reactEmailSent = false;
+                try {
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+                    const redirectTo = appUrl ? `${new URL(appUrl).origin}/login` : undefined;
+                    const { data: linkData, error: linkError } = await adminAuthClient.auth.admin.generateLink({
+                        type: 'recovery',
+                        email,
+                        options: redirectTo ? { redirectTo } : undefined,
+                    });
+                    if (linkError || !linkData?.properties?.action_link) {
+                        console.warn('Reactivate: failed to generate setup link', linkError);
+                    } else {
+                        await sendProfessionalWelcomeEmail({
+                            to: email,
+                            fullName: normalizedFullName,
+                            setupLink: linkData.properties.action_link,
+                        });
+                        reactEmailSent = true;
+                    }
+                } catch (emailErr) {
+                    console.warn('Reactivate: welcome email failed', emailErr);
+                }
+
+                await writeAuditLog({
+                    supabase,
+                    userId: ownerUserId,
+                    action: 'UPDATE',
+                    tableName: 'professionals',
+                    recordId: reactivatedId,
+                    details: { action: 'reactivate', email, service_count: service_ids.length, welcome_email_sent: reactEmailSent },
+                });
+
+                return NextResponse.json({ success: true, user_id: reactivatedId, reactivated: true, welcome_email_sent: reactEmailSent });
+            }
+        }
+
         // 1. Create the user in auth.users
         const { data: authData, error: authError } = await adminAuthClient.auth.admin.createUser({
             email: email,
