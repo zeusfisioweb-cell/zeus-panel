@@ -216,15 +216,23 @@ export default function ProfesionalesPage() {
         );
     }
 
-    const activeCount = professionals.filter((professional) => professional.is_active).length;
-    const specialtiesCount = new Set(professionals.filter((p) => p.specialty).map((p) => p.specialty?.trim().toLowerCase())).size;
-    const totalServicesLinked = professionals.reduce((acc, p) => acc + (p.professional_services?.length || 0), 0);
-    const avgServicesPerPro = professionals.length > 0 ? totalServicesLinked / professionals.length : 0;
+    const servicesById = new Map(services.map((svc) => [svc.id, svc] as const));
+    const enrichedProfessionals = professionals.map((pro) => ({
+        ...pro,
+        services: (pro.professional_services ?? [])
+            .map((link) => servicesById.get(link.service_id))
+            .filter((svc): svc is NonNullable<typeof svc> => svc !== undefined),
+    }));
+
+    const activeCount = enrichedProfessionals.filter((professional) => professional.is_active).length;
+    const specialtiesCount = new Set(enrichedProfessionals.filter((p) => p.specialty).map((p) => p.specialty?.trim().toLowerCase())).size;
+    const totalServicesLinked = enrichedProfessionals.reduce((acc, p) => acc + (p.professional_services?.length || 0), 0);
+    const avgServicesPerPro = enrichedProfessionals.length > 0 ? totalServicesLinked / enrichedProfessionals.length : 0;
 
     return (
         <div className="content-shell section-shell flex flex-col gap-8 animate-in fade-in duration-500">
             <ProfesionalesHeader
-                total={professionals.length}
+                total={enrichedProfessionals.length}
                 active={activeCount}
                 specialties={specialtiesCount}
                 assignedServices={totalServicesLinked}
@@ -233,7 +241,7 @@ export default function ProfesionalesPage() {
             />
 
             <ProfesionalesTable
-                professionals={professionals}
+                professionals={enrichedProfessionals}
                 onEdit={handleOpenEdit}
                 onDelete={handleDeleteRequest}
             />
