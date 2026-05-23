@@ -1,12 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { DonutChart } from '@/components/charts/DonutChart';
-import { BarChartH } from '@/components/charts/BarChartH';
-import { RadialRing } from '@/components/charts/RadialRing';
 import { useAnalytics, AnalyticsPeriod } from '@/hooks/useAnalytics';
 import Icon from '@/components/Icon';
+
+const DonutChart = dynamic(
+    () => import('@/components/charts/DonutChart').then(m => ({ default: m.DonutChart })),
+    { ssr: false, loading: () => <Spinner /> }
+);
+const BarChartH = dynamic(
+    () => import('@/components/charts/BarChartH').then(m => ({ default: m.BarChartH })),
+    { ssr: false, loading: () => <Spinner /> }
+);
+const RadialRing = dynamic(
+    () => import('@/components/charts/RadialRing').then(m => ({ default: m.RadialRing })),
+    { ssr: false, loading: () => <Spinner /> }
+);
 
 // Palette mirrors dashboard pieColors exactly
 const PIE_COLORS = ['#AD7332', '#C9954D', '#2563EB', '#059669', '#D97706', '#0F766E', '#8B5A26', '#64748B'];

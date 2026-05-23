@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  experimental: {
+    optimizePackageImports: ['recharts', 'lucide-react', '@supabase/ssr', 'sonner'],
+  },
   async headers() {
     return [
       {
