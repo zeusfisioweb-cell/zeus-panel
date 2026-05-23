@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays, addDays } from 'date-fns';
@@ -55,6 +55,30 @@ export default function DashboardPage() {
     const [showNewModal, setShowNewModal] = useState(false);
     const [showQRModal, setShowQRModal] = useState(false);
     const [showRemindersModal, setShowRemindersModal] = useState(false);
+    const datePickerRef = useRef<HTMLInputElement>(null);
+
+    const openDatePicker = () => {
+        const el = datePickerRef.current;
+        if (!el) return;
+        if (typeof el.showPicker === 'function') {
+            try {
+                el.showPicker();
+                return;
+            } catch {
+                // fallback below
+            }
+        }
+        el.focus();
+        el.click();
+    };
+
+    const dateInputValue = format(dateRange.start, 'yyyy-MM-dd');
+    const handleDateInputChange = (value: string) => {
+        if (!value) return;
+        const [y, m, d] = value.split('-').map(Number);
+        if (!y || !m || !d) return;
+        updateDashboardDate(new Date(y, m - 1, d));
+    };
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     const updateDashboardDate = (nextDate: Date) => {
@@ -254,7 +278,27 @@ export default function DashboardPage() {
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
-                            <span className="zs-dash-datepicker__value" aria-live="polite">{selectedDateShort}</span>
+                            <span style={{ position: 'relative', display: 'inline-flex' }}>
+                                <button
+                                    type="button"
+                                    className="zs-dash-datepicker__value"
+                                    aria-live="polite"
+                                    onClick={openDatePicker}
+                                    title="Elegir fecha"
+                                    style={{ background: 'transparent', border: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', padding: 0 }}
+                                >
+                                    {selectedDateShort}
+                                </button>
+                                <input
+                                    ref={datePickerRef}
+                                    type="date"
+                                    value={dateInputValue}
+                                    onChange={(e) => handleDateInputChange(e.target.value)}
+                                    aria-label="Seleccionar fecha del resumen"
+                                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                                    tabIndex={-1}
+                                />
+                            </span>
                             <button
                                 type="button"
                                 className="zs-dash-datepicker__nav"

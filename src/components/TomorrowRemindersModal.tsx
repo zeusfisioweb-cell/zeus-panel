@@ -22,24 +22,47 @@ function formatTime(iso: string): string {
     });
 }
 
+function tomorrowIsoDate(): string {
+    return DateTime.now().setZone(CLINIC_TIME_ZONE).plus({ days: 1 }).toFormat('yyyy-LL-dd');
+}
+
+function buildDateLabel(targetDate: DateTime): string {
+    const today = DateTime.now().setZone(CLINIC_TIME_ZONE).startOf('day');
+    const diffDays = Math.round(targetDate.startOf('day').diff(today, 'days').days);
+    if (diffDays === 0) return 'hoy';
+    if (diffDays === 1) return 'mañana';
+    if (diffDays === -1) return 'ayer';
+    return `el ${targetDate.setLocale('es').toFormat("cccc d 'de' LLLL")}`;
+}
+
 export function TomorrowRemindersModal({ isOpen, onClose }: TomorrowRemindersModalProps) {
     const [sent, setSent] = useState<Set<string>>(new Set());
+    const [selectedDate, setSelectedDate] = useState<string>(() => tomorrowIsoDate());
 
-    const { startIso, endIso, tomorrowLabel } = useMemo(() => {
-        const tomorrow = DateTime.now().setZone(CLINIC_TIME_ZONE).plus({ days: 1 }).startOf('day');
-        const dayAfter = tomorrow.plus({ days: 1 });
+    const { startIso, endIso, dateLabel, headingLabel } = useMemo(() => {
+        const day = DateTime.fromISO(selectedDate, { zone: CLINIC_TIME_ZONE }).startOf('day');
+        const nextDay = day.plus({ days: 1 });
+        const label = buildDateLabel(day);
         return {
-            startIso: tomorrow.toISO() ?? '',
-            endIso: dayAfter.toISO() ?? '',
-            tomorrowLabel: tomorrow.setLocale('es').toFormat("cccc d 'de' LLLL"),
+            startIso: day.toISO() ?? '',
+            endIso: nextDay.toISO() ?? '',
+            dateLabel: label,
+            headingLabel: day.setLocale('es').toFormat("cccc d 'de' LLLL"),
         };
-    }, []);
+    }, [selectedDate]);
 
     const { data: appointments = [], isLoading } = useCitas(isOpen ? startIso : undefined, isOpen ? endIso : undefined);
 
     useEffect(() => {
         document.body.style.overflow = isOpen ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedDate(tomorrowIsoDate());
+            setSent(new Set());
+        }
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -62,6 +85,16 @@ export function TomorrowRemindersModal({ isOpen, onClose }: TomorrowRemindersMod
 
     const handleReset = () => setSent(new Set());
 
+    const handleDateChange = (value: string) => {
+        setSelectedDate(value);
+        setSent(new Set());
+    };
+
+    const shiftDate = (days: number) => {
+        const next = DateTime.fromISO(selectedDate, { zone: CLINIC_TIME_ZONE }).plus({ days }).toFormat('yyyy-LL-dd');
+        handleDateChange(next);
+    };
+
     const handleClose = () => {
         onClose();
         setSent(new Set());
@@ -81,7 +114,7 @@ export function TomorrowRemindersModal({ isOpen, onClose }: TomorrowRemindersMod
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                         </svg>
-                        Recordatorios WhatsApp · mañana
+                        Recordatorios WhatsApp
                     </h3>
                     <button className="modal__close" onClick={handleClose} aria-label="Cerrar">
                         <Icon name="x" size={18} />
@@ -89,8 +122,45 @@ export function TomorrowRemindersModal({ isOpen, onClose }: TomorrowRemindersMod
                 </div>
 
                 <div className="modal__body overflow-y-auto" style={{ maxHeight: '60vh' }}>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <label className="text-sm text-[var(--text-secondary)]" htmlFor="reminders-date">
+                            Día:
+                        </label>
+                        <button
+                            type="button"
+                            className="btn btn--ghost btn--sm !m-0"
+                            onClick={() => shiftDate(-1)}
+                            aria-label="Día anterior"
+                        >
+                            <Icon name="chevron-left" size={14} />
+                        </button>
+                        <input
+                            id="reminders-date"
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => handleDateChange(e.target.value)}
+                            className="input"
+                            style={{ minWidth: 150 }}
+                        />
+                        <button
+                            type="button"
+                            className="btn btn--ghost btn--sm !m-0"
+                            onClick={() => shiftDate(1)}
+                            aria-label="Día siguiente"
+                        >
+                            <Icon name="chevron-right" size={14} />
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn--ghost btn--sm !m-0"
+                            onClick={() => handleDateChange(tomorrowIsoDate())}
+                        >
+                            Mañana
+                        </button>
+                    </div>
+
                     <p className="text-sm text-[var(--text-secondary)] mb-3">
-                        {tomorrowLabel.charAt(0).toUpperCase() + tomorrowLabel.slice(1)} · {total} {total === 1 ? 'cita' : 'citas'} con teléfono
+                        {headingLabel.charAt(0).toUpperCase() + headingLabel.slice(1)} · {total} {total === 1 ? 'cita' : 'citas'} con teléfono
                         {total > 0 && ` · ${sentCount}/${total} enviados`}
                     </p>
 
@@ -100,7 +170,7 @@ export function TomorrowRemindersModal({ isOpen, onClose }: TomorrowRemindersMod
 
                     {!isLoading && total === 0 && (
                         <p className="text-sm text-[var(--text-muted)] py-6 text-center">
-                            No hay citas con teléfono para mañana.
+                            No hay citas con teléfono para ese día.
                         </p>
                     )}
 
@@ -112,7 +182,7 @@ export function TomorrowRemindersModal({ isOpen, onClose }: TomorrowRemindersMod
                                     patientName: apt.patient_name,
                                     serviceName: apt.service?.name,
                                     time,
-                                    dateLabel: 'mañana',
+                                    dateLabel,
                                 });
                                 const href = buildWaLink(text, apt.patient_phone);
                                 const isSent = sent.has(apt.id);
