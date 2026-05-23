@@ -11,10 +11,15 @@ export default function Providers({ children }: { children: React.ReactNode; non
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        // Disable stale-time so data isn't refetched too aggressively
-                        // Since we have Realtime subscriptions, data cache can be driven by events.
+                        // Realtime subscriptions drive cache invalidation, so widen the windows.
                         staleTime: 60 * 1000,
+                        gcTime: 5 * 60 * 1000,
                         refetchOnWindowFocus: false,
+                        refetchOnReconnect: 'always',
+                        retry: 1,
+                    },
+                    mutations: {
+                        retry: 0,
                     },
                 },
             })
