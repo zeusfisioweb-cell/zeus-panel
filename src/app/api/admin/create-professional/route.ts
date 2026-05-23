@@ -3,6 +3,7 @@ import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 import { checkRateLimit, getRetryAfterSeconds, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit';
 import { sendProfessionalWelcomeEmail } from '@/lib/email';
+import { buildProfessionalSetupLink } from '@/lib/auth-links';
 
 export async function POST(request: Request) {
     try {
@@ -114,20 +115,18 @@ export async function POST(request: Request) {
 
                 let reactEmailSent = false;
                 try {
-                    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-                    const redirectTo = appUrl ? `${new URL(appUrl).origin}/auth/callback?next=/auth/set-password` : undefined;
-                    const { data: linkData, error: linkError } = await adminAuthClient.auth.admin.generateLink({
-                        type: 'recovery',
+                    const { setupLink, error: linkError } = await buildProfessionalSetupLink({
+                        adminAuthClient,
                         email,
-                        options: redirectTo ? { redirectTo } : undefined,
+                        appUrl: process.env.NEXT_PUBLIC_APP_URL,
                     });
-                    if (linkError || !linkData?.properties?.action_link) {
+                    if (linkError || !setupLink) {
                         console.warn('Reactivate: failed to generate setup link', linkError);
                     } else {
                         await sendProfessionalWelcomeEmail({
                             to: email,
                             fullName: normalizedFullName,
-                            setupLink: linkData.properties.action_link,
+                            setupLink,
                         });
                         reactEmailSent = true;
                     }
@@ -245,22 +244,19 @@ export async function POST(request: Request) {
         // 6. Send welcome email with password setup link (non-blocking).
         let emailSent = false;
         try {
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-            const redirectTo = appUrl ? `${new URL(appUrl).origin}/auth/callback?next=/auth/set-password` : undefined;
-
-            const { data: linkData, error: linkError } = await adminAuthClient.auth.admin.generateLink({
-                type: 'recovery',
+            const { setupLink, error: linkError } = await buildProfessionalSetupLink({
+                adminAuthClient,
                 email,
-                options: redirectTo ? { redirectTo } : undefined,
+                appUrl: process.env.NEXT_PUBLIC_APP_URL,
             });
 
-            if (linkError || !linkData?.properties?.action_link) {
+            if (linkError || !setupLink) {
                 console.warn('Failed to generate setup link for professional:', linkError);
             } else {
                 await sendProfessionalWelcomeEmail({
                     to: email,
                     fullName: normalizedFullName,
-                    setupLink: linkData.properties.action_link,
+                    setupLink,
                 });
                 emailSent = true;
             }

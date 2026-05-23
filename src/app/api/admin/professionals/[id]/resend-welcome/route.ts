@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../../../_lib';
 import { checkRateLimit, getRetryAfterSeconds, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit';
 import { sendProfessionalWelcomeEmail } from '@/lib/email';
+import { buildProfessionalSetupLink } from '@/lib/auth-links';
 
 const ParamsSchema = z.object({
     id: z.string().uuid({ message: 'ID de profesional inválido' }),
@@ -48,16 +49,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
         const adminAuthClient = getAdminSupabase();
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const redirectTo = appUrl ? `${new URL(appUrl).origin}/auth/callback?next=/auth/set-password` : undefined;
-
-        const { data: linkData, error: linkError } = await adminAuthClient.auth.admin.generateLink({
-            type: 'recovery',
+        const { setupLink, error: linkError } = await buildProfessionalSetupLink({
+            adminAuthClient,
             email,
-            options: redirectTo ? { redirectTo } : undefined,
+            appUrl: process.env.NEXT_PUBLIC_APP_URL,
         });
 
-        if (linkError || !linkData?.properties?.action_link) {
+        if (linkError || !setupLink) {
             console.error('Failed to generate recovery link for professional:', linkError);
             return NextResponse.json({ error: 'No se pudo generar el enlace de acceso' }, { status: 500 });
         }
@@ -66,7 +64,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
             await sendProfessionalWelcomeEmail({
                 to: email,
                 fullName,
-                setupLink: linkData.properties.action_link,
+                setupLink,
             });
         } catch (emailErr) {
             console.error('Failed to send professional welcome email:', emailErr);
