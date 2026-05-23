@@ -1,9 +1,11 @@
 /**
  * Builds fillable AcroForm templates from the original legal PDFs.
  *
- * For each consent document: removes the inline sample/test data (rendered in a
- * separate handwriting subset font) from the content streams and adds named
- * AcroForm text fields at the exact original coordinates. Output overwrites the
+ * For each consent document: removes the inline sample/data text rendered in
+ * the embedded subset font ONLY on rows that correspond to a fillable slot
+ * (so baked clinic data like "ZEUS FISIOTERAPIA", "Aarón López Jarillo" and
+ * the practice address stay intact on other rows). Then adds named AcroForm
+ * text fields at the exact original coordinates. Output overwrites the
  * matching *_template.pdf in public/consentimientos.
  *
  *   node_modules/.bin/tsx scripts/build-pdf-templates.ts
@@ -23,12 +25,12 @@ import {
 import {
     PATIENT_DOCUMENT_TEMPLATES,
     slotRect,
-    normalizeLine,
     type TemplateSpec,
 } from '../src/lib/patient-document-templates';
 
 const DIR = path.join(process.cwd(), 'public', 'consentimientos');
 const SCORE_RE = /[A-Za-z0-9 áéíóúñÁÉÍÓÚÑüÜ.,;:/()\-º°ª']/;
+const BASELINE_TOLERANCE = 3;
 
 function streamBytes(s: PDFStream): Uint8Array {
     if (s instanceof PDFRawStream) return decodePDFRawStream(s).decode();
@@ -59,7 +61,7 @@ function tokenize(s: string): Tok[] {
 
 function gidsOf(tok: Tok): number[] {
     const out: number[] = [];
-    const collect = (raw: string, isHex: boolean) => {
+    const collect = (raw: string, isHex: boolean): void => {
         const codes: number[] = [];
         if (isHex) {
             const h = raw.replace(/[<>\s]/g, '');
@@ -84,44 +86,88 @@ function gidsOf(tok: Tok): number[] {
     return out;
 }
 
+const MM = (a: number[], b: number[]): number[] => [
+    a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
+    a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3],
+    a[4] * b[0] + a[5] * b[2] + b[4], a[4] * b[1] + a[5] * b[3] + b[5],
+];
+
+interface ShowEv { tokIdx: number; argIdx: number; font: string | null; y: number }
+
+function showEvents(text: string): ShowEv[] {
+    const toks = tokenize(text);
+    const evs: ShowEv[] = [];
+    let ctm = [1, 0, 0, 1, 0, 0];
+    const stack: number[][] = [];
+    let tm = [1, 0, 0, 1, 0, 0];
+    let tlm = [1, 0, 0, 1, 0, 0];
+    let fs = 0;
+    let lead = 0;
+    let font: string | null = null;
+    const args: Tok[] = [];
+    const pop = (n: number): number[] => {
+        const a = args.slice(-n).map((x) => parseFloat(x.v));
+        args.length = Math.max(0, args.length - n);
+        return a;
+    };
+    for (let i = 0; i < toks.length; i++) {
+        const t = toks[i];
+        if (t.kind !== 'op') { args.push(t); continue; }
+        const op = t.v;
+        if (op === 'q') stack.push(ctm.slice());
+        else if (op === 'Q') ctm = stack.pop() ?? ctm;
+        else if (op === 'cm') { const a = pop(6); ctm = MM(a, ctm); }
+        else if (op === 'Tf') { fs = parseFloat(toks[i - 1].v); font = toks[i - 2]?.v ?? font; args.length = 0; }
+        else if (op === 'BT') { tm = [1, 0, 0, 1, 0, 0]; tlm = tm.slice(); }
+        else if (op === 'TL') lead = pop(1)[0];
+        else if (op === 'Td') { const [x, y] = pop(2); tlm = MM([1, 0, 0, 1, x, y], tlm); tm = tlm.slice(); }
+        else if (op === 'TD') { const [x, y] = pop(2); lead = -y; tlm = MM([1, 0, 0, 1, x, y], tlm); tm = tlm.slice(); }
+        else if (op === 'Tm') { const a = pop(6); tlm = a; tm = a.slice(); }
+        else if (op === 'T*') { tlm = MM([1, 0, 0, 1, 0, -lead], tlm); tm = tlm.slice(); }
+        else if (op === 'Tj' || op === 'TJ' || op === "'" || op === '"') {
+            if (op !== 'Tj' && op !== 'TJ') { tlm = MM([1, 0, 0, 1, 0, -lead], tlm); tm = tlm.slice(); }
+            const trm = MM(MM([fs, 0, 0, fs, 0, 0], tm), ctm);
+            evs.push({ tokIdx: i, argIdx: i - 1, font, y: trm[5] });
+            args.length = 0;
+        } else args.length = 0;
+    }
+    return evs;
+}
+
+interface ChunkInfo { ref: unknown; pageIdx: number; text: string; toks: Tok[]; evs: ShowEv[] }
+
 async function buildOne(docType: string, spec: TemplateSpec): Promise<void> {
     const srcPath = path.join(DIR, spec.sourcePdf);
     const doc = await PDFDocument.load(await readFile(srcPath), { updateMetadata: false });
     const pages = doc.getPages();
 
-    // 0. Strip every pre-existing annotation. The original carries Ink
-    //    scribbles + Popups that were drawn over the sample data to redact it
-    //    (they survive sample-font stripping and show as struck-through/cut
-    //    blanks). addToPage repopulates Annots with only our widgets.
+    // 0. Strip every pre-existing annotation. Originals may carry Ink
+    //    scribbles + Popups drawn over the sample data to redact it.
     for (const page of pages) page.node.delete(PDFName.of('Annots'));
 
-    // 1. Score every font resource across all pages; the sample/test-data font
-    //    is a usage-ordered subset that does not decode under the +29 heuristic.
+    // 1. Collect content streams + show-text events per page.
     const fontGids: Record<string, number[]> = {};
-    type PageChunk = { pageIdx: number; ref: unknown; text: string };
-    const chunks: PageChunk[] = [];
+    const chunks: ChunkInfo[] = [];
 
     pages.forEach((page, pi) => {
-        const node = page.node;
-        const contents = node.Contents();
+        const contents = page.node.Contents();
         const refs: unknown[] =
             contents instanceof PDFArray ? contents.asArray() : contents ? [contents] : [];
         for (const ref of refs) {
-            const st = (doc.context.lookup(ref) as PDFStream);
+            const st = doc.context.lookup(ref) as PDFStream;
             const text = Buffer.from(streamBytes(st)).toString('latin1');
-            chunks.push({ pageIdx: pi, ref, text });
             const toks = tokenize(text);
-            let font: string | null = null;
-            for (let i = 0; i < toks.length; i++) {
-                const t = toks[i];
-                if (t.v === 'Tf') font = toks[i - 2]?.v ?? font;
-                else if ((t.v === 'Tj' || t.v === 'TJ' || t.v === "'" || t.v === '"') && font) {
-                    (fontGids[font] ||= []).push(...gidsOf(toks[i - 1]));
-                }
+            const evs = showEvents(text);
+            chunks.push({ ref, pageIdx: pi, text, toks, evs });
+            for (const ev of evs) {
+                if (!ev.font) continue;
+                (fontGids[ev.font] ||= []).push(...gidsOf(toks[ev.argIdx]));
             }
         }
     });
 
+    // 2. Score each font: the data/sample font is a usage-ordered subset that
+    //    does not decode under the +29 heuristic.
     const sampleFonts = new Set<string>();
     for (const [fk, gids] of Object.entries(fontGids)) {
         let ok = 0;
@@ -135,41 +181,40 @@ async function buildOne(docType: string, spec: TemplateSpec): Promise<void> {
     }
     console.log(`${docType}: sample fonts =`, [...sampleFonts].join(', ') || '(none)');
 
-    // 2. Rewrite each content stream, dropping show-text ops whose active font
-    //    is a sample font (and their operand). Positioning ops are preserved.
+    // 3. Drop sample-font show-text ops ONLY when they sit on a slot baseline
+    //    listed in the spec. Sample-font text on other rows (clinic name,
+    //    address, responsible therapist) is preserved.
+    const baselines = spec.slotBaselines ?? [];
     for (const ch of chunks) {
-        const toks = tokenize(ch.text);
-        if (toks.some((t) => t.v === 'BI')) {
+        if (ch.toks.some((t) => t.v === 'BI')) {
             throw new Error(`${docType} page ${ch.pageIdx}: inline image present, aborting strip`);
         }
         const drop = new Set<number>();
-        let font: string | null = null;
-        for (let i = 0; i < toks.length; i++) {
-            const t = toks[i];
-            if (t.v === 'Tf') font = toks[i - 2]?.v ?? font;
-            else if (t.v === 'Tj' || t.v === 'TJ' || t.v === "'" || t.v === '"') {
-                if (font && sampleFonts.has(font)) {
-                    drop.add(i);
-                    if (toks[i - 1] && ['str', 'hex', 'arr'].includes(toks[i - 1].kind)) drop.add(i - 1);
-                }
-            }
+        for (const ev of ch.evs) {
+            if (!ev.font || !sampleFonts.has(ev.font)) continue;
+            const onSlot = baselines.some(
+                (b) => b.page === ch.pageIdx && Math.abs(ev.y - b.y) <= BASELINE_TOLERANCE
+            );
+            if (!onSlot) continue;
+            drop.add(ev.tokIdx);
+            const arg = ch.toks[ev.argIdx];
+            if (arg && ['str', 'hex', 'arr'].includes(arg.kind)) drop.add(ev.argIdx);
         }
         if (drop.size === 0) continue;
         let out = '';
         let cursor = 0;
-        for (let i = 0; i < toks.length; i++) {
+        for (let i = 0; i < ch.toks.length; i++) {
             if (!drop.has(i)) continue;
-            out += ch.text.slice(cursor, toks[i].start);
-            cursor = toks[i].end;
+            out += ch.text.slice(cursor, ch.toks[i].start);
+            cursor = ch.toks[i].end;
         }
         out += ch.text.slice(cursor);
         const newStream = doc.context.flateStream(Buffer.from(out, 'latin1'));
         const newRef = doc.context.register(newStream);
-        const node = pages[ch.pageIdx].node;
-        node.set(PDFName.of('Contents'), newRef);
+        pages[ch.pageIdx].node.set(PDFName.of('Contents'), newRef);
     }
 
-    // 3. Add AcroForm text fields at the original slot coordinates.
+    // 4. Add AcroForm text fields at the slot coordinates.
     const form = doc.getForm();
     const helv = await doc.embedFont(StandardFonts.Helvetica);
     const created = new Set<string>();
@@ -193,40 +238,9 @@ async function buildOne(docType: string, spec: TemplateSpec): Promise<void> {
             textColor: rgb(0, 0, 0),
             font: helv,
         });
-        // Fixed size derived from the original blank: the slot width equals the
-        // sample-text extent, so Helvetica at this size always fits.
         field.setFontSize(fontSize);
     }
 
-    // Signature areas: a clean printed line under each "Firma" label. No
-    // AcroForm field — an editable field renders as a tinted box in Chrome,
-    // which reads as broken. The line is signable on paper or with any PDF
-    // viewer's annotate/sign tool.
-    for (const sig of spec.signatureFields ?? []) {
-        // White band from just under the "Firma" label down past where the
-        // original guide + baked sample signature sit (vector ink that the
-        // annotation/font strips don't remove). Clear of the label and prose.
-        const top = sig.labelBaseline - 4;
-        const bottom = sig.labelBaseline - 118;
-        pages[sig.page].drawRectangle({
-            x: 64,
-            y: bottom,
-            width: 472,
-            height: top - bottom,
-            color: rgb(1, 1, 1),
-            borderWidth: 0,
-        });
-        // One clean signature line a short gap below the label.
-        pages[sig.page].drawLine({
-            start: { x: 76, y: sig.labelBaseline - 24 },
-            end: { x: 320, y: sig.labelBaseline - 24 },
-            thickness: 0.75,
-            color: rgb(0.4, 0.4, 0.4),
-        });
-    }
-
-    // Remove widget border/background dicts so no box is drawn over the legal
-    // prose when appearances are regenerated at fill time.
     for (const name of created) {
         for (const w of form.getTextField(name).acroField.getWidgets()) {
             w.dict.delete(PDFName.of('BS'));
@@ -240,261 +254,10 @@ async function buildOne(docType: string, spec: TemplateSpec): Promise<void> {
     console.log(`${docType}: wrote ${outName} (${spec.slots.length} slots, fields: ${[...created].join(', ')})`);
 }
 
-const M = (a: number[], b: number[]): number[] => [
-    a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
-    a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3],
-    a[4] * b[0] + a[5] * b[2] + b[4], a[4] * b[1] + a[5] * b[3] + b[5],
-];
-
-interface Ev { ref: unknown; opI: number; argI: number; x: number; y: number; size: number; text: string }
-interface Line { y: number; xMin: number; size: number; evs: Ev[]; text: string }
-
-function pageLines(text: string, ref: unknown): Ev[] {
-    const toks = tokenize(text);
-    const evs: Ev[] = [];
-    let ctm = [1, 0, 0, 1, 0, 0];
-    const stack: number[][] = [];
-    let tm = [1, 0, 0, 1, 0, 0];
-    let tlm = [1, 0, 0, 1, 0, 0];
-    let fs = 0;
-    let lead = 0;
-    const args: Tok[] = [];
-    const pop = (n: number): number[] => {
-        const a = args.slice(-n).map((x) => parseFloat(x.v));
-        args.length = Math.max(0, args.length - n);
-        return a;
-    };
-    for (let i = 0; i < toks.length; i++) {
-        const t = toks[i];
-        if (t.kind !== 'op') { args.push(t); continue; }
-        const op = t.v;
-        if (op === 'q') stack.push(ctm.slice());
-        else if (op === 'Q') ctm = stack.pop() ?? ctm;
-        else if (op === 'cm') { const a = pop(6); ctm = M(a, ctm); }
-        else if (op === 'Tf') { fs = parseFloat(toks[i - 1].v); args.length = 0; }
-        else if (op === 'BT') { tm = [1, 0, 0, 1, 0, 0]; tlm = tm.slice(); }
-        else if (op === 'TL') lead = pop(1)[0];
-        else if (op === 'Td') { const [x, y] = pop(2); tlm = M([1, 0, 0, 1, x, y], tlm); tm = tlm.slice(); }
-        else if (op === 'TD') { const [x, y] = pop(2); lead = -y; tlm = M([1, 0, 0, 1, x, y], tlm); tm = tlm.slice(); }
-        else if (op === 'Tm') { const a = pop(6); tlm = a; tm = a.slice(); }
-        else if (op === 'T*') { tlm = M([1, 0, 0, 1, 0, -lead], tlm); tm = tlm.slice(); }
-        else if (op === 'Tj' || op === 'TJ' || op === "'" || op === '"') {
-            if (op !== 'Tj' && op !== 'TJ') { tlm = M([1, 0, 0, 1, 0, -lead], tlm); tm = tlm.slice(); }
-            const arg = toks[i - 1];
-            const gids = gidsOf(arg);
-            const txt = gids.map((g) => (g ? String.fromCharCode(g + 29) : '')).join('');
-            const trm = M(M([fs, 0, 0, fs, 0, 0], tm), ctm);
-            evs.push({ ref, opI: i, argI: i - 1, x: trm[4], y: trm[5], size: Math.hypot(trm[2], trm[3]), text: txt });
-            args.length = 0;
-        } else args.length = 0;
-    }
-    return evs;
-}
-
-function groupLines(evs: Ev[]): Line[] {
-    const sorted = evs.slice().sort((a, b) => (b.y - a.y) || (a.x - b.x));
-    const lines: Line[] = [];
-    let cur: Line | null = null;
-    for (const e of sorted) {
-        if (!e.text) continue;
-        if (cur && Math.abs(e.y - cur.y) <= 2.5) {
-            cur.evs.push(e);
-            cur.xMin = Math.min(cur.xMin, e.x);
-            cur.size = Math.max(cur.size, e.size);
-            cur.text += e.text;
-        } else {
-            if (cur && cur.text.trim()) lines.push(cur);
-            cur = { y: e.y, xMin: e.x, size: e.size, evs: [e], text: e.text };
-        }
-    }
-    if (cur && cur.text.trim()) lines.push(cur);
-    return lines;
-}
-
-async function buildHistoria(docType: string, spec: TemplateSpec): Promise<void> {
-    const srcPath = path.join(DIR, spec.sourcePdf);
-    const doc = await PDFDocument.load(await readFile(srcPath), { updateMetadata: false });
-    const pages = doc.getPages();
-    const form = doc.getForm();
-    const helv = await doc.embedFont(StandardFonts.Helvetica);
-    const anchors = spec.historiaAnchors ?? [];
-    const HEADING_MIN = 13;
-    const LABEL_X = 95;
-
-    interface FieldDef {
-        name: string;
-        page: number;
-        rect: [number, number, number, number];
-        multiline: boolean;
-    }
-    const fields: FieldDef[] = [];
-    const dropByRef = new Map<unknown, Set<number>>();
-    const markDrop = (ref: unknown, ...idx: number[]) => {
-        let s = dropByRef.get(ref);
-        if (!s) { s = new Set(); dropByRef.set(ref, s); }
-        for (const i of idx) s.add(i);
-    };
-
-    pages.forEach((page, pi) => {
-        const { width, height } = page.getSize();
-        const rightMargin = width - 72;
-        const contents = page.node.Contents();
-        const refs: unknown[] =
-            contents instanceof PDFArray ? contents.asArray() : contents ? [contents] : [];
-        const evs: Ev[] = [];
-        for (const ref of refs) {
-            const txt = Buffer.from(streamBytes(doc.context.lookup(ref) as PDFStream)).toString('latin1');
-            evs.push(...pageLines(txt, ref));
-        }
-        const lines = groupLines(evs);
-        // Section headings are ~15.6pt; the document title is ~14.9pt — exclude
-        // it so the date/place line (between title and first heading) is found.
-        const SECTION_MIN = 15.2;
-        const firstHeadingY =
-            lines.find((l) => l.size >= SECTION_MIN && l.xMin < LABEL_X)?.y ?? height;
-
-        // Static = headings, indented labels/prompts, page footer (bottom) and
-        // the running header (top band) — none of which carry sample data.
-        const isStatic = (l: Line): boolean =>
-            l.size >= HEADING_MIN ||
-            l.y < 50 ||
-            l.y > height - 55 ||
-            l.xMin >= LABEL_X;
-
-        let open: { field: string; topY: number } | null = null;
-        const closeBlock = (bottomY: number) => {
-            if (!open) return;
-            const top = open.topY;
-            const bot = Math.min(bottomY, top - 12);
-            fields.push({
-                name: open.field,
-                page: pi,
-                rect: [76, bot, rightMargin, top],
-                multiline: true,
-            });
-            open = null;
-        };
-
-        for (const line of lines) {
-            const norm = normalizeLine(line.text);
-
-            // Date/place line: body-size text in the left column sitting between
-            // the title and the first section heading (not a header/footer).
-            if (
-                line.size >= 9 &&
-                line.size < HEADING_MIN &&
-                line.xMin < LABEL_X &&
-                line.y > firstHeadingY &&
-                line.y < height - 55
-            ) {
-                for (const e of line.evs) markDrop(e.ref, e.opI, e.argI);
-                fields.push({
-                    name: 'historia_fecha',
-                    page: pi,
-                    rect: [line.xMin, line.y - line.size * 0.28, rightMargin, line.y + line.size],
-                    multiline: false,
-                });
-                continue;
-            }
-
-            if (isStatic(line)) {
-                // Inline "Label:value" on the same indented line.
-                if (line.xMin >= LABEL_X && line.text.includes(':')) {
-                    const colon = line.evs.findIndex((e) => e.text.includes(':'));
-                    const valueEvs = line.evs.slice(colon + 1);
-                    const anchor = anchors.find((a) => a.kind === 'inline' && norm.startsWith(a.match));
-                    if (anchor) {
-                        closeBlock(line.y + line.size);
-                        for (const e of valueEvs) markDrop(e.ref, e.opI, e.argI);
-                        const labelEnd = line.evs[colon];
-                        const x0 = valueEvs[0]?.x ?? labelEnd.x + labelEnd.size * 0.7;
-                        fields.push({
-                            name: anchor.field,
-                            page: pi,
-                            rect: [x0, line.y - line.size * 0.28, rightMargin, line.y + line.size],
-                            multiline: false,
-                        });
-                        continue;
-                    }
-                }
-                // Heading / label-only / prompt: may open a block.
-                const block = anchors.find((a) => a.kind === 'block' && norm.startsWith(a.match));
-                if (block) {
-                    closeBlock(line.y + line.size);
-                    // Drop the block top a bit below the heading so the
-                    // top of the rendered value (ascender of «-marker / first
-                    // capital) is not clipped by the box edge.
-                    open = { field: block.field, topY: line.y - line.size * 1.6 };
-                } else {
-                    closeBlock(line.y + line.size);
-                }
-                continue;
-            }
-
-            // Value line: belongs to the currently open block.
-            for (const e of line.evs) markDrop(e.ref, e.opI, e.argI);
-        }
-        closeBlock(60);
-    });
-
-    // Rewrite content streams, removing dropped show-text ops + operands.
-    pages.forEach((page) => {
-        const contents = page.node.Contents();
-        const refs: unknown[] =
-            contents instanceof PDFArray ? contents.asArray() : contents ? [contents] : [];
-        for (const ref of refs) {
-            const drop = dropByRef.get(ref);
-            if (!drop || drop.size === 0) continue;
-            const raw = Buffer.from(streamBytes(doc.context.lookup(ref) as PDFStream)).toString('latin1');
-            const toks = tokenize(raw);
-            let out = '';
-            let cursor = 0;
-            for (let i = 0; i < toks.length; i++) {
-                if (!drop.has(i)) continue;
-                out += raw.slice(cursor, toks[i].start);
-                cursor = toks[i].end;
-            }
-            out += raw.slice(cursor);
-            const ns = doc.context.flateStream(Buffer.from(out, 'latin1'));
-            page.node.set(PDFName.of('Contents'), doc.context.register(ns));
-        }
-    });
-
-    const created = new Set<string>();
-    for (const f of fields) {
-        let tf;
-        if (created.has(f.name)) tf = form.getTextField(f.name);
-        else { tf = form.createTextField(f.name); created.add(f.name); }
-        if (f.multiline) tf.enableMultiline();
-        tf.addToPage(pages[f.page], {
-            x: f.rect[0],
-            y: f.rect[1],
-            width: Math.max(8, f.rect[2] - f.rect[0]),
-            height: Math.max(8, f.rect[3] - f.rect[1]),
-            borderWidth: 0,
-            backgroundColor: undefined,
-            textColor: rgb(0, 0, 0),
-            font: helv,
-        });
-        tf.setFontSize(f.multiline ? 9 : 0);
-    }
-    for (const name of created) {
-        for (const w of form.getTextField(name).acroField.getWidgets()) {
-            w.dict.delete(PDFName.of('BS'));
-            w.dict.delete(PDFName.of('MK'));
-        }
-    }
-
-    const outName = spec.sourcePdf.replace('_original.pdf', '_template.pdf');
-    await writeFile(path.join(DIR, outName), await doc.save());
-    console.log(`${docType}: wrote ${outName} (historia, fields: ${[...created].join(', ')})`);
-}
-
 async function main(): Promise<void> {
     for (const [docType, spec] of Object.entries(PATIENT_DOCUMENT_TEMPLATES)) {
         if (!spec) continue;
-        if (spec.mode === 'historia') await buildHistoria(docType, spec);
-        else await buildOne(docType, spec);
+        await buildOne(docType, spec);
     }
 }
 

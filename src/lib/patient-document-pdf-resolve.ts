@@ -1,8 +1,8 @@
 /**
  * Resolver compartido entre el renderer AcroForm clásico y el renderer overlay.
  * Convierte (fieldName, spec, input) en el string a pintar — la lógica de
- * dónde proviene cada dato (config clínica, fecha, paciente, formulario) vive
- * aquí para que ambos pipelines la compartan.
+ * dónde proviene cada dato (ciudad, fecha, formulario) vive aquí para que
+ * ambos pipelines la compartan.
  */
 import {
     cityFromAddress,
@@ -40,35 +40,18 @@ export function resolvePatientDocumentFieldValue(
     spec: TemplateSpec,
     input: PatientDocumentPdfInput
 ): string {
-    if (field === 'historia_fecha') {
-        const { day, month, year } = dateParts(documentIso(input));
-        const city = cityFromAddress(input.clinicAddress);
-        return `En ${city} el ${day} de ${month} de ${year}`;
-    }
-
     const source = spec.fieldSources[field];
     if (!source) return '';
 
     if (source.kind === 'config') {
-        if (source.key === 'clinic_name') return normalizeText(input.clinicName ?? '');
-        if (source.key === 'address') return normalizeText(input.clinicAddress ?? '');
-        const city = cityFromAddress(input.clinicAddress);
-        // El hueco "En ___ el" es muy estrecho; nos quedamos sólo con la
-        // ciudad sin provincia para que quepa al tamaño de prosa.
-        if (field === 'lugar') return city.split(',')[0].trim();
-        return city;
+        // Solo `city` queda como config — el resto está horneado en la
+        // plantilla. La línea "En ___ el" es muy estrecha, así que nos
+        // quedamos sólo con la ciudad sin provincia.
+        return cityFromAddress(input.clinicAddress).split(',')[0].trim();
     }
 
     if (source.kind === 'date') {
         return dateParts(documentIso(input))[source.part];
-    }
-
-    if (source.kind === 'patient') {
-        const name = normalizeText(input.patientName ?? '');
-        if (source.key === 'document_id') return normalizeText(input.patientDocumentId ?? '');
-        const parts = name.split(/\s+/).filter(Boolean);
-        if (source.key === 'name_first') return parts[0] ?? '';
-        return parts.slice(1).join(' ');
     }
 
     const formValue = normalizeText(input.formData[source.key]);

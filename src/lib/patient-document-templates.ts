@@ -14,50 +14,41 @@ export interface TemplateSlot {
 }
 
 // Where each field's value comes from at render time.
-//  - 'config'  : derived server-side from booking_settings
+//  - 'config'  : derived from booking_settings (only `city` survives — used to
+//                fill "En {ciudad} el ...". Other config fields are baked into
+//                the plantilla.
 //  - 'form'    : entered by the admin in the document modal
 //  - 'date:*'  : derived from the document date
 export type FieldSource =
-    | { kind: 'config'; key: 'clinic_name' | 'address' | 'city' }
+    | { kind: 'config'; key: 'city' }
     | { kind: 'form'; key: string }
-    | { kind: 'date'; part: 'day' | 'month' | 'year' }
-    | { kind: 'patient'; key: 'name_first' | 'name_rest' | 'document_id' };
+    | { kind: 'date'; part: 'day' | 'month' | 'year' };
 
-// A field anchor for the clinical-history form. The original document is a
-// flowing label/value layout (not fixed inline blanks): sample data is removed
-// by geometry and replaced with AcroForm fields keyed off the static text.
+// A field anchor for the clinical-history form. Kept for type compatibility
+// with the dynamic builder, although `clinical_history` no longer uses
+// AcroForm templates (renderHistoriaClinicaDynamic builds the PDF entirely).
 export interface HistoriaAnchor {
-    // Normalized (lowercase, no spaces/accents) prefix of the static line.
     match: string;
     field: string;
-    // 'inline' = value sits after the label colon on the same line.
-    // 'block'  = value flows on the following indented lines (multiline field).
     kind: 'inline' | 'block';
-}
-
-// A handwritten-signature area. The original's blank guide + baked sample
-// signature are covered with a white band and replaced by one clean printed
-// line just below the "Firma" label (no AcroForm field — an editable field
-// renders as a tinted box in Chrome and reads as broken).
-export interface SignatureField {
-    page: number;
-    // PDF-point baseline of the "Firma" label this area belongs to.
-    labelBaseline: number;
 }
 
 export interface TemplateSpec {
     sourcePdf: string;
     slots: TemplateSlot[];
     fieldSources: Record<string, FieldSource>;
-    mode?: 'slots' | 'historia';
-    historiaAnchors?: HistoriaAnchor[];
-    signatureFields?: SignatureField[];
+    // Y baselines (in points) where the legal prose carries a fillable line
+    // and the sample/data font renders the placeholder. The build script uses
+    // these to remove sample-font show-text ops on those rows while keeping
+    // baked-in clinic data (clinic name, address, responsible therapist, etc.)
+    // intact on other rows.
+    slotBaselines?: { page: number; y: number }[];
 }
 
 export function normalizeLine(s: string): string {
     return s
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[̀-ͯ]/g, '')
         .toLowerCase()
         .replace(/[^a-z0-9:]/g, '');
 }
@@ -77,22 +68,18 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
     data_consent: {
         sourcePdf: 'consentimiento_lopd_original.pdf',
         slots: [
-            { field: 'clinic_name', page: 0, x0: 235.6, x1: 358.2, baseline: 652.2, sampleSize: 15.6 },
-            { field: 'responsable_tratamiento', page: 0, x0: 149.8, x1: 251.8, baseline: 629.7, sampleSize: 15.6 },
-            { field: 'clinic_name', page: 0, x0: 125.3, x1: 247.9, baseline: 554.7, sampleSize: 15.6 },
-            { field: 'direccion', page: 0, x0: 72, x1: 260, baseline: 505.9, sampleSize: 15.6 },
             ...DATE_LINE(0, 280.9),
             { field: 'nombre_firmante', page: 0, x0: 106.4, x1: 204.1, baseline: 190.9, sampleSize: 15.6 },
-            // dni_firmante ends the line, safe to widen.
             { field: 'dni_firmante', page: 0, x0: 243.5, x1: 340, baseline: 190.9, sampleSize: 15.6 },
-            { field: 'nombre_tutor', page: 1, x0: 107, x1: 290, baseline: 607.9, sampleSize: 15.6 },
-            // dni_tutor ends the line.
-            { field: 'dni_tutor', page: 1, x0: 340, x1: 550, baseline: 607.9, sampleSize: 15.6 },
+            { field: 'nombre_tutor', page: 1, x0: 107, x1: 290, baseline: 607.9, sampleSize: 9.9 },
+            { field: 'dni_tutor', page: 1, x0: 340, x1: 550, baseline: 607.9, sampleSize: 9.9 },
+        ],
+        slotBaselines: [
+            { page: 0, y: 280.9 },
+            { page: 0, y: 190.9 },
+            { page: 1, y: 607.9 },
         ],
         fieldSources: {
-            clinic_name: { kind: 'config', key: 'clinic_name' },
-            responsable_tratamiento: { kind: 'config', key: 'clinic_name' },
-            direccion: { kind: 'config', key: 'address' },
             lugar: { kind: 'config', key: 'city' },
             dia: { kind: 'date', part: 'day' },
             mes: { kind: 'date', part: 'month' },
@@ -106,102 +93,34 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
     intervention_consent: {
         sourcePdf: 'consentimiento_intervencion_original.pdf',
         slots: [
-            // Page idx4 ("Página 5 de 6"). Coordinates measured from the
-            // surrounding static prose in the original PDF; baselines match the
-            // body text (9.9pt) so filled values sit on the same line.
-            // "En ___ el ___ de ___ de ___"
-            { field: 'lugar', page: 4, x0: 86, x1: 127, baseline: 731.2, sampleSize: 15.6 },
-            { field: 'dia', page: 4, x0: 139, x1: 155, baseline: 731.2, sampleSize: 15.6 },
-            { field: 'mes', page: 4, x0: 172, x1: 225, baseline: 731.2, sampleSize: 15.6 },
-            { field: 'anio', page: 4, x0: 242, x1: 300, baseline: 731.2, sampleSize: 15.6 },
+            ...DATE_LINE(4, 734.7),
             // PACIENTE: "D/Dña ___ con DNI ___"
-            { field: 'nombre_firmante', page: 4, x0: 106, x1: 201, baseline: 641.9, sampleSize: 15.6 },
-            // dni_firmante ends the line, safe to widen.
-            { field: 'dni_firmante', page: 4, x0: 243, x1: 400, baseline: 641.9, sampleSize: 15.6 },
+            { field: 'nombre_firmante', page: 4, x0: 106, x1: 201, baseline: 645.4, sampleSize: 15.6 },
+            { field: 'dni_firmante', page: 4, x0: 243, x1: 400, baseline: 645.4, sampleSize: 15.6 },
             // TUTOR line 1: "Ante la imposibilidad de D/Dña ___ con DNI ___ de prestar..."
-            { field: 'nombre_tutor', page: 4, x0: 229, x1: 323, baseline: 194.2, sampleSize: 15.6 },
-            { field: 'dni_tutor', page: 4, x0: 366, x1: 425, baseline: 194.2, sampleSize: 15.6 },
+            { field: 'nombre_tutor', page: 4, x0: 229, x1: 323, baseline: 197.7, sampleSize: 15.6 },
+            { field: 'dni_tutor', page: 4, x0: 366, x1: 425, baseline: 197.7, sampleSize: 15.6 },
             // TUTOR line 2: "D/Dña ___ con DNI ___ . En calidad de ___"
-            { field: 'nombre_tutor', page: 4, x0: 106, x1: 294, baseline: 143.9, sampleSize: 15.6 },
-            { field: 'dni_tutor', page: 4, x0: 337, x1: 412, baseline: 143.9, sampleSize: 15.6 },
-            // relacion_tutor ends the line, safe to widen.
-            { field: 'relacion_tutor', page: 4, x0: 489, x1: 570, baseline: 143.9, sampleSize: 15.6 },
-            // Page idx5 ("Página 6 de 6"). FISIOTERAPEUTA block.
-            { field: 'nombre_fisioterapeuta', page: 5, x0: 106, x1: 206, baseline: 559.4, sampleSize: 15.6 },
-            { field: 'num_colegiado', page: 5, x0: 248, x1: 311, baseline: 559.4, sampleSize: 15.6 },
-            { field: 'clinic_name', page: 5, x0: 147, x1: 270, baseline: 536.9, sampleSize: 15.6 },
+            { field: 'nombre_tutor', page: 4, x0: 106, x1: 294, baseline: 147.4, sampleSize: 9.9 },
+            { field: 'dni_tutor', page: 4, x0: 337, x1: 412, baseline: 147.4, sampleSize: 9.9 },
+            { field: 'relacion_tutor', page: 4, x0: 489, x1: 570, baseline: 147.4, sampleSize: 9.9 },
         ],
-        signatureFields: [
-            { page: 4, labelBaseline: 371.2 }, // PACIENTE
-            { page: 5, labelBaseline: 736.4 }, // TUTOR
-            { page: 5, labelBaseline: 428.2 }, // FISIOTERAPEUTA
+        slotBaselines: [
+            { page: 4, y: 734.7 },
+            { page: 4, y: 645.4 },
+            { page: 4, y: 197.7 },
+            { page: 4, y: 147.4 },
         ],
         fieldSources: {
             lugar: { kind: 'config', key: 'city' },
             dia: { kind: 'date', part: 'day' },
             mes: { kind: 'date', part: 'month' },
             anio: { kind: 'date', part: 'year' },
-            clinic_name: { kind: 'config', key: 'clinic_name' },
             nombre_firmante: { kind: 'form', key: 'nombre_firmante' },
             dni_firmante: { kind: 'form', key: 'dni_firmante' },
             nombre_tutor: { kind: 'form', key: 'nombre_tutor' },
             dni_tutor: { kind: 'form', key: 'dni_tutor' },
             relacion_tutor: { kind: 'form', key: 'relacion_tutor' },
-            nombre_fisioterapeuta: { kind: 'form', key: 'nombre_fisioterapeuta' },
-            num_colegiado: { kind: 'form', key: 'num_colegiado' },
-        },
-    },
-    clinical_history: {
-        sourcePdf: 'historia_clinica_fisioterapeutica_original.pdf',
-        slots: [],
-        mode: 'historia',
-        historiaAnchors: [
-            { match: 'nombre:', field: 'nombre', kind: 'inline' },
-            { match: 'apellidos:', field: 'apellidos', kind: 'inline' },
-            { match: 'edad:', field: 'edad', kind: 'inline' },
-            { match: 'sexo:', field: 'sexo', kind: 'inline' },
-            { match: 'ocupacion:', field: 'ocupacion', kind: 'inline' },
-            { match: 'peso:', field: 'peso', kind: 'inline' },
-            { match: 'altura:', field: 'altura', kind: 'inline' },
-            { match: 'tipo:', field: 'tipo', kind: 'inline' },
-            { match: 'frecuenciadeejerciciofisico:', field: 'frecuencia_ejercicio', kind: 'inline' },
-            { match: 'motivodelaconsulta', field: 'motivo_consulta', kind: 'block' },
-            { match: 'antecedentespersonales:', field: 'antecedentes_personales', kind: 'block' },
-            { match: 'historialfamiliar:', field: 'historial_familiar', kind: 'block' },
-            { match: 'sintomatologiapresentadaporelpaciente', field: 'sintomatologia', kind: 'block' },
-            { match: 'efectosdelalesionsobrelacapacidad', field: 'efectos_lesion', kind: 'block' },
-            { match: 'descripciondelossintomasdeladolencia', field: 'descripcion_sintomas', kind: 'block' },
-            { match: 'valoraciondelamovilidad', field: 'valoracion_movilidad', kind: 'block' },
-            { match: 'pruebasdiagnosticas', field: 'pruebas_diagnosticas', kind: 'block' },
-            { match: 'diagnosticodelproblemapresentadoporelpaciente', field: 'diagnostico', kind: 'block' },
-            { match: 'tratamientorecomendado', field: 'tratamiento_recomendado', kind: 'block' },
-            { match: 'evoluciondelpacientetraseltratamiento', field: 'evolucion', kind: 'block' },
-        ],
-        fieldSources: {
-            nombre: { kind: 'patient', key: 'name_first' },
-            apellidos: { kind: 'patient', key: 'name_rest' },
-            lugar: { kind: 'config', key: 'city' },
-            dia: { kind: 'date', part: 'day' },
-            mes: { kind: 'date', part: 'month' },
-            anio: { kind: 'date', part: 'year' },
-            edad: { kind: 'form', key: 'edad' },
-            sexo: { kind: 'form', key: 'sexo' },
-            ocupacion: { kind: 'form', key: 'ocupacion' },
-            peso: { kind: 'form', key: 'peso' },
-            altura: { kind: 'form', key: 'altura' },
-            tipo: { kind: 'form', key: 'tipo' },
-            frecuencia_ejercicio: { kind: 'form', key: 'frecuencia_ejercicio' },
-            motivo_consulta: { kind: 'form', key: 'motivo_consulta' },
-            antecedentes_personales: { kind: 'form', key: 'antecedentes_personales' },
-            historial_familiar: { kind: 'form', key: 'historial_familiar' },
-            sintomatologia: { kind: 'form', key: 'sintomatologia' },
-            efectos_lesion: { kind: 'form', key: 'efectos_lesion' },
-            descripcion_sintomas: { kind: 'form', key: 'descripcion_sintomas' },
-            valoracion_movilidad: { kind: 'form', key: 'valoracion_movilidad' },
-            pruebas_diagnosticas: { kind: 'form', key: 'pruebas_diagnosticas' },
-            diagnostico: { kind: 'form', key: 'diagnostico' },
-            tratamiento_recomendado: { kind: 'form', key: 'tratamiento_recomendado' },
-            evolucion: { kind: 'form', key: 'evolucion' },
         },
     },
 };

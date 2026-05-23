@@ -1,13 +1,37 @@
 /**
  * Renderer dinámico de la Historia Clínica Fisioterapéutica.
  *
- * A diferencia de LOPD/intervención (texto legal estático sobre el que
- * dibujamos los datos), aquí construimos el PDF entero per-paciente: cada
- * bloque reserva sólo el espacio que su contenido necesita + un mínimo, y
- * se pagina automáticamente cuando el cursor sale del margen inferior.
+ * Construye el PDF entero per-paciente con el layout "bullets + headings"
+ * (refresh 2026-05): título, línea fecha plain, secciones con H1 y bullets
+ * verticales o párrafos de texto libre. Sin plantilla — la única fuente
+ * tipográfica es Helvetica (regular + bold) embebida en runtime.
  *
- * Beneficio: pacientes con notas cortas → 1 página; pacientes con notas
- * extensas → 2-3 páginas. Sin huecos vacíos ni overlaps con headings.
+ * Layout (orden y tipos):
+ *   TITLE
+ *   En {ciudad} el {dia} de {mes} de {año}
+ *   H1 Datos del Paciente
+ *     • Nombre / Apellidos / Edad / Sexo / Ocupación
+ *   H1 Motivo de la consulta
+ *     <texto libre>
+ *   H1 Antecedentes
+ *     • Antecedentes personales:
+ *       <texto libre>
+ *     • Historial familiar:
+ *       <texto libre>
+ *   H1 Sintomatología presentada por el paciente
+ *     <texto libre>
+ *   H1 Exploración física en la historia clínica en fisioterapia
+ *     • Peso / Altura / Tipo / Frecuencia de ejercicio físico
+ *     • Efectos de la lesión sobre la capacidad del paciente...
+ *       <texto libre>
+ *     • Descripción de los síntomas de la dolencia...
+ *       <texto libre>
+ *     • Valoración de la movilidad
+ *       <texto libre>
+ *   H1 Pruebas diagnósticas
+ *   H1 Diagnóstico del problema presentado por el paciente
+ *   H1 Tratamiento recomendado
+ *   H1 Evolución del paciente tras el tratamiento
  */
 import {
     PDFDocument,
@@ -25,7 +49,7 @@ import type { PatientDocumentPdfInput } from '@/lib/patient-document-pdf-resolve
 // A4 portrait.
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
-const MARGIN_T = 50;
+const MARGIN_T = 60;
 const MARGIN_B = 50;
 const MARGIN_L = 60;
 const MARGIN_R = 60;
@@ -34,17 +58,17 @@ const CONTENT_BOTTOM = MARGIN_B;
 const CONTENT_TOP = PAGE_H - MARGIN_T;
 
 const TITLE_SIZE = 16;
-const H1_SIZE = 12;
-const LABEL_SIZE = 9.5;
-const VALUE_SIZE = 9.5;
-const LINE_H_INLINE = 14;
-const LINE_H_BLOCK = VALUE_SIZE * 1.25;
-const HEADING_GAP_BEFORE = 10;
-const HEADING_GAP_AFTER = 4;
-const BLOCK_MIN_H = 18; // 1 línea garantizada incluso si el campo está vacío
-const BLOCK_PAD_BOTTOM = 6;
+const H1_SIZE = 13;
+const BODY_SIZE = 10;
 
-// Helvetica WinAnsi no codifica flechas, em-dashes, etc. Sustituimos a ASCII.
+const BULLET_INDENT = 18;
+const LINE_HEIGHT = BODY_SIZE * 1.35;
+const PARA_GAP = 4;
+const HEADING_GAP_BEFORE = 14;
+const HEADING_GAP_AFTER = 8;
+const TITLE_GAP_AFTER = 14;
+const FECHA_GAP_AFTER = 18;
+
 const SANITIZE_MAP: Record<string, string> = {
     '→': '->',
     '←': '<-',
@@ -57,7 +81,6 @@ const SANITIZE_MAP: Record<string, string> = {
     '’': "'",
     '“': '"',
     '”': '"',
-    '•': '-',
     ' ': ' ',
 };
 
@@ -73,72 +96,6 @@ function normalizeText(value: unknown): string {
     if (value === null || value === undefined) return '';
     if (typeof value === 'boolean') return value ? 'SÍ' : 'NO';
     return String(value).trim();
-}
-
-interface InlineFieldDef {
-    label: string;
-    formKey: string;
-}
-
-interface BlockDef {
-    heading: string;
-    formKey: string;
-}
-
-const INLINE_PATIENT: InlineFieldDef[] = [
-    { label: 'Nombre', formKey: '__name_first' },
-    { label: 'Apellidos', formKey: '__name_rest' },
-    { label: 'Edad', formKey: 'edad' },
-    { label: 'Sexo', formKey: 'sexo' },
-    { label: 'Ocupación', formKey: 'ocupacion' },
-    { label: 'Peso', formKey: 'peso' },
-    { label: 'Altura', formKey: 'altura' },
-    { label: 'Tipo', formKey: 'tipo' },
-    { label: 'Frecuencia de ejercicio', formKey: 'frecuencia_ejercicio' },
-];
-
-const BLOCKS: BlockDef[] = [
-    { heading: 'Motivo de la consulta', formKey: 'motivo_consulta' },
-    { heading: 'Antecedentes personales', formKey: 'antecedentes_personales' },
-    { heading: 'Historial familiar', formKey: 'historial_familiar' },
-    { heading: 'Sintomatología presentada por el paciente', formKey: 'sintomatologia' },
-    { heading: 'Efectos de la lesión sobre la capacidad del paciente', formKey: 'efectos_lesion' },
-    { heading: 'Descripción de los síntomas de la dolencia', formKey: 'descripcion_sintomas' },
-    { heading: 'Valoración de la movilidad', formKey: 'valoracion_movilidad' },
-    { heading: 'Pruebas diagnósticas', formKey: 'pruebas_diagnosticas' },
-    { heading: 'Diagnóstico del problema presentado por el paciente', formKey: 'diagnostico' },
-    { heading: 'Tratamiento recomendado', formKey: 'tratamiento_recomendado' },
-    { heading: 'Evolución del paciente tras el tratamiento', formKey: 'evolucion' },
-];
-
-function resolvePatientName(
-    input: PatientDocumentPdfInput,
-    part: 'first' | 'rest'
-): string {
-    const name = normalizeText(input.patientName ?? '');
-    const parts = name.split(/\s+/).filter(Boolean);
-    if (part === 'first') return parts[0] ?? '';
-    return parts.slice(1).join(' ');
-}
-
-function resolveInlineValue(
-    field: InlineFieldDef,
-    input: PatientDocumentPdfInput
-): string {
-    if (field.formKey === '__name_first') return resolvePatientName(input, 'first');
-    if (field.formKey === '__name_rest') return resolvePatientName(input, 'rest');
-    return normalizeText(input.formData[field.formKey]);
-}
-
-function resolveFechaLine(input: PatientDocumentPdfInput): string {
-    const fromForm =
-        typeof input.formData.fecha_consentimiento === 'string'
-            ? input.formData.fecha_consentimiento
-            : null;
-    const iso = fromForm ?? input.visitDate ?? null;
-    const { day, month, year } = dateParts(iso);
-    const city = cityFromAddress(input.clinicAddress);
-    return `En ${city} el ${day} de ${month} de ${year}`;
 }
 
 function wrapText(
@@ -183,6 +140,27 @@ function wrapText(
     return lines;
 }
 
+function resolvePatientName(
+    input: PatientDocumentPdfInput,
+    part: 'first' | 'rest'
+): string {
+    const name = normalizeText(input.patientName ?? '');
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (part === 'first') return parts[0] ?? '';
+    return parts.slice(1).join(' ');
+}
+
+function resolveFechaLine(input: PatientDocumentPdfInput): string {
+    const fromForm =
+        typeof input.formData.fecha_consentimiento === 'string'
+            ? input.formData.fecha_consentimiento
+            : null;
+    const iso = fromForm ?? input.visitDate ?? null;
+    const { day, month, year } = dateParts(iso);
+    const city = cityFromAddress(input.clinicAddress).split(',')[0].trim();
+    return `En ${city} el ${day} de ${month} de ${year}`;
+}
+
 class HistoriaBuilder {
     private doc!: PDFDocument;
     private helv!: PDFFont;
@@ -202,6 +180,17 @@ class HistoriaBuilder {
         this.page = this.doc.addPage([PAGE_W, PAGE_H]);
         this.pages.push(this.page);
         this.cursorY = CONTENT_TOP;
+        if (this.pages.length > 1) {
+            // Running header repeating en cada página ≥2 (como el PDF muestra).
+            const header = 'Historia clínica fisioterapeutica';
+            this.page.drawText(sanitize(header), {
+                x: MARGIN_L,
+                y: PAGE_H - 32,
+                size: 7.5,
+                font: this.helv,
+                color: rgb(0.45, 0.45, 0.45),
+            });
+        }
     }
 
     private ensureSpace(needed: number): void {
@@ -211,18 +200,30 @@ class HistoriaBuilder {
     }
 
     drawTitle(text: string): void {
-        this.ensureSpace(TITLE_SIZE + 14);
+        this.ensureSpace(TITLE_SIZE + TITLE_GAP_AFTER);
         this.page.drawText(sanitize(text), {
             x: MARGIN_L,
             y: this.cursorY - TITLE_SIZE,
             size: TITLE_SIZE,
             font: this.helvBold,
         });
-        this.cursorY -= TITLE_SIZE + 14;
+        this.cursorY -= TITLE_SIZE + TITLE_GAP_AFTER;
+    }
+
+    drawFechaLine(text: string): void {
+        this.ensureSpace(BODY_SIZE + FECHA_GAP_AFTER);
+        this.page.drawText(sanitize(text), {
+            x: MARGIN_L,
+            y: this.cursorY - BODY_SIZE,
+            size: BODY_SIZE,
+            font: this.helv,
+        });
+        this.cursorY -= BODY_SIZE + FECHA_GAP_AFTER;
     }
 
     drawHeading(text: string): void {
         this.cursorY -= HEADING_GAP_BEFORE;
+        this.ensureSpace(H1_SIZE + HEADING_GAP_AFTER);
         this.page.drawText(sanitize(text), {
             x: MARGIN_L,
             y: this.cursorY - H1_SIZE,
@@ -232,121 +233,114 @@ class HistoriaBuilder {
         this.cursorY -= H1_SIZE + HEADING_GAP_AFTER;
     }
 
-    private drawHorizontalRule(): void {
-        this.page.drawLine({
-            start: { x: MARGIN_L, y: this.cursorY },
-            end: { x: MARGIN_L + CONTENT_W, y: this.cursorY },
-            thickness: 0.5,
-            color: rgb(0.85, 0.85, 0.85),
+    private drawBulletGlyph(x: number, baselineY: number): void {
+        // Pequeño círculo lleno como bullet a la izquierda de la línea.
+        this.page.drawCircle({
+            x,
+            y: baselineY + BODY_SIZE * 0.32,
+            size: 1.5,
+            color: rgb(0.2, 0.2, 0.2),
         });
-        this.cursorY -= 4;
     }
 
-    drawFechaLine(text: string): void {
-        this.ensureSpace(LINE_H_INLINE + 6);
-        const labelText = 'Fecha:';
-        const labelW = this.helvBold.widthOfTextAtSize(labelText, LABEL_SIZE);
-        const baselineY = this.cursorY - VALUE_SIZE;
-        this.page.drawText(labelText, {
-            x: MARGIN_L,
+    /**
+     * Bullet con label en bold y valor en regular en la misma línea:
+     *   • Nombre: Alba
+     * Si `value` está vacío sólo pinta la etiqueta.
+     */
+    drawBulletInline(label: string, value: string, indent = 0): void {
+        const x = MARGIN_L + indent;
+        const labelText = label.endsWith(':') ? label : `${label}:`;
+        const labelW = this.helvBold.widthOfTextAtSize(labelText, BODY_SIZE);
+        const valueText = value ? ` ${value}` : '';
+        const maxValueW = CONTENT_W - indent - BULLET_INDENT - labelW;
+        const wrappedValue = valueText
+            ? wrapText(this.helv, sanitize(valueText), maxValueW, BODY_SIZE)
+            : [];
+
+        this.ensureSpace(LINE_HEIGHT);
+        const baselineY = this.cursorY - BODY_SIZE;
+        this.drawBulletGlyph(x, baselineY);
+        this.page.drawText(sanitize(labelText), {
+            x: x + BULLET_INDENT,
             y: baselineY,
-            size: LABEL_SIZE,
+            size: BODY_SIZE,
             font: this.helvBold,
         });
-        const valueX = MARGIN_L + labelW + 4;
-        this.page.drawText(sanitize(text), {
-            x: valueX,
-            y: baselineY,
-            size: VALUE_SIZE,
-            font: this.helv,
-        });
-        this.cursorY -= LINE_H_INLINE;
-        this.drawHorizontalRule();
-        this.cursorY -= 2;
+
+        if (wrappedValue.length > 0) {
+            this.page.drawText(wrappedValue[0], {
+                x: x + BULLET_INDENT + labelW,
+                y: baselineY,
+                size: BODY_SIZE,
+                font: this.helv,
+            });
+            this.cursorY -= LINE_HEIGHT;
+            // Líneas adicionales del valor caen alineadas con el inicio del valor.
+            for (let i = 1; i < wrappedValue.length; i++) {
+                this.ensureSpace(LINE_HEIGHT);
+                this.page.drawText(wrappedValue[i], {
+                    x: x + BULLET_INDENT + labelW,
+                    y: this.cursorY - BODY_SIZE,
+                    size: BODY_SIZE,
+                    font: this.helv,
+                });
+                this.cursorY -= LINE_HEIGHT;
+            }
+        } else {
+            this.cursorY -= LINE_HEIGHT;
+        }
     }
 
-    drawInlineRow(
-        left: InlineFieldDef,
-        leftValue: string,
-        right: InlineFieldDef | null,
-        rightValue: string
-    ): void {
-        this.ensureSpace(LINE_H_INLINE);
-        const colW = CONTENT_W / 2;
-        const baselineY = this.cursorY - VALUE_SIZE;
+    /**
+     * Bullet con solo label (negrita), valor en la línea siguiente como
+     * párrafo justificado dentro del bullet. El label se envuelve si excede
+     * el ancho disponible.
+     */
+    drawBulletBlock(label: string, value: string, indent = 0): void {
+        const x = MARGIN_L + indent;
+        const labelText = label.endsWith(':') ? label : `${label}:`;
+        const labelMaxWidth = CONTENT_W - indent - BULLET_INDENT;
+        const labelLines = wrapText(this.helvBold, sanitize(labelText), labelMaxWidth, BODY_SIZE);
 
-        const drawCol = (field: InlineFieldDef, value: string, x: number): void => {
-            const labelText = `${field.label}:`;
-            const labelW = this.helvBold.widthOfTextAtSize(labelText, LABEL_SIZE);
-            this.page.drawText(sanitize(labelText), {
-                x,
+        labelLines.forEach((line, idx) => {
+            this.ensureSpace(LINE_HEIGHT);
+            const baselineY = this.cursorY - BODY_SIZE;
+            if (idx === 0) this.drawBulletGlyph(x, baselineY);
+            this.page.drawText(line, {
+                x: x + BULLET_INDENT,
                 y: baselineY,
-                size: LABEL_SIZE,
+                size: BODY_SIZE,
                 font: this.helvBold,
             });
-            if (value) {
-                this.page.drawText(sanitize(value), {
-                    x: x + labelW + 4,
-                    y: baselineY,
-                    size: VALUE_SIZE,
-                    font: this.helv,
-                });
-            }
-        };
+            this.cursorY -= LINE_HEIGHT;
+        });
 
-        drawCol(left, leftValue, MARGIN_L);
-        if (right) drawCol(right, rightValue, MARGIN_L + colW);
-        this.cursorY -= LINE_H_INLINE;
+        if (value.trim()) {
+            this.drawParagraph(value, indent + BULLET_INDENT);
+        }
+        this.cursorY -= PARA_GAP;
     }
 
-    drawBlock(block: BlockDef, value: string): void {
-        const maxWidth = CONTENT_W - 2;
-        const lines = value ? wrapText(this.helv, sanitize(value), maxWidth, VALUE_SIZE) : [];
-        const contentHeight = Math.max(BLOCK_MIN_H, lines.length * LINE_H_BLOCK);
-        const totalNeeded =
-            HEADING_GAP_BEFORE +
-            H1_SIZE +
-            HEADING_GAP_AFTER +
-            contentHeight +
-            BLOCK_PAD_BOTTOM;
-
-        // Si no caben heading + 1 línea en lo que queda, salta de página.
-        const minViable =
-            HEADING_GAP_BEFORE + H1_SIZE + HEADING_GAP_AFTER + LINE_H_BLOCK + BLOCK_PAD_BOTTOM;
-        if (this.cursorY - minViable < CONTENT_BOTTOM) {
-            this.addPage();
-        }
-
-        this.drawHeading(block.heading);
-
-        // Pintar líneas; si el cursor cae bajo margen, paginar a media frase.
-        let baseline = this.cursorY - VALUE_SIZE * 0.8;
+    /**
+     * Párrafo de texto libre con sangría opcional.
+     */
+    drawParagraph(value: string, indent = 0): void {
+        const maxWidth = CONTENT_W - indent;
+        const lines = wrapText(this.helv, sanitize(value), maxWidth, BODY_SIZE);
         for (const line of lines) {
-            if (baseline - VALUE_SIZE * 0.4 < CONTENT_BOTTOM) {
-                this.addPage();
-                baseline = this.cursorY - VALUE_SIZE * 0.8;
-            }
+            this.ensureSpace(LINE_HEIGHT);
             if (line) {
                 this.page.drawText(line, {
-                    x: MARGIN_L + 1,
-                    y: baseline,
-                    size: VALUE_SIZE,
+                    x: MARGIN_L + indent,
+                    y: this.cursorY - BODY_SIZE,
+                    size: BODY_SIZE,
                     font: this.helv,
                 });
             }
-            baseline -= LINE_H_BLOCK;
-            this.cursorY = baseline + VALUE_SIZE * 0.8;
+            this.cursorY -= LINE_HEIGHT;
         }
-
-        if (lines.length === 0) {
-            // Reservar al menos 1 línea visual incluso si está vacío.
-            this.cursorY -= BLOCK_MIN_H;
-        }
-        this.cursorY -= BLOCK_PAD_BOTTOM;
-        // Bias estético: línea horizontal tenue al pie del bloque.
-        this.drawHorizontalRule();
-        // Pequeño espacio para separar de la siguiente sección.
-        // (HEADING_GAP_BEFORE ya añade aire antes del siguiente heading).
+        this.cursorY -= PARA_GAP;
     }
 
     drawFooterPageNumbers(): void {
@@ -375,27 +369,56 @@ export async function renderHistoriaClinicaDynamic(
 ): Promise<Uint8Array> {
     const b = new HistoriaBuilder();
     await b.init();
-    b.drawTitle('HISTORIA CLÍNICA FISIOTERAPÉUTICA');
+    const f = (key: string): string => normalizeText(input.formData[key]);
+
+    b.drawTitle('HISTORIA CLÍNICA FISIOTERAPEUTICA');
     b.drawFechaLine(resolveFechaLine(input));
 
     b.drawHeading('Datos del Paciente');
+    b.drawBulletInline('Nombre', resolvePatientName(input, 'first'));
+    b.drawBulletInline('Apellidos', resolvePatientName(input, 'rest'));
+    b.drawBulletInline('Edad', f('edad'));
+    b.drawBulletInline('Sexo', f('sexo'));
+    b.drawBulletInline('Ocupación', f('ocupacion'));
 
-    for (let i = 0; i < INLINE_PATIENT.length; i += 2) {
-        const left = INLINE_PATIENT[i];
-        const right = INLINE_PATIENT[i + 1] ?? null;
-        b.drawInlineRow(
-            left,
-            resolveInlineValue(left, input),
-            right,
-            right ? resolveInlineValue(right, input) : ''
-        );
-    }
+    b.drawHeading('Motivo de la consulta');
+    b.drawParagraph(f('motivo_consulta'));
 
-    for (const block of BLOCKS) {
-        const value = normalizeText(input.formData[block.formKey]);
-        b.drawBlock(block, value);
-    }
+    b.drawHeading('Antecedentes');
+    b.drawBulletBlock('Antecedentes personales', f('antecedentes_personales'));
+    b.drawBulletBlock('Historial familiar', f('historial_familiar'));
+
+    b.drawHeading('Sintomatología presentada por el paciente');
+    b.drawParagraph(f('sintomatologia'));
+
+    b.drawHeading('Exploración física en la historia clínica en fisioterapia');
+    b.drawBulletInline('Peso', f('peso'));
+    b.drawBulletInline('Altura', f('altura'));
+    b.drawBulletInline('Tipo', f('tipo'));
+    b.drawBulletInline('Frecuencia de ejercicio físico', f('frecuencia_ejercicio'));
+    b.drawBulletBlock(
+        'Efectos de la lesión sobre la capacidad del paciente para realizar sus actividades profesionales y sociales',
+        f('efectos_lesion')
+    );
+    b.drawBulletBlock(
+        'Descripción de los síntomas de la dolencia, como dolor, sensación de hormigueo, calambres, entre otros, y las causas que los originan',
+        f('descripcion_sintomas')
+    );
+    b.drawBulletBlock('Valoración de la movilidad', f('valoracion_movilidad'));
+
+    b.drawHeading('Pruebas diagnósticas');
+    b.drawParagraph(f('pruebas_diagnosticas'));
+
+    b.drawHeading('Diagnóstico del problema presentado por el paciente');
+    b.drawParagraph(f('diagnostico'));
+
+    b.drawHeading('Tratamiento recomendado');
+    b.drawParagraph(f('tratamiento_recomendado'));
+
+    b.drawHeading('Evolución del paciente tras el tratamiento');
+    b.drawParagraph(f('evolucion'));
 
     b.drawFooterPageNumbers();
     return b.save();
 }
+

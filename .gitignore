@@ -38,6 +38,10 @@ tmp_*.cjs
 .playwright-cli/
 **/.playwright-mcp/
 output/
+
+# Raw patient PDFs dropped for template regeneration (contain real patient data).
+# The official sources live in public/consentimientos/*_original.pdf.
+/consentimientos-pdf/
 playwright-report/
 test-results/
 qa/artifacts/
