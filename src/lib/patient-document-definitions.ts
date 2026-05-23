@@ -86,7 +86,6 @@ export const PATIENT_DOCUMENT_DEFINITIONS: Record<PatientDocumentType, PatientDo
                 fields: [
                     { key: 'signature_firmante', label: 'Firma del paciente', type: 'signature' },
                     { key: 'signature_tutor', label: 'Firma del tutor/familiar (si aplica)', type: 'signature' },
-                    { key: 'signature_fisio', label: 'Firma del fisioterapeuta', type: 'signature' },
                 ],
             },
         ],

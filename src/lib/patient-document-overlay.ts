@@ -22,6 +22,7 @@ import {
     PDFPage,
     PDFTextField,
     StandardFonts,
+    rgb,
 } from 'pdf-lib';
 import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
 import type { SignatureBox, TemplateSpec } from '@/lib/patient-document-templates';
@@ -256,12 +257,22 @@ async function embedSignatures(
     input: PatientDocumentPdfInput
 ): Promise<void> {
     for (const box of boxes) {
-        const key =
-            box.source === 'firmante'
-                ? 'signature_firmante'
-                : box.source === 'tutor'
-                    ? 'signature_tutor'
-                    : 'signature_fisio';
+        const page = pages[box.page];
+        if (!page) continue;
+        // Tapar firma residual del PDF muestra (path vectorial escaneado de
+        // Alba/Aarón embebido en el original) con rectángulo blanco. Padding
+        // interior 3pt para no comer el borde dashed de la caja. Siempre se
+        // aplica — si admin no firma vía canvas, caja queda en blanco.
+        page.drawRectangle({
+            x: box.x + 3,
+            y: box.y + 3,
+            width: box.width - 6,
+            height: box.height - 6,
+            color: rgb(1, 1, 1),
+            borderWidth: 0,
+        });
+
+        const key = box.source === 'firmante' ? 'signature_firmante' : 'signature_tutor';
         const raw = input.formData[key];
         if (typeof raw !== 'string' || !raw.startsWith('data:image/png;base64,')) continue;
         const base64 = raw.slice('data:image/png;base64,'.length);
@@ -272,8 +283,6 @@ async function embedSignatures(
             // Imagen corrupta o no PNG válido — skip silenciosamente.
             continue;
         }
-        const page = pages[box.page];
-        if (!page) continue;
         // Escalar manteniendo aspect ratio dentro de la caja.
         const imgRatio = image.width / image.height;
         const boxRatio = box.width / box.height;
