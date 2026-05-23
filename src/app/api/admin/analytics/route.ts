@@ -14,6 +14,15 @@ interface AnalyticsApt {
 
 const CLINIC_TZ = 'Europe/Madrid';
 
+// Treat past non-cancelled appointments as completed for analytics purposes.
+// Why: no auto-complete job runs, so staff rarely flip status manually and
+// revenue/sessions metrics would otherwise undercount past visits.
+function isEffectivelyCompleted(apt: AnalyticsApt, nowMs: number): boolean {
+    if (apt.status === 'completed') return true;
+    if (apt.status === 'cancelled') return false;
+    return new Date(apt.end_time).getTime() < nowMs;
+}
+
 function tzHour(isoString: string): number {
     const d = new Date(isoString);
     return parseInt(new Intl.DateTimeFormat('en-GB', { timeZone: CLINIC_TZ, hour: 'numeric', hour12: false }).format(d), 10);
@@ -98,7 +107,8 @@ export async function GET(request: Request) {
             return true;
         });
 
-        const completedPeriodApts = periodApts.filter(a => a.status === 'completed');
+        const nowMs = now.getTime();
+        const completedPeriodApts = periodApts.filter(a => isEffectivelyCompleted(a, nowMs));
 
         // ═══════════════════════════════════════════════════════════
         // 1. ADHERENCIA — visitas completadas por paciente
@@ -167,7 +177,8 @@ export async function GET(request: Request) {
         // ═══════════════════════════════════════════════════════════
         const statusCount: Record<string, number> = { pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
         for (const a of periodApts) {
-            if (a.status in statusCount) statusCount[a.status]++;
+            const effective = isEffectivelyCompleted(a, nowMs) ? 'completed' : a.status;
+            if (effective in statusCount) statusCount[effective]++;
         }
         const totalAll = Object.values(statusCount).reduce((s, v) => s + v, 0);
         const cancellationRate = totalAll > 0 ? Math.round((statusCount.cancelled / totalAll) * 100) : 0;
@@ -260,7 +271,7 @@ export async function GET(request: Request) {
         }
 
         // Usamos todo el histórico para la tendencia de 6 meses
-        const allCompletedAptsForTrend = (allApts ?? []).filter(a => a.status === 'completed');
+        const allCompletedAptsForTrend = (allApts ?? []).filter(a => isEffectivelyCompleted(a, nowMs));
         for (const a of allCompletedAptsForTrend) {
             const d = new Date(a.start_time);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
