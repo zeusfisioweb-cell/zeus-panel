@@ -11,6 +11,7 @@ import {
     useCitas,
     useCreateCita,
     useCreateException,
+    useDeleteCita,
     useScheduleExceptions,
     useUpdateCita,
     useUpdateCitaStatus,
@@ -28,6 +29,7 @@ import { CitasFilters } from './components/CitasFilters';
 import { CitasHeader } from './components/CitasHeader';
 import { CitasTable } from './components/CitasTable';
 import Icon from '@/components/Icon';
+import ConfirmModal from '@/components/ConfirmModal';
 import { CalendarSidebar } from './components/CalendarSidebar';
 
 const CLINIC_TIME_ZONE = 'Europe/Madrid';
@@ -79,6 +81,7 @@ export default function CitasPage() {
 
     const [selectedEvent, setSelectedEvent] = useState<Appointment | null>(null);
     const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null);
 
     const isProfessional = profile?.role === 'professional';
@@ -120,6 +123,7 @@ export default function CitasPage() {
     const updateStatus = useUpdateCitaStatus();
 
     const cancelCita = useCancelCita();
+    const deleteCita = useDeleteCita();
     const createException = useCreateException();
 
     const filteredAppointments = useMemo(() => {
@@ -285,6 +289,19 @@ export default function CitasPage() {
         }
     };
 
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget) return;
+
+        try {
+            await deleteCita.mutateAsync(deleteTarget.id);
+            toast.success('Cita eliminada correctamente');
+            setDeleteTarget(null);
+            setSelectedEvent(null);
+        } catch {
+            toast.error('Error al eliminar la cita');
+        }
+    };
+
     const handleReschedule = async (id: string, newStart: Date, newEnd: Date) => {
         const apt = calendarAppointments.find(a => a.id === id);
         if (!apt) return;
@@ -429,6 +446,7 @@ export default function CitasPage() {
                             onUpdateStatus={handleUpdateFromDetail}
                             onInitiateCancel={(apt) => setCancelTarget(apt)}
                             onInitiateReschedule={!isProfessional ? (apt) => setRescheduleTarget(apt) : undefined}
+                            onInitiateDelete={!isProfessional ? (apt) => setDeleteTarget(apt) : undefined}
                         />
                     )}
                 </div>
@@ -492,6 +510,7 @@ export default function CitasPage() {
                     onUpdateStatus={handleUpdateFromDetail}
                     onInitiateCancel={(apt) => setCancelTarget(apt)}
                     onInitiateReschedule={!isProfessional ? (apt) => setRescheduleTarget(apt) : undefined}
+                    onInitiateDelete={!isProfessional ? (apt) => setDeleteTarget(apt) : undefined}
                 />
             )}
 
@@ -531,6 +550,18 @@ export default function CitasPage() {
                 onClose={() => setRescheduleTarget(null)}
                 onSubmit={handleReschedule}
             />
+
+            {deleteTarget && (
+                <ConfirmModal
+                    title="Eliminar cita"
+                    message={`Esta acción borrará la cita de ${deleteTarget.patient_name || 'paciente'} de forma permanente. No se podrá recuperar.`}
+                    confirmLabel={deleteCita.isPending ? 'Eliminando…' : 'Eliminar definitivamente'}
+                    cancelLabel="Cancelar"
+                    variant="danger"
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeleteTarget(null)}
+                />
+            )}
         </div>
     );
 }

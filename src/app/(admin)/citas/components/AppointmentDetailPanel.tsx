@@ -17,6 +17,7 @@ interface AppointmentDetailPanelProps {
     onUpdateStatus: (id: string, status: string) => Promise<void>;
     onInitiateCancel: (apt: Appointment) => void;
     onInitiateReschedule?: (apt: Appointment) => void;
+    onInitiateDelete?: (apt: Appointment) => void;
     variant?: 'inline' | 'overlay';
 }
 
@@ -35,6 +36,7 @@ export function AppointmentDetailPanel({
     onUpdateStatus,
     onInitiateCancel,
     onInitiateReschedule,
+    onInitiateDelete,
     variant = 'overlay',
 }: AppointmentDetailPanelProps) {
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
@@ -172,7 +174,7 @@ export function AppointmentDetailPanel({
                 </div>
             </div>
 
-            {(isActionable || canRegisterPayment || existingPayment) && (
+            {(isActionable || canRegisterPayment || existingPayment || (isCancelled && onInitiateDelete)) && (
                 <div className="zc-detail-panel__actions">
                     {canRegisterPayment && (
                         <Button
@@ -227,6 +229,17 @@ export function AppointmentDetailPanel({
                             leftIcon={<Icon name="close" size={14} />}
                         >
                             Cancelar cita
+                        </Button>
+                    )}
+
+                    {isCancelled && onInitiateDelete && (
+                        <Button
+                            variant="danger"
+                            className="w-full justify-center"
+                            onClick={() => onInitiateDelete(appointment)}
+                            leftIcon={<Icon name="trash" size={14} />}
+                        >
+                            Eliminar cita
                         </Button>
                     )}
                 </div>
