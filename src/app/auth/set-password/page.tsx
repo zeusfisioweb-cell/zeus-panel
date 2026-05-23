@@ -21,12 +21,53 @@ export default function SetPasswordPage() {
     useEffect(() => {
         let cancelled = false;
         async function check() {
-            const { data, error } = await supabase.auth.getSession();
-            if (cancelled) return;
-            if (error || !data.session) {
+            try {
+                if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    const code = url.searchParams.get('code');
+                    const hash = window.location.hash;
+
+                    // PKCE recovery flow: exchange ?code=... for a session.
+                    if (code) {
+                        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+                        if (!cancelled) {
+                            url.searchParams.delete('code');
+                            window.history.replaceState({}, '', url.pathname + url.search);
+                        }
+                        if (exchangeError) {
+                            if (!cancelled) {
+                                setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
+                                setReady(true);
+                            }
+                            return;
+                        }
+                    } else if (hash.includes('access_token')) {
+                        // Implicit flow: wait a tick for supabase-js to ingest the fragment.
+                        await new Promise((resolve) => setTimeout(resolve, 150));
+                        if (!cancelled) {
+                            window.history.replaceState({}, '', url.pathname + url.search);
+                        }
+                    } else if (hash.includes('error')) {
+                        if (!cancelled) {
+                            setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
+                            setReady(true);
+                        }
+                        return;
+                    }
+                }
+
+                const { data, error } = await supabase.auth.getSession();
+                if (cancelled) return;
+                if (error || !data.session) {
+                    setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
+                }
+                setReady(true);
+            } catch (err) {
+                if (cancelled) return;
+                console.error('set-password: session check failed', err);
                 setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
+                setReady(true);
             }
-            setReady(true);
         }
         check();
         return () => { cancelled = true; };
