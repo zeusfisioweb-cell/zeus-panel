@@ -256,7 +256,12 @@ async function embedSignatures(
     input: PatientDocumentPdfInput
 ): Promise<void> {
     for (const box of boxes) {
-        const key = box.source === 'firmante' ? 'signature_firmante' : 'signature_tutor';
+        const key =
+            box.source === 'firmante'
+                ? 'signature_firmante'
+                : box.source === 'tutor'
+                    ? 'signature_tutor'
+                    : 'signature_fisio';
         const raw = input.formData[key];
         if (typeof raw !== 'string' || !raw.startsWith('data:image/png;base64,')) continue;
         const base64 = raw.slice('data:image/png;base64,'.length);

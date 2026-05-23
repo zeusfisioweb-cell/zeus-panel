@@ -43,7 +43,7 @@ export interface SignatureBox {
     y: number;
     width: number;
     height: number;
-    source: 'firmante' | 'tutor';
+    source: 'firmante' | 'tutor' | 'fisio';
 }
 
 export interface TemplateSpec {
@@ -132,6 +132,7 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
         signatureBoxes: [
             { page: 4, x: 76, y: 250, width: 244, height: 100, source: 'firmante' },
             { page: 5, x: 76, y: 620, width: 244, height: 100, source: 'tutor' },
+            { page: 5, x: 76, y: 310, width: 244, height: 100, source: 'fisio' },
         ],
         fieldSources: {
             lugar: { kind: 'config', key: 'city' },
