@@ -94,8 +94,11 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
             { page: 1, y: 607.9 },
         ],
         signatureBoxes: [
-            { page: 0, x: 76, y: 30, width: 244, height: 100, source: 'firmante' },
-            { page: 1, x: 76, y: 440, width: 244, height: 100, source: 'tutor' },
+            // Caja paciente: pg2 TOP (continuación visual desde "Firma" label
+            // en pg1). El layout original empuja el box a la siguiente página.
+            { page: 1, x: 76, y: 675, width: 244, height: 110, source: 'firmante' },
+            // Caja tutor: pg2 inferior, bajo "Firma" label tutor (y=568.2).
+            { page: 1, x: 76, y: 440, width: 244, height: 110, source: 'tutor' },
         ],
         fieldSources: {
             lugar: { kind: 'config', key: 'city' },
