@@ -9,15 +9,16 @@ export const APPOINTMENTS_QUERY_KEY = ['citas'];
 
 
 export function useCitas(start_date?: string, end_date?: string) {
-    // Stable reference: createClient() uses an internal singleton, but wrapping in useMemo
-    // ensures the object reference doesn't change on every render, preventing the useEffect
-    // from re-subscribing WebSocket channels on each render cycle.
     const supabase = useMemo(() => createClient(), []);
     const queryClient = useQueryClient();
 
     useEffect(() => {
+        // Generate name inside effect — StrictMode preserves refs across mount cycles,
+        // so useRef would reuse the same channel name and re-add `.on()` to the
+        // already-subscribed channel before async `removeChannel` resolved.
+        const channelName = `appointments_changes_${crypto.randomUUID()}`;
         const channel = supabase
-            .channel('appointments_changes')
+            .channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
                 queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
             })

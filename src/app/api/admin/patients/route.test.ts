@@ -37,16 +37,19 @@ describe('admin patients route RBAC', () => {
     });
 
     it('filters patient list by professional accessible ids', async () => {
-        const query = {
+        const query: Record<string, unknown> = {
             select: vi.fn().mockReturnThis(),
             is: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             range: vi.fn().mockResolvedValue({
                 data: [{ id: '11111111-1111-1111-1111-111111111111' }],
                 count: 1,
                 error: null,
             }),
+            then: (cb: (v: { count: number; error: null }) => unknown) =>
+                Promise.resolve({ count: 0, error: null }).then(cb),
         };
         const supabase = {
             from: vi.fn().mockReturnValue(query),
@@ -70,6 +73,7 @@ describe('admin patients route RBAC', () => {
         expect(body).toEqual({
             data: [{ id: '11111111-1111-1111-1111-111111111111' }],
             count: 1,
+            consentCount: 0,
         });
     });
 
@@ -98,9 +102,10 @@ describe('admin patients route RBAC', () => {
     });
 
     it('returns all patients for owner without professional filter', async () => {
-        const query = {
+        const query: Record<string, unknown> = {
             select: vi.fn().mockReturnThis(),
             is: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             range: vi.fn().mockResolvedValue({
                 data: [
@@ -110,6 +115,8 @@ describe('admin patients route RBAC', () => {
                 count: 2,
                 error: null,
             }),
+            then: (cb: (v: { count: number; error: null }) => unknown) =>
+                Promise.resolve({ count: 0, error: null }).then(cb),
         };
         const supabase = { from: vi.fn().mockReturnValue(query) };
 
@@ -131,9 +138,10 @@ describe('admin patients route RBAC', () => {
     });
 
     it('sanitizes wildcard characters before applying patient search', async () => {
-        const query = {
+        const query: Record<string, unknown> = {
             select: vi.fn().mockReturnThis(),
             is: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
             or: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             range: vi.fn().mockResolvedValue({
@@ -141,6 +149,8 @@ describe('admin patients route RBAC', () => {
                 count: 0,
                 error: null,
             }),
+            then: (cb: (v: { count: number; error: null }) => unknown) =>
+                Promise.resolve({ count: 0, error: null }).then(cb),
         };
         const supabase = { from: vi.fn().mockReturnValue(query) };
 

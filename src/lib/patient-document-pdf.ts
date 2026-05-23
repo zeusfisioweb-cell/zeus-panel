@@ -1,145 +1,35 @@
 /**
- * Render de PDFs clínico-legales del paciente: carga la plantilla AcroForm,
- * resuelve y escribe el valor de cada campo, y devuelve los bytes.
+ * Render de PDFs clínico-legales del paciente.
  *
- * Arquitectura, diagnóstico de los 2 bugs (letras superpuestas / campos en
- * blanco por corrupción de flatten) y razón de NO usar `form.flatten()`:
- * ver `docs/patient-document-pdf.md`.
+ * Todos los `documentType` usan el renderer overlay: el template se carga
+ * como fondo intacto y los datos se dibujan con `page.drawText` en
+ * coordenadas calibradas (baseline = baseline de la prosa legal). El widget
+ * AcroForm subyacente se mantiene vacío y bloqueado (read-only) para que no
+ * estorbe ni sea editable en el viewer.
+ *
+ * Razón de NO usar `form.flatten()` (bug histórico: corrupción de xref →
+ * campos en blanco en páginas bajas) y otros detalles arquitectónicos en
+ * `docs/patient-document-pdf.md`.
  */
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { PDFDocument, PDFTextField, StandardFonts } from 'pdf-lib';
-import { PATIENT_DOCUMENT_DEFINITIONS } from '@/lib/patient-document-definitions';
-import {
-    PATIENT_DOCUMENT_TEMPLATES,
-    cityFromAddress,
-    dateParts,
-    type TemplateSpec,
-} from '@/lib/patient-document-templates';
-import type { PatientDocumentType } from '@/lib/types';
+import { renderHistoriaClinicaDynamic } from '@/lib/patient-document-historia-dynamic';
+import { renderPatientDocumentPdfOverlay } from '@/lib/patient-document-overlay';
+import type { PatientDocumentPdfInput } from '@/lib/patient-document-pdf-resolve';
+import { PATIENT_DOCUMENT_TEMPLATES } from '@/lib/patient-document-templates';
 
-export interface PatientDocumentPdfInput {
-    documentType: PatientDocumentType;
-    patientName?: string | null;
-    patientDocumentId?: string | null;
-    visitDate?: string | null;
-    clinicName?: string | null;
-    clinicAddress?: string | null;
-    formData: Record<string, unknown>;
-}
-
-function normalizeText(value: unknown): string {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'boolean') return value ? 'SÍ' : 'NO';
-    return String(value).trim();
-}
-
-function documentIso(input: PatientDocumentPdfInput): string | null {
-    const fromForm =
-        typeof input.formData.fecha_consentimiento === 'string'
-            ? input.formData.fecha_consentimiento
-            : null;
-    return fromForm ?? input.visitDate ?? null;
-}
-
-function resolveFieldValue(
-    field: string,
-    spec: TemplateSpec,
-    input: PatientDocumentPdfInput
-): string {
-    // Composed date/place sentence used by the clinical-history template.
-    if (field === 'historia_fecha') {
-        const { day, month, year } = dateParts(documentIso(input));
-        const city = cityFromAddress(input.clinicAddress);
-        return `En ${city} el ${day} de ${month} de ${year}`;
-    }
-
-    const source = spec.fieldSources[field];
-    if (!source) return '';
-
-    if (source.kind === 'config') {
-        if (source.key === 'clinic_name') return normalizeText(input.clinicName ?? '');
-        if (source.key === 'address') return normalizeText(input.clinicAddress ?? '');
-        const city = cityFromAddress(input.clinicAddress);
-        // The "En ___ el" place blank is very narrow; drop the province so the
-        // city alone fits at the prose size instead of being shrunk.
-        if (field === 'lugar') return city.split(',')[0].trim();
-        return city;
-    }
-
-    if (source.kind === 'date') {
-        return dateParts(documentIso(input))[source.part];
-    }
-
-    if (source.kind === 'patient') {
-        const name = normalizeText(input.patientName ?? '');
-        if (source.key === 'document_id') return normalizeText(input.patientDocumentId ?? '');
-        const parts = name.split(/\s+/).filter(Boolean);
-        if (source.key === 'name_first') return parts[0] ?? '';
-        return parts.slice(1).join(' ');
-    }
-
-    const formValue = normalizeText(input.formData[source.key]);
-    if (formValue) return formValue;
-    if (source.key === 'nombre_firmante') return normalizeText(input.patientName ?? '');
-    if (source.key === 'dni_firmante') return normalizeText(input.patientDocumentId ?? '');
-    return '';
-}
-
-async function fillTemplate(
-    spec: TemplateSpec,
-    input: PatientDocumentPdfInput
-): Promise<Uint8Array> {
-    const templateFile = PATIENT_DOCUMENT_DEFINITIONS[input.documentType].templateFileName;
-    const templatePath = path.join(process.cwd(), 'public', 'consentimientos', templateFile);
-    const pdfDoc = await PDFDocument.load(await readFile(templatePath));
-    const form = pdfDoc.getForm();
-    const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    // Match the body prose (~9.9pt). The original blanks were sized for tiny
-    // handwriting samples, so values are kept at this fixed size and only
-    // shrunk when they would actually overrun the blank.
-    const PROSE_SIZE = 9.5;
-
-    for (const acroField of form.getFields()) {
-        // Templates only carry text fields, but a future template could add a
-        // checkbox/dropdown — skip non-text fields rather than throw.
-        if (!(acroField instanceof PDFTextField)) continue;
-        const textField = acroField;
-        const name = textField.getName();
-        // The rendered document is final: lock every field (even unfilled
-        // blanks) so it cannot be edited in a PDF viewer.
-        textField.enableReadOnly();
-        const value = resolveFieldValue(name, spec, input);
-        if (!value) continue;
-        textField.setText(value);
-        if (textField.isMultiline()) continue;
-        // Render at the prose size so values match the surrounding legal text.
-        // Only fall back to auto-shrink (0) when the value is genuinely wider
-        // than the blank, so a long name/city stays inside the line instead of
-        // overrunning it.
-        const widget = textField.acroField.getWidgets()[0];
-        const { width, height } = widget.getRectangle();
-        const size = Math.min(PROSE_SIZE, height - 2);
-        const fits = helv.widthOfTextAtSize(value, size) <= width - 2;
-        textField.setFontSize(fits ? size : 0);
-    }
-
-    // NOTE: do NOT call form.flatten(). pdf-lib's flatten corrupts the
-    // cross-reference table of these surgically-built templates (truncated
-    // appearance streams -> blank lower-page fields in every reader). Baking
-    // the appearances and leaving the fields read-only renders identically
-    // and stays structurally valid. Bake with the embedded Helvetica so the
-    // appearance is self-contained and viewers don't re-flow it.
-    form.updateFieldAppearances(helv);
-    return pdfDoc.save();
-}
+export type { PatientDocumentPdfInput } from '@/lib/patient-document-pdf-resolve';
 
 export async function renderPatientDocumentPdf(
     input: PatientDocumentPdfInput
 ): Promise<Uint8Array> {
+    // Historia clínica se genera entera por código (paginación dinámica según
+    // longitud del contenido). LOPD/intervención mantienen el flujo overlay
+    // sobre template legal.
+    if (input.documentType === 'clinical_history') {
+        return renderHistoriaClinicaDynamic(input);
+    }
     const spec = PATIENT_DOCUMENT_TEMPLATES[input.documentType];
     if (!spec) {
         throw new Error(`No template configured for document type ${input.documentType}`);
     }
-    return fillTemplate(spec, input);
+    return renderPatientDocumentPdfOverlay(spec, input);
 }

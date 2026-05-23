@@ -421,7 +421,10 @@ async function buildHistoria(docType: string, spec: TemplateSpec): Promise<void>
                 const block = anchors.find((a) => a.kind === 'block' && norm.startsWith(a.match));
                 if (block) {
                     closeBlock(line.y + line.size);
-                    open = { field: block.field, topY: line.y - line.size * 1.15 };
+                    // Drop the block top a bit below the heading so the
+                    // top of the rendered value (ascender of «-marker / first
+                    // capital) is not clipped by the box edge.
+                    open = { field: block.field, topY: line.y - line.size * 1.6 };
                 } else {
                     closeBlock(line.y + line.size);
                 }

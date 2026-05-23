@@ -345,42 +345,35 @@
        matching Resumen card style across all section pages
    ────────────────────────────────────────────────────────────── */
 
-/* Base reset: flatten left border, enable ::before top bar */
+/* Base reset: outlined style — uniform 2px border, no top bar */
 .zs-pac-kpi,
 .zs-pros-kpi,
 .zs-svc-kpi,
 .zs-hor-kpi {
   position: relative !important;
   overflow: hidden !important;
-  border-left-width: 1px !important;
+  border-width: 2px !important;
 }
 
-/* Top accent bar replaces left border accent */
+/* Remove top accent bar */
 .zs-pac-kpi::before,
 .zs-pros-kpi::before,
 .zs-svc-kpi::before,
 .zs-hor-kpi::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 0 auto 0 !important;
-  height: 4px !important;
-  background: linear-gradient(90deg, #ad7332 0%, #c9954d 100%) !important;
-  border-radius: 12px 12px 0 0 !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
+  display: none !important;
 }
 
 /* Canela */
 .zs-pac-kpi--canela,
 .zs-pros-kpi--canela,
 .zs-svc-kpi--canela {
-  background: linear-gradient(148deg, #fffcf5 0%, #f3e4cc 100%) !important;
-  border-color: rgba(173, 115, 50, 0.3) !important;
+  background: #fffcf8 !important;
+  border-color: #d4a76a !important;
 }
-.zs-pac-kpi--canela::before,
-.zs-pros-kpi--canela::before,
-.zs-svc-kpi--canela::before {
-  background: linear-gradient(90deg, #ad7332 0%, #c9954d 100%) !important;
+.zs-pac-kpi--canela .zs-pac-kpi__icon,
+.zs-pros-kpi--canela .zs-pros-kpi__icon,
+.zs-svc-kpi--canela .zs-svc-kpi__icon {
+  background: rgba(173, 115, 50, 0.1) !important;
 }
 
 /* Success */
@@ -388,27 +381,27 @@
 .zs-pros-kpi--success,
 .zs-svc-kpi--success,
 .zs-hor-kpi--success {
-  background: linear-gradient(148deg, #f2fef7 0%, #c8f0dc 100%) !important;
-  border-color: rgba(5, 150, 105, 0.3) !important;
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
 }
-.zs-pac-kpi--success::before,
-.zs-pros-kpi--success::before,
-.zs-svc-kpi--success::before,
-.zs-hor-kpi--success::before {
-  background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
+.zs-pac-kpi--success .zs-pac-kpi__icon,
+.zs-pros-kpi--success .zs-pros-kpi__icon,
+.zs-svc-kpi--success .zs-svc-kpi__icon,
+.zs-hor-kpi--success .zs-hor-kpi__icon {
+  background: rgba(5, 150, 105, 0.1) !important;
 }
 
 /* Info */
 .zs-pac-kpi--info,
 .zs-pros-kpi--info,
 .zs-svc-kpi--info {
-  background: linear-gradient(148deg, #f4f7ff 0%, #d8e4ff 100%) !important;
-  border-color: rgba(37, 99, 235, 0.26) !important;
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
 }
-.zs-pac-kpi--info::before,
-.zs-pros-kpi--info::before,
-.zs-svc-kpi--info::before {
-  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%) !important;
+.zs-pac-kpi--info .zs-pac-kpi__icon,
+.zs-pros-kpi--info .zs-pros-kpi__icon,
+.zs-svc-kpi--info .zs-svc-kpi__icon {
+  background: rgba(37, 99, 235, 0.1) !important;
 }
 
 /* Neutral */
@@ -416,25 +409,25 @@
 .zs-pros-kpi--neutral,
 .zs-svc-kpi--neutral,
 .zs-hor-kpi--neutral {
-  background: linear-gradient(148deg, #f8f9fb 0%, #e8ecf1 100%) !important;
-  border-color: rgba(107, 114, 128, 0.28) !important;
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
 }
-.zs-pac-kpi--neutral::before,
-.zs-pros-kpi--neutral::before,
-.zs-svc-kpi--neutral::before,
-.zs-hor-kpi--neutral::before {
-  background: linear-gradient(90deg, #9ca3af 0%, #d1d5db 100%) !important;
+.zs-pac-kpi--neutral .zs-pac-kpi__icon,
+.zs-pros-kpi--neutral .zs-pros-kpi__icon,
+.zs-svc-kpi--neutral .zs-svc-kpi__icon,
+.zs-hor-kpi--neutral .zs-hor-kpi__icon {
+  background: rgba(107, 114, 128, 0.1) !important;
 }
 
 /* Warning */
 .zs-pac-kpi--warning,
 .zs-hor-kpi--warning {
-  background: linear-gradient(148deg, #fffdf0 0%, #fceabd 100%) !important;
-  border-color: rgba(217, 119, 6, 0.3) !important;
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
 }
-.zs-pac-kpi--warning::before,
-.zs-hor-kpi--warning::before {
-  background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%) !important;
+.zs-pac-kpi--warning .zs-pac-kpi__icon,
+.zs-hor-kpi--warning .zs-hor-kpi__icon {
+  background: rgba(217, 119, 6, 0.1) !important;
 }
 
 /* Bigger KPI numbers — match Resumen scale */
@@ -501,4 +494,49 @@
   flex-shrink: 0;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   17. FORM INPUTS — clean white + neutral border, drop warm cream
+   Overrides --zeus-surface/#fffaf3 and --zeus-line-strong/#c7a37a
+   which panel-v6 scopes to .admin-shell--modern and .modal-overlay
+   ────────────────────────────────────────────────────────────── */
+
+.admin-shell--modern,
+.modal-overlay {
+  --zeus-surface: #ffffff;
+  --ops-surface: #ffffff;
+  --zeus-line: #e5e7eb;
+  --ops-line: #e5e7eb;
+  --zeus-line-strong: #d1d5db;
+  --ops-line-strong: #d1d5db;
+  --zeus-card-bg: #ffffff;
+  --zeus-card-bg-soft: #ffffff;
+  --ops-card-bg-soft: #ffffff;
+}
+
+/* Modal card: white bg, neutral border */
+.modal {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+.modal__header {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+/* Canela focus ring preserved for brand identity */
+.admin-shell--modern
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(
+    [type="range"]
+  ):not([type="file"]):focus,
+.admin-shell--modern select:focus,
+.admin-shell--modern textarea:focus,
+.modal input:not([type="checkbox"]):not([type="radio"]):focus,
+.modal select:focus,
+.modal textarea:focus {
+  border-color: rgba(173, 115, 50, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(173, 115, 50, 0.14) !important;
+  outline: none !important;
 }

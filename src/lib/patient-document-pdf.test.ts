@@ -24,11 +24,10 @@ const BASE = {
 };
 
 describe('renderPatientDocumentPdf', () => {
-    it('fills consent templates from the original legal PDFs (no AcroForm fields left)', async () => {
+    it('renders consent templates (overlay) preserving the original legal PDF pages', async () => {
         const cases = [
             { type: 'data_consent' as const, expectedPages: 2 },
             { type: 'intervention_consent' as const, expectedPages: 6 },
-            { type: 'clinical_history' as const, expectedPages: 2 },
         ];
 
         for (const testCase of cases) {
@@ -39,15 +38,23 @@ describe('renderPatientDocumentPdf', () => {
 
             const pdf = await PDFDocument.load(bytes);
             expect(pdf.getPageCount()).toBe(testCase.expectedPages);
-            // Not flattened (pdf-lib flatten corrupts these templates): the
-            // value-bearing fields remain but are locked read-only so the
-            // rendered document cannot be edited. Signature areas are printed
-            // lines, not form fields.
+            // AcroForm fields survive (read-only, valor sobre-pintado por
+            // overlay). NO `form.flatten()` (corrupción de xref histórica).
             const fields = pdf.getForm().getFields();
             expect(fields.length).toBeGreaterThan(0);
             expect(fields.every((f) => f.isReadOnly())).toBe(true);
             expect(bytes.byteLength).toBeGreaterThan(1000);
         }
+    });
+
+    it('renders the clinical history dynamically (page count depends on content)', async () => {
+        const bytes = await renderPatientDocumentPdf({
+            documentType: 'clinical_history',
+            ...BASE,
+        });
+        const pdf = await PDFDocument.load(bytes);
+        expect(pdf.getPageCount()).toBeGreaterThanOrEqual(1);
+        expect(bytes.byteLength).toBeGreaterThan(1000);
     });
 
     it('throws for an unconfigured document type', async () => {

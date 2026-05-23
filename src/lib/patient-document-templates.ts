@@ -65,10 +65,12 @@ export function normalizeLine(s: string): string {
 // Exact extents of the original sample text (extracted from the source PDFs),
 // so filled values land precisely where the blanks are in the legal prose.
 const DATE_LINE = (page: number, baseline: number): TemplateSlot[] => [
+    // x1 ends just before the next static word (" el ", " de ", " de ") so the
+    // value does not overlap the surrounding prose.
     { field: 'lugar', page, x0: 86.1, x1: 128.9, baseline, sampleSize: 15.6 },
     { field: 'dia', page, x0: 139.5, x1: 158, baseline, sampleSize: 15.6 },
     { field: 'mes', page, x0: 171.7, x1: 227.3, baseline, sampleSize: 15.6 },
-    { field: 'anio', page, x0: 242, x1: 274, baseline, sampleSize: 15.6 },
+    { field: 'anio', page, x0: 242, x1: 300, baseline, sampleSize: 15.6 },
 ];
 
 export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, TemplateSpec>> = {
@@ -81,9 +83,11 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
             { field: 'direccion', page: 0, x0: 72, x1: 260, baseline: 505.9, sampleSize: 15.6 },
             ...DATE_LINE(0, 280.9),
             { field: 'nombre_firmante', page: 0, x0: 106.4, x1: 204.1, baseline: 190.9, sampleSize: 15.6 },
-            { field: 'dni_firmante', page: 0, x0: 243.5, x1: 308.1, baseline: 190.9, sampleSize: 15.6 },
+            // dni_firmante ends the line, safe to widen.
+            { field: 'dni_firmante', page: 0, x0: 243.5, x1: 340, baseline: 190.9, sampleSize: 15.6 },
             { field: 'nombre_tutor', page: 1, x0: 107, x1: 290, baseline: 607.9, sampleSize: 15.6 },
-            { field: 'dni_tutor', page: 1, x0: 340, x1: 520, baseline: 607.9, sampleSize: 15.6 },
+            // dni_tutor ends the line.
+            { field: 'dni_tutor', page: 1, x0: 340, x1: 550, baseline: 607.9, sampleSize: 15.6 },
         ],
         fieldSources: {
             clinic_name: { kind: 'config', key: 'clinic_name' },
@@ -112,14 +116,16 @@ export const PATIENT_DOCUMENT_TEMPLATES: Partial<Record<PatientDocumentType, Tem
             { field: 'anio', page: 4, x0: 242, x1: 300, baseline: 731.2, sampleSize: 15.6 },
             // PACIENTE: "D/Dña ___ con DNI ___"
             { field: 'nombre_firmante', page: 4, x0: 106, x1: 201, baseline: 641.9, sampleSize: 15.6 },
-            { field: 'dni_firmante', page: 4, x0: 243, x1: 360, baseline: 641.9, sampleSize: 15.6 },
+            // dni_firmante ends the line, safe to widen.
+            { field: 'dni_firmante', page: 4, x0: 243, x1: 400, baseline: 641.9, sampleSize: 15.6 },
             // TUTOR line 1: "Ante la imposibilidad de D/Dña ___ con DNI ___ de prestar..."
             { field: 'nombre_tutor', page: 4, x0: 229, x1: 323, baseline: 194.2, sampleSize: 15.6 },
             { field: 'dni_tutor', page: 4, x0: 366, x1: 425, baseline: 194.2, sampleSize: 15.6 },
             // TUTOR line 2: "D/Dña ___ con DNI ___ . En calidad de ___"
             { field: 'nombre_tutor', page: 4, x0: 106, x1: 294, baseline: 143.9, sampleSize: 15.6 },
             { field: 'dni_tutor', page: 4, x0: 337, x1: 412, baseline: 143.9, sampleSize: 15.6 },
-            { field: 'relacion_tutor', page: 4, x0: 489, x1: 523, baseline: 143.9, sampleSize: 15.6 },
+            // relacion_tutor ends the line, safe to widen.
+            { field: 'relacion_tutor', page: 4, x0: 489, x1: 570, baseline: 143.9, sampleSize: 15.6 },
             // Page idx5 ("Página 6 de 6"). FISIOTERAPEUTA block.
             { field: 'nombre_fisioterapeuta', page: 5, x0: 106, x1: 206, baseline: 559.4, sampleSize: 15.6 },
             { field: 'num_colegiado', page: 5, x0: 248, x1: 311, baseline: 559.4, sampleSize: 15.6 },
@@ -239,10 +245,11 @@ export function slotRect(slot: TemplateSlot): {
     fontSize: number;
 } {
     const fontSize = Math.min(11, Math.max(8, slot.sampleSize * 0.62));
-    // pdfium/Chrome render the value at the bottom of the widget rect, so the
-    // box is placed one line ABOVE the prose baseline to bring the value onto
-    // the same line as the surrounding legal text.
-    const y0 = slot.baseline + fontSize * 0.32;
-    const y1 = slot.baseline + fontSize * 1.6;
+    // Widget rect chosen so the rendered value lands ON the prose baseline.
+    // pdf-lib / Chrome draw the value with its baseline near the bottom of the
+    // widget rect (descender hangs ~0.2*fontSize below). So y0 sits ~0.2*fs
+    // BELOW the prose baseline to align the text baselines.
+    const y0 = slot.baseline - fontSize * 0.2;
+    const y1 = slot.baseline + fontSize * 1.1;
     return { rect: [slot.x0, y0, slot.x1, y1], fontSize };
 }

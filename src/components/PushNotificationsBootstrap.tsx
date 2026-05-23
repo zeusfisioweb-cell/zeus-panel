@@ -80,47 +80,8 @@ export function PushNotificationsBootstrap() {
                 return;
             }
 
-            const DISMISS_KEY = 'zeus_push_prompt_dismissed';
-            const alreadyDismissed = window.localStorage.getItem(DISMISS_KEY);
-
-            if (Notification.permission === 'default' && !askedRef.current && !alreadyDismissed) {
-                askedRef.current = true;
-                toast.message('Activa notificaciones', {
-                    description: 'Recibe avisos en tu móvil cuando entra o se cancela una cita.',
-                    action: {
-                        label: 'Activar',
-                        onClick: async () => {
-                            const permission = await Notification.requestPermission();
-                            if (permission !== 'granted') {
-                                window.localStorage.setItem(DISMISS_KEY, '1');
-                                return;
-                            }
-
-                            const reg = await navigator.serviceWorker.register(SW_PATH);
-                            const applicationServerKey = base64ToUint8Array(vapidPublicKey) as unknown as BufferSource;
-                            const subscription = await reg.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey,
-                            });
-
-                            await fetch('/api/admin/push-subscriptions', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'same-origin',
-                                body: JSON.stringify(subscription.toJSON()),
-                            });
-
-                            toast.success('Notificaciones activadas');
-                        },
-                    },
-                    cancel: {
-                        label: 'Ahora no',
-                        onClick: () => window.localStorage.setItem(DISMISS_KEY, '1'),
-                    },
-                    onDismiss: () => window.localStorage.setItem(DISMISS_KEY, '1'),
-                    duration: 10000,
-                });
-            }
+            // El popup automático queda desactivado: el usuario activa las notificaciones
+            // desde Configuración → Notificaciones push. Ver NotificationsSettings.tsx.
         }
 
         void bootstrap();

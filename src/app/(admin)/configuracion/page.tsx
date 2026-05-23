@@ -5,6 +5,7 @@ import Icon from '@/components/Icon';
 import { toast } from 'sonner';
 import type { BookingSettings } from '@/lib/types';
 import { readApiError } from '@/lib/api-helpers';
+import { NotificationsSettings } from '@/components/NotificationsSettings';
 
 
 export default function ConfiguracionPage() {
@@ -172,6 +173,8 @@ export default function ConfiguracionPage() {
                         </label>
                     </div>
                 </section>
+
+                <NotificationsSettings />
 
                 <section className="bento-card flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between md:p-6">
                     <p className="text-sm text-[var(--text-muted)]">Los cambios se aplican al panel y a las reservas online.</p>
