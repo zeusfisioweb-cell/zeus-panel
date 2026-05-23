@@ -58,7 +58,8 @@ export async function GET() {
         if (role === 'owner') {
             const { data, error } = await supabase
                 .from('professionals')
-                .select(ownerSelect);
+                .select(ownerSelect)
+                .eq('is_active', true);
 
             if (error) throw error;
 
