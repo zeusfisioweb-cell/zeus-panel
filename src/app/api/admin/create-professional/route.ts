@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ProfessionalCreateSchema, validateData } from '@/lib/schemas';
 import { assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../_lib';
 import { checkRateLimit, getRetryAfterSeconds, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit';
+import { sendProfessionalWelcomeEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
     try {
@@ -137,16 +138,42 @@ export async function POST(request: Request) {
             }
         }
 
+        // 6. Send welcome email with password setup link (non-blocking).
+        let emailSent = false;
+        try {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+            const redirectTo = appUrl ? `${new URL(appUrl).origin}/login` : undefined;
+
+            const { data: linkData, error: linkError } = await adminAuthClient.auth.admin.generateLink({
+                type: 'recovery',
+                email,
+                options: redirectTo ? { redirectTo } : undefined,
+            });
+
+            if (linkError || !linkData?.properties?.action_link) {
+                console.warn('Failed to generate setup link for professional:', linkError);
+            } else {
+                await sendProfessionalWelcomeEmail({
+                    to: email,
+                    fullName: normalizedFullName,
+                    setupLink: linkData.properties.action_link,
+                });
+                emailSent = true;
+            }
+        } catch (emailErr) {
+            console.warn('Failed to send professional welcome email:', emailErr);
+        }
+
         await writeAuditLog({
             supabase,
             userId: ownerUserId,
             action: 'CREATE',
             tableName: 'professionals',
             recordId: userId,
-            details: { email, service_count: service_ids.length },
+            details: { email, service_count: service_ids.length, welcome_email_sent: emailSent },
         });
 
-        return NextResponse.json({ success: true, user_id: userId });
+        return NextResponse.json({ success: true, user_id: userId, welcome_email_sent: emailSent });
 
     } catch (error: unknown) {
         console.error('Error in create-professional API:', error);

@@ -145,7 +145,7 @@ describe('admin create professional route', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true, user_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc' });
+        expect(body).toEqual({ success: true, user_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', welcome_email_sent: false });
         expect(createSupabaseAdminMock).toHaveBeenCalledWith(
             'https://example.supabase.co',
             'service-role-key',
