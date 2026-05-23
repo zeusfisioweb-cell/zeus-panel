@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // --- Shared Reusable Definitions ---
 const phoneRegex = /^(?:\+34|0034|34)?[ -]*(?:6|7)[ -]*([0-9][ -]*){8}$/i; // Basic Spanish phone validation
-const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; // HH:MM
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/; // HH:MM or HH:MM:SS
 
 // ─── Patient ───────────────────────────────────────────────
 
