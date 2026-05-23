@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Appointment, Patient, Payment, Service } from '@/lib/types';
 import { PaymentSchema } from '@/lib/schemas';
-import { readApiError } from '@/lib/api-helpers';
+import { apiFetch, buildSearchParams } from '@/lib/api-client';
 
 export const PAYMENTS_QUERY_KEY = ['payments'];
 
@@ -18,30 +18,20 @@ export interface PaymentFilters {
     patient_id?: string;
 }
 
-function buildQueryString(filters: PaymentFilters): string {
-    const params = new URLSearchParams();
-    if (filters.from) params.set('from', filters.from);
-    if (filters.to) params.set('to', filters.to);
-    if (filters.method) params.set('method', filters.method);
-    if (filters.appointment_id) params.set('appointment_id', filters.appointment_id);
-    if (filters.patient_id) params.set('patient_id', filters.patient_id);
-    const qs = params.toString();
-    return qs ? `?${qs}` : '';
+function paymentsQuery(filters: PaymentFilters): string {
+    return buildSearchParams({
+        from: filters.from,
+        to: filters.to,
+        method: filters.method,
+        appointment_id: filters.appointment_id,
+        patient_id: filters.patient_id,
+    });
 }
 
 export function usePayments(filters: PaymentFilters = {}) {
     return useQuery({
         queryKey: [...PAYMENTS_QUERY_KEY, filters],
-        queryFn: async () => {
-            const response = await fetch(`/api/admin/payments${buildQueryString(filters)}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-            return (await response.json()) as PaymentWithRelations[];
-        },
+        queryFn: () => apiFetch<PaymentWithRelations[]>(`/api/admin/payments${paymentsQuery(filters)}`),
     });
 }
 
@@ -56,18 +46,12 @@ export interface CreatePaymentInput {
 export function useCreatePayment() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: CreatePaymentInput) => {
+        mutationFn: (input: CreatePaymentInput) => {
             PaymentSchema.parse(input);
-            const response = await fetch('/api/admin/payments', {
+            return apiFetch<PaymentWithRelations>('/api/admin/payments', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(input),
+                body: input,
             });
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-            return (await response.json()) as PaymentWithRelations;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
@@ -79,15 +63,8 @@ export function useCreatePayment() {
 export function useDeletePayment() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (id: string) => {
-            const response = await fetch(`/api/admin/payments/${id}`, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-            });
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-        },
+        mutationFn: (id: string) =>
+            apiFetch<void>(`/api/admin/payments/${id}`, { method: 'DELETE' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: ['citas'] });
@@ -100,5 +77,5 @@ export function getReceiptDownloadUrl(paymentId: string): string {
 }
 
 export function getPaymentsExportUrl(filters: PaymentFilters = {}): string {
-    return `/api/admin/payments/export${buildQueryString(filters)}`;
+    return `/api/admin/payments/export${paymentsQuery(filters)}`;
 }

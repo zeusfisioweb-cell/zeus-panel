@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Appointment, AppointmentStatus, ScheduleException } from '@/lib/types';
 import { AppointmentInsertSchema, AppointmentUpdateSchema, ScheduleExceptionSchema } from '@/lib/schemas';
-import { readApiError } from '@/lib/api-helpers';
+import { apiFetch, buildSearchParams } from '@/lib/api-client';
 
 export const APPOINTMENTS_QUERY_KEY = ['citas'];
 
@@ -33,22 +33,9 @@ export function useCitas(start_date?: string, end_date?: string) {
 
     return useQuery({
         queryKey: [...APPOINTMENTS_QUERY_KEY, start_date, end_date],
-        queryFn: async () => {
-            const params = new URLSearchParams();
-            if (start_date) params.set('start_date', start_date);
-            if (end_date) params.set('end_date', end_date);
-            const queryString = params.toString();
-
-            const response = await fetch(`/api/admin/appointments${queryString ? `?${queryString}` : ''}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Appointment[];
+        queryFn: () => {
+            const qs = buildSearchParams({ start_date, end_date });
+            return apiFetch<Appointment[]>(`/api/admin/appointments${qs}`);
         },
     });
 }
@@ -57,21 +44,9 @@ export function useCreateCita() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newAppointment: Partial<Appointment>) => {
+        mutationFn: (newAppointment: Partial<Appointment>) => {
             const parsed = AppointmentInsertSchema.parse(newAppointment);
-
-            const response = await fetch('/api/admin/appointments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(parsed),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Appointment;
+            return apiFetch<Appointment>('/api/admin/appointments', { method: 'POST', body: parsed });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -83,21 +58,12 @@ export function useUpdateCita() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, ...updateData }: Partial<Appointment> & { id: string }) => {
-            const parsedUpdateData = AppointmentUpdateSchema.parse(updateData);
-
-            const response = await fetch('/api/admin/appointments', {
+        mutationFn: ({ id, ...updateData }: Partial<Appointment> & { id: string }) => {
+            const parsed = AppointmentUpdateSchema.parse(updateData);
+            return apiFetch<Appointment>('/api/admin/appointments', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ id, ...parsedUpdateData }),
+                body: { id, ...parsed },
             });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Appointment;
         },
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -127,20 +93,11 @@ export function useUpdateCitaStatus() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, status }: { id: string; status: AppointmentStatus }) => {
-            const response = await fetch('/api/admin/appointments', {
+        mutationFn: ({ id, status }: { id: string; status: AppointmentStatus }) =>
+            apiFetch<Appointment>('/api/admin/appointments', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ id, status }),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Appointment;
-        },
+                body: { id, status },
+            }),
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
             const previousAppointments = queryClient.getQueriesData({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -170,28 +127,13 @@ export function useCancelCita() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, reason }: { id: string; reason?: string | null }) => {
+        mutationFn: ({ id, reason }: { id: string; reason?: string | null }) => {
             const payload: { id: string; status: AppointmentStatus; cancellation_reason?: string } = {
                 id,
                 status: 'cancelled',
             };
-
-            if (reason) {
-                payload.cancellation_reason = reason;
-            }
-
-            const response = await fetch('/api/admin/appointments', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Appointment;
+            if (reason) payload.cancellation_reason = reason;
+            return apiFetch<Appointment>('/api/admin/appointments', { method: 'PATCH', body: payload });
         },
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
@@ -228,16 +170,8 @@ export function useDeleteCita() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (id: string) => {
-            const response = await fetch(`/api/admin/appointments/${encodeURIComponent(id)}`, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-        },
+        mutationFn: (id: string) =>
+            apiFetch<void>(`/api/admin/appointments/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -258,22 +192,13 @@ export function useScheduleExceptions({
 }) {
     return useQuery({
         queryKey: [...SCHEDULE_EXCEPTIONS_QUERY_KEY, startDate, endDate, professionalId],
-        queryFn: async () => {
-            const params = new URLSearchParams();
-            if (startDate) params.set('start_date', startDate);
-            if (endDate) params.set('end_date', endDate);
-            if (professionalId) params.set('professional_id', professionalId);
-
-            const response = await fetch(`/api/admin/schedule-exceptions?${params.toString()}`, {
-                method: 'GET',
-                credentials: 'same-origin',
+        queryFn: () => {
+            const qs = buildSearchParams({
+                start_date: startDate,
+                end_date: endDate,
+                professional_id: professionalId,
             });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as ScheduleException[];
+            return apiFetch<ScheduleException[]>(`/api/admin/schedule-exceptions${qs}`);
         },
     });
 }
@@ -282,21 +207,12 @@ export function useCreateException() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newException: Record<string, unknown>) => {
+        mutationFn: (newException: Record<string, unknown>) => {
             const parsed = ScheduleExceptionSchema.parse(newException);
-
-            const response = await fetch('/api/admin/schedule-exceptions', {
+            return apiFetch<ScheduleException>('/api/admin/schedule-exceptions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(parsed),
+                body: parsed,
             });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as ScheduleException;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SCHEDULE_EXCEPTIONS_QUERY_KEY });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api-client';
 
 export interface AnalyticsResponse {
     adherence: {
@@ -41,17 +42,12 @@ export type AnalyticsPeriod = 'last_7_days' | 'last_30_days' | 'last_year' | 'al
 export function useAnalytics(period: AnalyticsPeriod = 'last_30_days', start?: string, end?: string) {
     return useQuery<AnalyticsResponse>({
         queryKey: ['admin_analytics', period, start, end],
-        queryFn: async () => {
-            let url = `/api/admin/analytics?period=${period}`;
-            if (period === 'custom' && start && end) {
-                url = `/api/admin/analytics?period=custom&start=${start}&end=${end}`;
-            }
-            const res = await fetch(url);
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Error al cargar analítica');
-            }
-            return res.json();
+        queryFn: () => {
+            const url =
+                period === 'custom' && start && end
+                    ? `/api/admin/analytics?period=custom&start=${start}&end=${end}`
+                    : `/api/admin/analytics?period=${period}`;
+            return apiFetch<AnalyticsResponse>(url);
         },
         staleTime: 5 * 60 * 1000,
     });

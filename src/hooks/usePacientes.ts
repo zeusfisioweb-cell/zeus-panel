@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Patient } from '@/lib/types';
-import { readApiError } from '@/lib/api-helpers';
+import { apiFetch, buildSearchParams } from '@/lib/api-client';
 
 export const PATIENTS_QUERY_KEY = ['pacientes'];
 
@@ -11,22 +11,10 @@ export function usePacientes(options?: { searchTerm?: string; page?: number; pag
     return useQuery({
         queryKey: [...PATIENTS_QUERY_KEY, { searchTerm, page, pageSize }],
         queryFn: async () => {
-            const params = new URLSearchParams({
-                search: searchTerm,
-                page: String(page),
-                pageSize: String(pageSize),
-            });
-
-            const response = await fetch(`/api/admin/patients?${params.toString()}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            const payload = (await response.json()) as { data: Patient[]; count: number; consentCount: number };
+            const qs = buildSearchParams({ search: searchTerm, page, pageSize });
+            const payload = await apiFetch<{ data: Patient[]; count: number; consentCount: number }>(
+                `/api/admin/patients${qs}`,
+            );
             return {
                 data: payload.data ?? [],
                 count: payload.count ?? 0,
@@ -41,20 +29,8 @@ export function useCreatePaciente() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newPatient: Omit<Patient, 'id' | 'created_at' | 'updated_at'>) => {
-            const response = await fetch('/api/admin/patients', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(newPatient),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Patient;
-        },
+        mutationFn: (newPatient: Omit<Patient, 'id' | 'created_at' | 'updated_at'>) =>
+            apiFetch<Patient>('/api/admin/patients', { method: 'POST', body: newPatient }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
         },
@@ -65,20 +41,11 @@ export function useUpdatePaciente() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, ...updateData }: Partial<Patient> & { id: string }) => {
-            const response = await fetch('/api/admin/patients', {
+        mutationFn: ({ id, ...updateData }: Partial<Patient> & { id: string }) =>
+            apiFetch<Patient>('/api/admin/patients', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ id, ...updateData }),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as Patient;
-        },
+                body: { id, ...updateData },
+            }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
         },
@@ -89,16 +56,8 @@ export function useDeletePaciente() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (id: string) => {
-            const response = await fetch(`/api/admin/patients/${encodeURIComponent(id)}`, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-        },
+        mutationFn: (id: string) =>
+            apiFetch<void>(`/api/admin/patients/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
         },
@@ -114,30 +73,20 @@ export interface PatientGrowthPoint {
     total_patients: number;
 }
 
+interface PatientGrowthResponse {
+    points: PatientGrowthPoint[];
+    period: PatientGrowthPeriod;
+    kpis?: {
+        total: number;
+        gdprConsentRate: number;
+        marketingConsentRate: number;
+    };
+}
+
 export function usePatientsGrowth(period: PatientGrowthPeriod = 'month') {
     return useQuery({
         queryKey: ['patients-growth', period],
-        queryFn: async () => {
-            const response = await fetch(`/api/admin/patients/growth?period=${period}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            const payload = (await response.json()) as {
-                points: PatientGrowthPoint[];
-                period: PatientGrowthPeriod;
-                kpis?: {
-                    total: number;
-                    gdprConsentRate: number;
-                    marketingConsentRate: number;
-                };
-            };
-            return payload;
-        },
-        staleTime: 5 * 60 * 1000, // 5 min
+        queryFn: () => apiFetch<PatientGrowthResponse>(`/api/admin/patients/growth?period=${period}`),
+        staleTime: 5 * 60 * 1000,
     });
 }

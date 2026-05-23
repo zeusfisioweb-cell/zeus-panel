@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Professional } from '@/lib/types';
 import { z } from 'zod';
-import { readApiError } from '@/lib/api-helpers';
+import { apiFetch } from '@/lib/api-client';
 
 export const PROFESSIONALS_QUERY_KEY = ['profesionales'];
 
@@ -52,16 +52,7 @@ export function useProfesionales() {
     return useQuery({
         queryKey: PROFESSIONALS_QUERY_KEY,
         queryFn: async () => {
-            const response = await fetch('/api/admin/professionals', {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            const data = (await response.json()) as unknown[];
+            const data = await apiFetch<unknown[]>('/api/admin/professionals');
 
             return (data || []).map((row: unknown) => {
                 const d = row as Record<string, unknown>;
@@ -90,32 +81,21 @@ export function useCreateProfesional() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (payload: CreateProfessionalPayload) => {
-            const parsedPayload = createProfessionalPayloadSchema.parse(payload);
-
-            // temp_password is now generated server-side for security.
-            const response = await fetch('/api/admin/create-professional', {
+        mutationFn: (payload: CreateProfessionalPayload) => {
+            const parsed = createProfessionalPayloadSchema.parse(payload);
+            return apiFetch<{ user_id: string }>('/api/admin/create-professional', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    email: parsedPayload.email,
-                    full_name: parsedPayload.full_name,
-                    specialty: parsedPayload.specialty || null,
-                    bio: parsedPayload.bio || null,
-                    color_code: parsedPayload.color_code || '#AD7332',
-                    is_active: parsedPayload.is_active ?? true,
-                    service_ids: parsedPayload.serviceIds,
-                    schedule_slots: parsedPayload.scheduleSlots || [],
-                }),
+                body: {
+                    email: parsed.email,
+                    full_name: parsed.full_name,
+                    specialty: parsed.specialty || null,
+                    bio: parsed.bio || null,
+                    color_code: parsed.color_code || '#AD7332',
+                    is_active: parsed.is_active ?? true,
+                    service_ids: parsed.serviceIds,
+                    schedule_slots: parsed.scheduleSlots || [],
+                },
             });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            const result = (await response.json()) as { user_id: string };
-            return { user_id: result.user_id };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PROFESSIONALS_QUERY_KEY });
@@ -127,20 +107,11 @@ export function useUpdateProfesional() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, serviceIds, ...professionalData }: UpdateProfessionalPayload) => {
-            const response = await fetch('/api/admin/professionals', {
+        mutationFn: ({ id, serviceIds, ...professionalData }: UpdateProfessionalPayload) =>
+            apiFetch<{ success: boolean }>('/api/admin/professionals', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ id, serviceIds, ...professionalData }),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as { success: boolean };
-        },
+                body: { id, serviceIds, ...professionalData },
+            }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PROFESSIONALS_QUERY_KEY });
         },
@@ -151,20 +122,11 @@ export function useDeleteProfesional() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (id: string) => {
-            const response = await fetch('/api/admin/professionals', {
+        mutationFn: (id: string) =>
+            apiFetch<{ success: boolean; reassignedAppointments: number }>('/api/admin/professionals', {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ id }),
-            });
-
-            if (!response.ok) {
-                throw new Error(await readApiError(response));
-            }
-
-            return (await response.json()) as { success: boolean; reassignedAppointments: number };
-        },
+                body: { id },
+            }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PROFESSIONALS_QUERY_KEY });
         },

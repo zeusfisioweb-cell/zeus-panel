@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { ScheduleSlot, ScheduleException } from '@/lib/types';
-import { readApiError } from '@/lib/api-helpers';
+import { apiFetch } from '@/lib/api-client';
 
 export const HORARIOS_QUERY_KEY = 'horario';
 
@@ -33,8 +33,6 @@ export const ApplyDefaultScheduleSchema = z.object({
     })),
 });
 
-// --- HELPER ---
-
 // --- QUERIES ---
 export function useHorario(professionalId: string | null) {
     return useQuery({
@@ -43,23 +41,12 @@ export function useHorario(professionalId: string | null) {
             if (!professionalId) return { slots: [] as ScheduleSlot[], exceptions: [] as ScheduleException[] };
 
             const todayIso = new Date().toISOString().split('T')[0];
+            const proId = encodeURIComponent(professionalId);
 
-            const [slotsResponse, exceptionsResponse] = await Promise.all([
-                fetch(`/api/admin/professionals/${encodeURIComponent(professionalId)}/schedule`, {
-                    method: 'GET',
-                    credentials: 'same-origin',
-                }),
-                fetch(`/api/admin/professionals/${encodeURIComponent(professionalId)}/exceptions?from=${todayIso}`, {
-                    method: 'GET',
-                    credentials: 'same-origin',
-                }),
+            const [slots, exceptions] = await Promise.all([
+                apiFetch<ScheduleSlot[]>(`/api/admin/professionals/${proId}/schedule`),
+                apiFetch<ScheduleException[]>(`/api/admin/professionals/${proId}/exceptions?from=${todayIso}`),
             ]);
-
-            if (!slotsResponse.ok) throw new Error(await readApiError(slotsResponse));
-            if (!exceptionsResponse.ok) throw new Error(await readApiError(exceptionsResponse));
-
-            const slots = (await slotsResponse.json()) as ScheduleSlot[];
-            const exceptions = (await exceptionsResponse.json()) as ScheduleException[];
 
             return { slots: slots ?? [], exceptions: exceptions ?? [] };
         },
@@ -72,17 +59,9 @@ export function useCreateSlot() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (payload: z.infer<typeof CreateSlotSchema>) => {
+        mutationFn: (payload: z.infer<typeof CreateSlotSchema>) => {
             CreateSlotSchema.parse(payload);
-            const response = await fetch('/api/admin/schedule-slots', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) throw new Error(await readApiError(response));
-            return response.json();
+            return apiFetch('/api/admin/schedule-slots', { method: 'POST', body: payload });
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [HORARIOS_QUERY_KEY, variables.professional_id] });
@@ -94,15 +73,8 @@ export function useDeleteSlot() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id }: { id: string; professional_id: string }) => {
-            const response = await fetch(`/api/admin/schedule-slots/${encodeURIComponent(id)}`, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) throw new Error(await readApiError(response));
-            return response.json();
-        },
+        mutationFn: ({ id }: { id: string; professional_id: string }) =>
+            apiFetch(`/api/admin/schedule-slots/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [HORARIOS_QUERY_KEY, variables.professional_id] });
         },
@@ -113,19 +85,13 @@ export function useCreateException() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (payload: z.infer<typeof CreateExceptionSchema>) => {
+        mutationFn: (payload: z.infer<typeof CreateExceptionSchema>) => {
             CreateExceptionSchema.parse(payload);
             const { professional_id, ...bodyData } = payload;
-            
-            const response = await fetch(`/api/admin/professionals/${encodeURIComponent(professional_id)}/exceptions`, {
+            return apiFetch(`/api/admin/professionals/${encodeURIComponent(professional_id)}/exceptions`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(bodyData),
+                body: bodyData,
             });
-
-            if (!response.ok) throw new Error(await readApiError(response));
-            return response.json();
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [HORARIOS_QUERY_KEY, variables.professional_id] });
@@ -137,15 +103,8 @@ export function useDeleteException() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id }: { id: string; professional_id: string }) => {
-            const response = await fetch(`/api/admin/schedule-exceptions/${encodeURIComponent(id)}`, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-            });
-
-            if (!response.ok) throw new Error(await readApiError(response));
-            return response.json();
-        },
+        mutationFn: ({ id }: { id: string; professional_id: string }) =>
+            apiFetch(`/api/admin/schedule-exceptions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [HORARIOS_QUERY_KEY, variables.professional_id] });
         },
@@ -156,19 +115,13 @@ export function useApplyDefaultSchedule() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (payload: z.infer<typeof ApplyDefaultScheduleSchema>) => {
+        mutationFn: (payload: z.infer<typeof ApplyDefaultScheduleSchema>) => {
             ApplyDefaultScheduleSchema.parse(payload);
             const { professional_id, slots } = payload;
-
-            const response = await fetch(`/api/admin/professionals/${encodeURIComponent(professional_id)}/schedule`, {
+            return apiFetch(`/api/admin/professionals/${encodeURIComponent(professional_id)}/schedule`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ slots }),
+                body: { slots },
             });
-
-            if (!response.ok) throw new Error(await readApiError(response));
-            return response.json();
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [HORARIOS_QUERY_KEY, variables.professional_id] });

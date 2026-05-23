@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { readApiError } from '@/lib/api-helpers';
+import { apiFetch } from '@/lib/api-client';
 
 export interface AppointmentRequest {
     id: string;
@@ -28,12 +28,9 @@ export function useAppointmentRequests(status: StatusFilter = 'pending') {
     return useQuery({
         queryKey: [...APPOINTMENT_REQUESTS_QUERY_KEY, status],
         queryFn: async () => {
-            const response = await fetch(`/api/admin/appointment-requests?status=${status}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-            if (!response.ok) throw new Error(await readApiError(response));
-            const json = (await response.json()) as { requests: AppointmentRequest[] };
+            const json = await apiFetch<{ requests: AppointmentRequest[] }>(
+                `/api/admin/appointment-requests?status=${status}`,
+            );
             return json.requests;
         },
         refetchInterval: 60000,
@@ -44,12 +41,7 @@ export function useAppointmentRequestsPendingCount() {
     return useQuery({
         queryKey: APPOINTMENT_REQUESTS_COUNT_KEY,
         queryFn: async () => {
-            const response = await fetch('/api/admin/appointment-requests/pending-count', {
-                method: 'GET',
-                credentials: 'same-origin',
-            });
-            if (!response.ok) throw new Error(await readApiError(response));
-            const json = (await response.json()) as { count: number };
+            const json = await apiFetch<{ count: number }>('/api/admin/appointment-requests/pending-count');
             return json.count;
         },
         refetchInterval: 60000,
@@ -66,19 +58,14 @@ export function useResolveAppointmentRequest() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (payload: ResolvePayload) => {
-            const response = await fetch(`/api/admin/appointment-requests/${payload.id}`, {
-                method: 'PATCH',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: payload.status,
-                    resolution_note: payload.resolution_note,
-                }),
-            });
-            if (!response.ok) throw new Error(await readApiError(response));
-            return (await response.json()) as { ok: true; id: string; status: string };
-        },
+        mutationFn: (payload: ResolvePayload) =>
+            apiFetch<{ ok: true; id: string; status: string }>(
+                `/api/admin/appointment-requests/${payload.id}`,
+                {
+                    method: 'PATCH',
+                    body: { status: payload.status, resolution_note: payload.resolution_note },
+                },
+            ),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: APPOINTMENT_REQUESTS_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: APPOINTMENT_REQUESTS_COUNT_KEY });
