@@ -15,7 +15,7 @@ interface RawRow {
     created_at: string;
     resolved_at: string | null;
     resolution_note: string | null;
-    service: { name: string } | { name: string }[] | null;
+    service: { name: string; duration_minutes: number } | { name: string; duration_minutes: number }[] | null;
     professional: { profile: { full_name: string | null } | { full_name: string | null }[] | null } | { profile: { full_name: string | null } | { full_name: string | null }[] | null }[] | null;
     patient: { id: string; first_name: string | null; last_name: string | null; phone: string | null } | { id: string; first_name: string | null; last_name: string | null; phone: string | null }[] | null;
 }
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
                 created_at,
                 resolved_at,
                 resolution_note,
-                service:services(name),
+                service:services(name, duration_minutes),
                 professional:professionals(profile:profiles(full_name)),
                 patient:patients(id, first_name, last_name, phone)
             `)
@@ -83,6 +83,7 @@ export async function GET(request: Request) {
                 professional_name: proProfileResolved?.full_name ?? null,
                 service_id: row.service_id,
                 service_name: svc?.name ?? null,
+                service_duration_minutes: svc?.duration_minutes ?? null,
                 preferred_date: row.preferred_date,
                 notes: row.notes,
                 status: row.status,

@@ -10,6 +10,7 @@ export interface AppointmentRequest {
     professional_name: string | null;
     service_id: string;
     service_name: string | null;
+    service_duration_minutes: number | null;
     preferred_date: string;
     notes: string | null;
     status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';

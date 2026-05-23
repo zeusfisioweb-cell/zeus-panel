@@ -1,18 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import Icon from '@/components/Icon';
 import ConfirmModal from '@/components/ConfirmModal';
 import {
+    APPOINTMENT_REQUESTS_COUNT_KEY,
+    APPOINTMENT_REQUESTS_QUERY_KEY,
     useAppointmentRequests,
     useResolveAppointmentRequest,
     type AppointmentRequest,
 } from '@/hooks/useAppointmentRequests';
+import { ScheduleRequestModal } from './ScheduleRequestModal';
 
 type StatusFilter = 'pending' | 'all';
 
-type PendingAction = { id: string; type: 'accepted' | 'declined' } | null;
+type PendingAction = { id: string; type: 'declined' } | null;
 
 function formatDate(iso: string): string {
     const date = new Date(`${iso}T00:00:00`);
@@ -46,26 +50,35 @@ function statusLabel(status: AppointmentRequest['status']): string {
 }
 
 export default function SolicitudesPage() {
+    const queryClient = useQueryClient();
     const [filter, setFilter] = useState<StatusFilter>('pending');
     const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+    const [scheduleTarget, setScheduleTarget] = useState<AppointmentRequest | null>(null);
 
     const { data: requests, isLoading, isError, error } = useAppointmentRequests(filter);
     const resolve = useResolveAppointmentRequest();
 
     const sorted = useMemo(() => requests ?? [], [requests]);
 
-    const handleResolve = async () => {
+    const handleDecline = async () => {
         if (!pendingAction) return;
         try {
             await resolve.mutateAsync({
                 id: pendingAction.id,
                 status: pendingAction.type,
             });
-            toast.success(pendingAction.type === 'accepted' ? 'Solicitud aceptada' : 'Solicitud rechazada');
+            toast.success('Solicitud rechazada');
             setPendingAction(null);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'No se pudo actualizar');
         }
+    };
+
+    const handleScheduleSuccess = () => {
+        toast.success('Cita programada y solicitud aceptada');
+        setScheduleTarget(null);
+        queryClient.invalidateQueries({ queryKey: APPOINTMENT_REQUESTS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: APPOINTMENT_REQUESTS_COUNT_KEY });
     };
 
     const target = pendingAction ? sorted.find((r) => r.id === pendingAction.id) : null;
@@ -164,11 +177,11 @@ export default function SolicitudesPage() {
                                 <div className="flex gap-2 shrink-0">
                                     <button
                                         type="button"
-                                        onClick={() => setPendingAction({ id: req.id, type: 'accepted' })}
+                                        onClick={() => setScheduleTarget(req)}
                                         disabled={resolve.isPending}
                                         className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
                                     >
-                                        Aceptar
+                                        Programar
                                     </button>
                                     <button
                                         type="button"
@@ -187,16 +200,20 @@ export default function SolicitudesPage() {
 
             {pendingAction && target && (
                 <ConfirmModal
-                    title={pendingAction.type === 'accepted' ? 'Aceptar solicitud' : 'Rechazar solicitud'}
-                    message={
-                        pendingAction.type === 'accepted'
-                            ? `Marca esta solicitud como aceptada. Recuerda crear la cita real en el calendario antes de confirmar (paciente: ${target.patient_name ?? ''}, ${formatDate(target.preferred_date)}).`
-                            : `Marca esta solicitud como rechazada (paciente: ${target.patient_name ?? ''}, ${formatDate(target.preferred_date)}).`
-                    }
-                    confirmLabel={pendingAction.type === 'accepted' ? 'Aceptar' : 'Rechazar'}
-                    variant={pendingAction.type === 'accepted' ? 'info' : 'warning'}
-                    onConfirm={handleResolve}
+                    title="Rechazar solicitud"
+                    message={`Marca esta solicitud como rechazada (paciente: ${target.patient_name ?? ''}, ${formatDate(target.preferred_date)}).`}
+                    confirmLabel="Rechazar"
+                    variant="warning"
+                    onConfirm={handleDecline}
                     onCancel={() => setPendingAction(null)}
+                />
+            )}
+
+            {scheduleTarget && (
+                <ScheduleRequestModal
+                    request={scheduleTarget}
+                    onSuccess={handleScheduleSuccess}
+                    onCancel={() => setScheduleTarget(null)}
                 />
             )}
         </div>
