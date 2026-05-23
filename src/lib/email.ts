@@ -2,6 +2,12 @@ import { Resend } from 'resend';
 
 const FROM = process.env.EMAIL_FROM ?? 'Zeus Fisioterapia <noreply@zeus.es>';
 
+function maskEmail(email: string): string {
+    const at = email.indexOf('@');
+    if (at < 2) return '***';
+    return `${email[0]}***${email.slice(at)}`;
+}
+
 interface CancellationRequestEmailParams {
     to: string;
     patientName: string;
@@ -20,7 +26,7 @@ export async function sendCancellationRequestEmail({
     confirmLink,
 }: CancellationRequestEmailParams): Promise<void> {
     if (!process.env.RESEND_API_KEY) {
-        console.log('[email:dev] Cancellation email skipped (no RESEND_API_KEY). to:', to);
+        console.log('[email:dev] Cancellation email skipped (no RESEND_API_KEY). to:', maskEmail(to));
         return;
     }
 
@@ -128,7 +134,7 @@ export async function sendProfessionalWelcomeEmail({
     setupLink,
 }: ProfessionalWelcomeEmailParams): Promise<void> {
     if (!process.env.RESEND_API_KEY) {
-        console.log('[email:dev] Professional welcome email skipped (no RESEND_API_KEY). to:', to);
+        console.log('[email:dev] Professional welcome email skipped (no RESEND_API_KEY). to:', maskEmail(to));
         return;
     }
 

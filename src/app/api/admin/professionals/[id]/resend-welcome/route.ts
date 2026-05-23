@@ -67,7 +67,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
                 setupLink,
             });
         } catch (emailErr) {
-            console.error('Failed to send professional welcome email:', emailErr);
+            console.error('Failed to send professional welcome email:', emailErr instanceof Error ? emailErr.message : 'unknown');
             return NextResponse.json({ error: 'No se pudo enviar el correo' }, { status: 502 });
         }
 

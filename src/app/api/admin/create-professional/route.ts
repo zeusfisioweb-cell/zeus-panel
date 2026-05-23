@@ -131,7 +131,7 @@ export async function POST(request: Request) {
                         reactEmailSent = true;
                     }
                 } catch (emailErr) {
-                    console.warn('Reactivate: welcome email failed', emailErr);
+                    console.warn('Reactivate: welcome email failed', emailErr instanceof Error ? emailErr.message : 'unknown');
                 }
 
                 await writeAuditLog({
@@ -261,7 +261,7 @@ export async function POST(request: Request) {
                 emailSent = true;
             }
         } catch (emailErr) {
-            console.warn('Failed to send professional welcome email:', emailErr);
+            console.warn('Failed to send professional welcome email:', emailErr instanceof Error ? emailErr.message : 'unknown');
         }
 
         await writeAuditLog({
