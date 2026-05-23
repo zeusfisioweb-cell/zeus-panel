@@ -137,7 +137,8 @@ export async function PATCH(request: Request) {
         }
 
         if (serviceIds !== undefined) {
-            const { error: replaceLinksError } = await supabase.rpc('replace_professional_service_links', {
+            const adminClient = getAdminSupabase();
+            const { error: replaceLinksError } = await adminClient.rpc('replace_professional_service_links', {
                 p_professional_id: id,
                 p_service_ids: serviceIds,
             });
