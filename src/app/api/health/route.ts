@@ -10,12 +10,16 @@ const REQUIRED_ENV = [
 
 async function checkSupabase(): Promise<boolean> {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!url) return false;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anonKey) return false;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
     try {
-        const res = await fetch(`${url}/auth/v1/health`, { signal: controller.signal });
+        const res = await fetch(`${url}/auth/v1/health`, {
+            signal: controller.signal,
+            headers: { apikey: anonKey },
+        });
         return res.ok;
     } catch {
         return false;
