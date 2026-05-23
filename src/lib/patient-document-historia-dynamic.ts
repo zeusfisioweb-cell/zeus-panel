@@ -252,10 +252,12 @@ class HistoriaBuilder {
         const x = MARGIN_L + indent;
         const labelText = label.endsWith(':') ? label : `${label}:`;
         const labelW = this.helvBold.widthOfTextAtSize(labelText, BODY_SIZE);
-        const valueText = value ? ` ${value}` : '';
-        const maxValueW = CONTENT_W - indent - BULLET_INDENT - labelW;
-        const wrappedValue = valueText
-            ? wrapText(this.helv, sanitize(valueText), maxValueW, BODY_SIZE)
+        // Gap visual entre `:` y valor (wrapText elimina espacios al inicio).
+        const labelValueGap = BODY_SIZE * 0.35;
+        const valueStartX = x + BULLET_INDENT + labelW + labelValueGap;
+        const maxValueW = CONTENT_W - indent - BULLET_INDENT - labelW - labelValueGap;
+        const wrappedValue = value
+            ? wrapText(this.helv, sanitize(value), maxValueW, BODY_SIZE)
             : [];
 
         this.ensureSpace(LINE_HEIGHT);
@@ -270,7 +272,7 @@ class HistoriaBuilder {
 
         if (wrappedValue.length > 0) {
             this.page.drawText(wrappedValue[0], {
-                x: x + BULLET_INDENT + labelW,
+                x: valueStartX,
                 y: baselineY,
                 size: BODY_SIZE,
                 font: this.helv,
@@ -280,7 +282,7 @@ class HistoriaBuilder {
             for (let i = 1; i < wrappedValue.length; i++) {
                 this.ensureSpace(LINE_HEIGHT);
                 this.page.drawText(wrappedValue[i], {
-                    x: x + BULLET_INDENT + labelW,
+                    x: valueStartX,
                     y: this.cursorY - BODY_SIZE,
                     size: BODY_SIZE,
                     font: this.helv,
