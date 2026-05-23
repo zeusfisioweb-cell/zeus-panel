@@ -3,6 +3,15 @@ import { Service, ServiceCategory } from '@/lib/types';
 import { ServiceSchema, ServiceUpdateSchema } from '@/lib/schemas';
 import { readApiError } from '@/lib/api-helpers';
 
+export class ServiceHasAppointmentsError extends Error {
+    count: number;
+    constructor(count: number, message: string) {
+        super(message);
+        this.name = 'ServiceHasAppointmentsError';
+        this.count = count;
+    }
+}
+
 export const SERVICES_QUERY_KEY = ['servicios'];
 export const CATEGORIES_QUERY_KEY = ['categorias'];
 
@@ -99,13 +108,26 @@ export function useDeleteServicio() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (id: string) => {
+        mutationFn: async ({ id, force }: { id: string; force?: boolean }) => {
             const response = await fetch('/api/admin/services', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
-                body: JSON.stringify({ id }),
+                body: JSON.stringify({ id, force: force ?? false }),
             });
+
+            if (response.status === 409) {
+                const body = (await response.json().catch(() => null)) as
+                    | { error?: string; count?: number; requiresConfirmation?: boolean }
+                    | null;
+                if (body?.requiresConfirmation) {
+                    throw new ServiceHasAppointmentsError(
+                        Number(body.count ?? 0),
+                        body.error ?? 'El servicio tiene citas futuras',
+                    );
+                }
+                throw new Error(body?.error ?? 'Conflicto');
+            }
 
             if (!response.ok) {
                 throw new Error(await readApiError(response));
@@ -113,6 +135,8 @@ export function useDeleteServicio() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: ['citas'] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
         },
     });
 }

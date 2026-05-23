@@ -4,12 +4,15 @@ import { GET, POST, PATCH, DELETE } from './route';
 const requirePanelAccessMock = vi.hoisted(() => vi.fn());
 const writeAuditLogMock = vi.hoisted(() => vi.fn());
 
+const getAdminSupabaseMock = vi.hoisted(() => vi.fn());
+
 vi.mock('../_lib', () => ({
     requirePanelAccess: requirePanelAccessMock,
     assertSameOriginMutation: vi.fn(),
     handleApiError: () => Response.json({ error: 'Internal Server Error' }, { status: 500 }),
     normalizeNullableText: (value: string | null | undefined) => value,
     writeAuditLog: writeAuditLogMock,
+    getAdminSupabase: getAdminSupabaseMock,
 }));
 
 describe('admin services route GET RBAC', () => {
@@ -286,7 +289,7 @@ describe('admin services route DELETE', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
-        expect(body).toEqual({ success: true });
+        expect(body).toEqual({ success: true, detached: 0 });
         expect(requirePanelAccessMock).toHaveBeenCalledWith({ ownerOnly: true });
         expect(deleteRelations.eq).toHaveBeenCalledWith('service_id', '44444444-4444-4444-4444-444444444444');
         expect(deleteService.eq).toHaveBeenCalledWith('id', '44444444-4444-4444-4444-444444444444');
@@ -297,7 +300,7 @@ describe('admin services route DELETE', () => {
         }));
     });
 
-    it('returns 409 when service has future appointments', async () => {
+    it('returns 409 with requiresConfirmation when service has future appointments and force is false', async () => {
         const futureApptCount = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
@@ -321,7 +324,63 @@ describe('admin services route DELETE', () => {
 
         expect(response.status).toBe(409);
         expect(body.count).toBe(3);
+        expect(body.requiresConfirmation).toBe(true);
         expect(requirePanelAccessMock).toHaveBeenCalledWith({ ownerOnly: true });
         expect(writeAuditLogMock).not.toHaveBeenCalled();
+    });
+
+    it('detaches future appointments and deletes service when force is true', async () => {
+        const futureApptCount = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockResolvedValue({ count: 2, error: null }),
+        };
+        const deleteRelations = {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null }),
+        };
+        const deleteService = {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null }),
+        };
+        const detachAppts = {
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null }),
+        };
+        const supabase = {
+            from: vi.fn((table: string) => {
+                if (table === 'appointments') return futureApptCount;
+                if (table === 'professional_services') return deleteRelations;
+                if (table === 'services') return deleteService;
+                throw new Error(`Unexpected table ${table}`);
+            }),
+        };
+        const adminClient = {
+            from: vi.fn((table: string) => {
+                if (table === 'appointments') return detachAppts;
+                throw new Error(`Unexpected admin table ${table}`);
+            }),
+        };
+
+        requirePanelAccessMock.mockResolvedValue({ supabase, userId: 'owner-1' });
+        getAdminSupabaseMock.mockReturnValue(adminClient);
+
+        const response = await DELETE(new Request('http://localhost/api/admin/services', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: '44444444-4444-4444-4444-444444444444', force: true }),
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.detached).toBe(2);
+        expect(detachAppts.update).toHaveBeenCalledWith({ service_id: null });
+        expect(detachAppts.eq).toHaveBeenCalledWith('service_id', '44444444-4444-4444-4444-444444444444');
+        expect(writeAuditLogMock).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'DELETE',
+            tableName: 'services',
+            details: { detached_appointments: 2 },
+        }));
     });
 });

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import type { Service } from '@/lib/types';
 import {
+    ServiceHasAppointmentsError,
     useCategorias,
     useCreateServicio,
     useDeleteServicio,
@@ -96,6 +97,22 @@ export default function ServiciosPage() {
         }
     }
 
+    function confirmForceDelete(id: string, count: number) {
+        setConfirmAction({
+            title: 'Hay citas futuras',
+            message: `Este servicio tiene ${count} cita(s) futuras. Si continúas, esas citas se desvincularán del servicio (quedarán sin servicio asignado) y el servicio se eliminará. ¿Continuar?`,
+            onConfirm: async () => {
+                setConfirmAction(null);
+                try {
+                    await deleteService.mutateAsync({ id, force: true });
+                    toast.success(`Servicio eliminado. ${count} cita(s) desvinculadas.`);
+                } catch (error: unknown) {
+                    toast.error(`Error al eliminar: ${getErrorMessage(error)}`);
+                }
+            },
+        });
+    }
+
     function handleDeleteServiceRequest(id: string) {
         setConfirmAction({
             title: 'Eliminar servicio',
@@ -103,9 +120,13 @@ export default function ServiciosPage() {
             onConfirm: async () => {
                 setConfirmAction(null);
                 try {
-                    await deleteService.mutateAsync(id);
+                    await deleteService.mutateAsync({ id });
                     toast.success('Servicio eliminado permanentemente');
                 } catch (error: unknown) {
+                    if (error instanceof ServiceHasAppointmentsError) {
+                        confirmForceDelete(id, error.count);
+                        return;
+                    }
                     toast.error(`Error al eliminar: ${getErrorMessage(error)}`);
                 }
             },

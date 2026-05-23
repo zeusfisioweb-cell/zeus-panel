@@ -8,6 +8,7 @@ const updateServiceSchema = ServiceUpdateSchema.extend({
 
 const deleteServiceSchema = z.object({
     id: z.string().uuid({ message: 'ID de servicio inválido' }),
+    force: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -179,7 +180,7 @@ export async function DELETE(request: Request) {
         assertSameOriginMutation(request);
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const rawBody = await request.json();
-        const { id } = deleteServiceSchema.parse(rawBody);
+        const { id, force } = deleteServiceSchema.parse(rawBody);
 
         const nowIso = new Date().toISOString();
         const { count, error: countError } = await supabase
@@ -191,14 +192,24 @@ export async function DELETE(request: Request) {
 
         if (countError) throw countError;
 
-        if ((count ?? 0) > 0) {
+        if ((count ?? 0) > 0 && !force) {
             return NextResponse.json(
                 {
-                    error: `No se puede eliminar: hay ${count} cita(s) futuras con este servicio. Desactivalo en su lugar.`,
+                    error: `Hay ${count} cita(s) futuras con este servicio. Confirma para desvincularlas y eliminar.`,
                     count,
+                    requiresConfirmation: true,
                 },
                 { status: 409 }
             );
+        }
+
+        if ((count ?? 0) > 0 && force) {
+            const adminClient = getAdminSupabase();
+            const { error: detachError } = await adminClient
+                .from('appointments')
+                .update({ service_id: null })
+                .eq('service_id', id);
+            if (detachError) throw detachError;
         }
 
         const { error: relationError } = await supabase
@@ -221,10 +232,10 @@ export async function DELETE(request: Request) {
             action: 'DELETE',
             tableName: 'services',
             recordId: id,
-            details: null,
+            details: { detached_appointments: (count ?? 0) > 0 && force ? count : 0 },
         });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, detached: (count ?? 0) > 0 && force ? count : 0 });
     } catch (error: unknown) {
         return handleApiError(error);
     }
