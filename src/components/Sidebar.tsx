@@ -12,19 +12,29 @@ import {
     isPanelNavLink,
     isPanelNavSection,
 } from '@/lib/panel-navigation';
+import { useAppointmentRequestsPendingCount } from '@/hooks/useAppointmentRequests';
 
 export default function Sidebar() {
     const pathname = usePathname();
     const { profile, signOut } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { data: pendingRequestsCount = 0 } = useAppointmentRequestsPendingCount();
 
     useEffect(() => {
         setMobileOpen(false);
     }, [pathname]);
 
+    const navHrefs = PANEL_NAV_ITEMS
+        .filter(isPanelNavLink)
+        .map((item) => item.href);
+
     const isActive = (href: string) => {
         if (href === '/') return pathname === '/';
-        return pathname.startsWith(href);
+        if (!pathname.startsWith(href)) return false;
+        const moreSpecific = navHrefs.some(
+            (other) => other !== href && other.startsWith(href + '/') && pathname.startsWith(other)
+        );
+        return !moreSpecific;
     };
 
     const initials = profile?.full_name
@@ -103,6 +113,9 @@ export default function Sidebar() {
 
                         if (isPanelNavLink(item)) {
                             const active = isActive(item.href);
+                            const badge = item.badgeKey === 'appointmentRequestsPending' && pendingRequestsCount > 0
+                                ? pendingRequestsCount
+                                : null;
 
                             return (
                                 <Link
@@ -114,6 +127,14 @@ export default function Sidebar() {
                                         <Icon name={item.icon} size={18} />
                                     </span>
                                     <span className="sidebar__link-label">{item.label}</span>
+                                    {badge !== null && (
+                                        <span
+                                            className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[11px] font-bold"
+                                            aria-label={`${badge} solicitudes pendientes`}
+                                        >
+                                            {badge > 99 ? '99+' : badge}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         }

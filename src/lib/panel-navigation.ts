@@ -2,7 +2,7 @@ export type PanelRole = 'owner' | 'professional' | 'client' | null | undefined;
 
 export type PanelNavItem =
   | { section: string }
-  | { href: string; icon: string; label: string; ownerOnly?: boolean };
+  | { href: string; icon: string; label: string; ownerOnly?: boolean; badgeKey?: 'appointmentRequestsPending' };
 
 export const PROFESSIONAL_RESTRICTED_PATHS = [
   '/profesionales',
@@ -17,6 +17,7 @@ export const PANEL_NAV_ITEMS: PanelNavItem[] = [
   { section: 'Panel' },
   { href: '/', icon: 'dashboard', label: 'Resumen' },
   { href: '/citas', icon: 'calendar', label: 'Citas' },
+  { href: '/citas/solicitudes', icon: 'bell', label: 'Solicitudes', badgeKey: 'appointmentRequestsPending' },
   { section: 'Gestión' },
   { href: '/profesionales', icon: 'doctor', label: 'Profesionales', ownerOnly: true },
   { href: '/servicios', icon: 'spa', label: 'Servicios', ownerOnly: true },
@@ -28,6 +29,7 @@ export const PANEL_NAV_ITEMS: PanelNavItem[] = [
 ];
 
 const SECTION_TITLE_MAP: Array<{ prefix: string; title: string }> = [
+  { prefix: '/citas/solicitudes', title: 'Solicitudes de cita' },
   { prefix: '/citas', title: 'Citas' },
   { prefix: '/pacientes', title: 'Pacientes' },
   { prefix: '/profesionales', title: 'Profesionales' },
