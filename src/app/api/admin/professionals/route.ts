@@ -138,11 +138,23 @@ export async function PATCH(request: Request) {
 
         if (serviceIds !== undefined) {
             const adminClient = getAdminSupabase();
-            const { error: replaceLinksError } = await adminClient.rpc('replace_professional_service_links', {
-                p_professional_id: id,
-                p_service_ids: serviceIds,
-            });
-            if (replaceLinksError) throw replaceLinksError;
+
+            const { error: deleteLinksError } = await adminClient
+                .from('professional_services')
+                .delete()
+                .eq('professional_id', id);
+            if (deleteLinksError) throw deleteLinksError;
+
+            if (serviceIds.length > 0) {
+                const linkRows = Array.from(new Set(serviceIds)).map((service_id) => ({
+                    professional_id: id,
+                    service_id,
+                }));
+                const { error: insertLinksError } = await adminClient
+                    .from('professional_services')
+                    .insert(linkRows);
+                if (insertLinksError) throw insertLinksError;
+            }
         }
 
         await writeAuditLog({
