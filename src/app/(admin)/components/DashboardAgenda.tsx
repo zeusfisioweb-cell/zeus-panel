@@ -4,6 +4,7 @@ import React from 'react';
 import { useEffect, useState } from 'react';
 import type { Appointment, AppointmentStatus } from '@/lib/types';
 import Link from 'next/link';
+import { buildWaLink, confirmMessage, reminderMessage, feedbackMessage } from '@/lib/whatsapp-messages';
 
 interface DashboardAgendaProps {
     todayAppointments: Appointment[];
@@ -125,7 +126,11 @@ export function DashboardAgenda({
 
                                     {apt.status === 'pending' && hasPhone && (
                                         <a
-                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, te escribimos desde la clínica para confirmar tu cita de ${apt.service?.name} hoy a las ${formatTime(apt.start_time)}.`}
+                                            href={buildWaLink(confirmMessage({
+                                                patientName: apt.patient_name,
+                                                serviceName: apt.service?.name,
+                                                time: formatTime(apt.start_time),
+                                            }), apt.patient_phone)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="btn btn--secondary btn--sm summary-v5-timeline__wa"
@@ -136,7 +141,11 @@ export function DashboardAgenda({
 
                                     {apt.status === 'confirmed' && hasPhone && (
                                         <a
-                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, recordatorio de tu cita de ${apt.service?.name} hoy a las ${formatTime(apt.start_time)}. Te esperamos.`}
+                                            href={buildWaLink(reminderMessage({
+                                                patientName: apt.patient_name,
+                                                serviceName: apt.service?.name,
+                                                time: formatTime(apt.start_time),
+                                            }), apt.patient_phone)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="btn btn--secondary btn--sm summary-v5-timeline__wa"
@@ -147,7 +156,11 @@ export function DashboardAgenda({
 
                                     {apt.status === 'completed' && hasPhone && (
                                         <a
-                                            href={`https://wa.me/${apt.patient_phone?.replace(/\D/g, '') || ''}?text=Hola ${encodeURIComponent(apt.patient_name || '')}, gracias por venir a tu sesión de ${apt.service?.name}. Si puedes, déjanos una reseña en Google.`}
+                                            href={buildWaLink(feedbackMessage({
+                                                patientName: apt.patient_name,
+                                                serviceName: apt.service?.name,
+                                                time: formatTime(apt.start_time),
+                                            }), apt.patient_phone)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="btn btn--secondary btn--sm summary-v5-timeline__wa"

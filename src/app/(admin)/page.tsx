@@ -23,6 +23,7 @@ import { AppointmentFormModal, AppointmentFormData } from './citas/components/Ap
 import { useCreateCita, useCitas, useUpdateCitaStatus } from '@/hooks/useCitas';
 import { getDashboardData } from './actions';
 import { QRModal } from '@/components/QRModal';
+import { TomorrowRemindersModal } from '@/components/TomorrowRemindersModal';
 import Icon from '@/components/Icon';
 
 const DashboardCharts = dynamic(() => import('./components/DashboardCharts').then(m => ({ default: m.DashboardCharts })), { ssr: false });
@@ -53,6 +54,7 @@ export default function DashboardPage() {
     const [dateRange, setDateRange] = useState({ start: new Date(), end: new Date() });
     const [showNewModal, setShowNewModal] = useState(false);
     const [showQRModal, setShowQRModal] = useState(false);
+    const [showRemindersModal, setShowRemindersModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     const updateDashboardDate = (nextDate: Date) => {
@@ -279,6 +281,17 @@ export default function DashboardPage() {
                                 <Icon name="qr-code" size={16} />
                                 <span className="hidden sm:inline">Generar QR</span>
                             </button>
+                            <button
+                                className="btn btn--secondary flex items-center justify-center gap-2"
+                                type="button"
+                                onClick={() => setShowRemindersModal(true)}
+                                title="Enviar recordatorios WhatsApp de mañana"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                </svg>
+                                <span className="hidden sm:inline">Recordatorios mañana</span>
+                            </button>
                             <button className="btn btn--secondary" type="button" onClick={() => setShowNewModal(true)}>
                                 Nueva cita
                             </button>
@@ -328,9 +341,14 @@ export default function DashboardPage() {
                 onSubmit={handleCreateAppointment}
             />
 
-            <QRModal 
-                isOpen={showQRModal} 
-                onClose={() => setShowQRModal(false)} 
+            <QRModal
+                isOpen={showQRModal}
+                onClose={() => setShowQRModal(false)}
+            />
+
+            <TomorrowRemindersModal
+                isOpen={showRemindersModal}
+                onClose={() => setShowRemindersModal(false)}
             />
         </div>
     );
