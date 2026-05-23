@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assertSameOriginMutation, handleApiError, requirePanelAccess, writeAuditLog } from '../../_lib';
+import { ApiRouteError, assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, writeAuditLog } from '../../_lib';
 const paramsSchema = z.object({
     id: z.string().uuid({ message: 'ID de paciente inválido' }),
 });
@@ -15,9 +15,28 @@ export async function DELETE(
         const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const { id } = paramsSchema.parse(await context.params);
 
-        // soft_delete_patient: sets deleted_at, preserves consent_records (GDPR compliance)
-        const { error } = await supabase.rpc('soft_delete_patient', { patient_id_input: id });
-        if (error) throw error;
+        const adminClient = getAdminSupabase();
+        const nowIso = new Date().toISOString();
+
+        const { data: updatedPatient, error: softDeleteError } = await adminClient
+            .from('patients')
+            .update({ deleted_at: nowIso, updated_at: nowIso })
+            .eq('id', id)
+            .is('deleted_at', null)
+            .select('id')
+            .maybeSingle();
+        if (softDeleteError) throw softDeleteError;
+        if (!updatedPatient) {
+            throw new ApiRouteError(404, 'Patient not found or already deleted');
+        }
+
+        const { error: detachAppointmentsError } = await adminClient
+            .from('appointments')
+            .update({ patient_id: null, updated_at: nowIso })
+            .eq('patient_id', id)
+            .gt('start_time', nowIso)
+            .not('status', 'in', '(cancelled,completed)');
+        if (detachAppointmentsError) throw detachAppointmentsError;
 
         await writeAuditLog({
             supabase,

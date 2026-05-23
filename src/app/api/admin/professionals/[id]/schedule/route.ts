@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ApiRouteError, assertSameOriginMutation, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../../../_lib';
+import { ApiRouteError, assertSameOriginMutation, getAdminSupabase, handleApiError, requirePanelAccess, resolveScopedProfessionalId, writeAuditLog } from '../../../_lib';
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 const paramsSchema = z.object({
@@ -62,11 +62,27 @@ export async function PUT(
         const rawBody = await request.json();
         const parsed = upsertScheduleSchema.parse(rawBody);
 
-        const { error: replaceError } = await supabase.rpc('replace_professional_schedule_slots', {
-            p_professional_id: id,
-            p_slots: parsed.slots,
-        });
-        if (replaceError) throw replaceError;
+        const adminClient = getAdminSupabase();
+
+        const { error: deleteSlotsError } = await adminClient
+            .from('schedule_slots')
+            .delete()
+            .eq('professional_id', id);
+        if (deleteSlotsError) throw deleteSlotsError;
+
+        if (parsed.slots.length > 0) {
+            const rows = parsed.slots.map((slot) => ({
+                professional_id: id,
+                day_of_week: slot.day_of_week,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+                is_active: true,
+            }));
+            const { error: insertSlotsError } = await adminClient
+                .from('schedule_slots')
+                .insert(rows);
+            if (insertSlotsError) throw insertSlotsError;
+        }
 
         await writeAuditLog({
             supabase,

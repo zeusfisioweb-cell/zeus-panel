@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ServiceSchema, ServiceUpdateSchema } from '@/lib/schemas';
-import { assertSameOriginMutation, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
+import { assertSameOriginMutation, getAdminSupabase, handleApiError, normalizeNullableText, requirePanelAccess, writeAuditLog } from '../_lib';
 const updateServiceSchema = ServiceUpdateSchema.extend({
     id: z.string().uuid({ message: 'ID de servicio inválido' }),
 });
@@ -139,11 +139,24 @@ export async function PATCH(request: Request) {
         if (error) throw error;
 
         if (Array.isArray(professional_ids)) {
-            const { error: replaceError } = await supabase.rpc('replace_service_professional_links', {
-                p_service_id: id,
-                p_professional_ids: professional_ids,
-            });
-            if (replaceError) throw replaceError;
+            const adminClient = getAdminSupabase();
+
+            const { error: deleteLinksError } = await adminClient
+                .from('professional_services')
+                .delete()
+                .eq('service_id', id);
+            if (deleteLinksError) throw deleteLinksError;
+
+            if (professional_ids.length > 0) {
+                const linkRows = Array.from(new Set(professional_ids)).map((professional_id) => ({
+                    professional_id,
+                    service_id: id,
+                }));
+                const { error: insertLinksError } = await adminClient
+                    .from('professional_services')
+                    .insert(linkRows);
+                if (insertLinksError) throw insertLinksError;
+            }
         }
 
         await writeAuditLog({
