@@ -51,6 +51,7 @@ export interface Professional {
     license_number: string | null;
     bio: string | null;
     color_code: string;
+    avatar_url: string | null;
     is_active: boolean;
     created_at: string;
     // Joined

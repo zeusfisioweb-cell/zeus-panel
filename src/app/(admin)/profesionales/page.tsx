@@ -186,6 +186,7 @@ export default function ProfesionalesPage() {
             await updateProfesional.mutateAsync({
                 id,
                 full_name: data.full_name,
+                email: data.email,
                 specialty: data.specialty,
                 bio: data.bio,
                 color_code: data.color_code,

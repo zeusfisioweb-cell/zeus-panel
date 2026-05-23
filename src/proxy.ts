@@ -16,7 +16,7 @@ function buildCsp(nonce: string): string {
         "default-src 'self'",
         scriptSrc,
         styleSrc,
-        "img-src 'self' data: blob:",
+        "img-src 'self' data: blob: https://*.supabase.co",
         "font-src 'self'",
         "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
         "frame-ancestors 'none'",

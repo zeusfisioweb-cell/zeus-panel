@@ -4,10 +4,12 @@ import { assertSameOriginMutation, getAdminSupabase, handleApiError, normalizeNu
 const updateProfessionalSchema = z.object({
     id: z.string().uuid({ message: 'ID de profesional inválido' }),
     full_name: z.string().min(3).optional(),
+    email: z.string().email({ message: 'Correo electrónico inválido' }).optional(),
     specialty: z.string().optional(),
     bio: z.string().optional(),
     color_code: z.string().regex(/^#[0-9A-Fa-f]{3,8}$/, { message: 'Color inválido (ej: #3B82F6)' }).optional(),
     is_active: z.boolean().optional(),
+    avatar_url: z.string().url().nullable().optional(),
     serviceIds: z.array(z.string()).max(100).optional(),
 });
 
@@ -26,6 +28,7 @@ export async function GET() {
                 license_number,
                 bio,
                 color_code,
+                avatar_url,
                 is_active,
                 created_at,
                 profile:profiles (
@@ -44,6 +47,7 @@ export async function GET() {
                 license_number,
                 bio,
                 color_code,
+                avatar_url,
                 is_active,
                 created_at,
                 profile:profiles (
@@ -113,10 +117,28 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Professional not found' }, { status: 404 });
         }
 
-        if (professionalData.full_name !== undefined) {
+        const profilePayload: Record<string, string> = {};
+        if (professionalData.full_name !== undefined) profilePayload.full_name = professionalData.full_name;
+        if (professionalData.email !== undefined) profilePayload.email = professionalData.email.toLowerCase();
+
+        if (professionalData.email !== undefined) {
+            const adminClient = getAdminSupabase();
+            const { error: authEmailError } = await adminClient.auth.admin.updateUserById(
+                targetProfessional.user_id,
+                { email: professionalData.email.toLowerCase(), email_confirm: true }
+            );
+            if (authEmailError) {
+                return NextResponse.json(
+                    { error: `No se pudo actualizar el correo: ${authEmailError.message}` },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (Object.keys(profilePayload).length > 0) {
             const { error: profileError } = await supabase
                 .from('profiles')
-                .update({ full_name: professionalData.full_name })
+                .update(profilePayload)
                 .eq('id', targetProfessional.user_id);
 
             if (profileError) throw profileError;
@@ -127,6 +149,7 @@ export async function PATCH(request: Request) {
         if (professionalData.bio !== undefined) professionalPayload.bio = normalizeNullableText(professionalData.bio);
         if (professionalData.color_code !== undefined) professionalPayload.color_code = professionalData.color_code;
         if (professionalData.is_active !== undefined) professionalPayload.is_active = professionalData.is_active;
+        if (professionalData.avatar_url !== undefined) professionalPayload.avatar_url = professionalData.avatar_url;
 
         if (Object.keys(professionalPayload).length > 0) {
             const { error: professionalError } = await supabase

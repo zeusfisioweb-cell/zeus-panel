@@ -38,10 +38,12 @@ interface CreateProfessionalPayload {
 interface UpdateProfessionalPayload {
     id: string;
     full_name?: string;
+    email?: string;
     specialty?: string;
     bio?: string;
     color_code?: string;
     is_active?: boolean;
+    avatar_url?: string | null;
     serviceIds?: string[];
 }
 
@@ -71,6 +73,7 @@ export function useProfesionales() {
                     license_number: (d.license_number as string | null) ?? null,
                     bio: (d.bio as string | null) ?? null,
                     color_code: (d.color_code as string) ?? '#AD7332',
+                    avatar_url: (d.avatar_url as string | null) ?? null,
                     is_active: Boolean(d.is_active),
                     created_at: d.created_at as string,
                     profile: Array.isArray(profile) ? profile[0] : profile,

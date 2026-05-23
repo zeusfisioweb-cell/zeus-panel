@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -57,6 +57,9 @@ export function ProfessionalFormModal({
 }: ProfessionalFormModalProps) {
     const [activeTab, setActiveTab] = useState<'profile' | 'schedule'>('profile');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     const {
         register,
@@ -96,6 +99,7 @@ export function ProfessionalFormModal({
                 is_active: editing.is_active,
                 selectedServices: serviceLinks.map((item) => item.service_id),
             });
+            setAvatarUrl(editing.avatar_url ?? null);
             setActiveTab('profile');
         } else {
             reset({
@@ -107,6 +111,7 @@ export function ProfessionalFormModal({
                 is_active: true,
                 selectedServices: [],
             });
+            setAvatarUrl(null);
             setActiveTab('profile');
         }
 
@@ -133,6 +138,43 @@ export function ProfessionalFormModal({
         }
     };
 
+    async function handleAvatarSelected(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        if (!file || !editing) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Imagen demasiado grande (máx 2 MB)');
+            event.target.value = '';
+            return;
+        }
+
+        setIsUploadingAvatar(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`/api/admin/professionals/${encodeURIComponent(editing.id)}/avatar`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result?.error || 'Error al subir la imagen');
+            }
+
+            setAvatarUrl(result.avatar_url as string);
+            toast.success('Foto actualizada');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Error desconocido';
+            toast.error(message);
+        } finally {
+            setIsUploadingAvatar(false);
+            event.target.value = '';
+        }
+    }
+
     function toggleService(serviceId: string) {
         const nextServices = selectedServices.includes(serviceId)
             ? selectedServices.filter((service) => service !== serviceId)
@@ -143,6 +185,43 @@ export function ProfessionalFormModal({
 
     const renderProfileTab = () => (
         <div className="pro-form__stack">
+            {editing && (
+                <section className="pro-form__block">
+                    <header className="pro-form__block-head">
+                        <h4>Foto de perfil</h4>
+                    </header>
+                    <div className="pro-form__avatar-row">
+                        <div className="pro-form__avatar-preview" aria-hidden="true">
+                            {avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={avatarUrl} alt="" />
+                            ) : (
+                                <Icon name="user" size={28} />
+                            )}
+                        </div>
+                        <div className="pro-form__avatar-actions">
+                            <input
+                                ref={avatarInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                style={{ display: 'none' }}
+                                onChange={handleAvatarSelected}
+                            />
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                disabled={isUploadingAvatar}
+                                onClick={() => avatarInputRef.current?.click()}
+                            >
+                                {isUploadingAvatar ? 'Subiendo...' : avatarUrl ? 'Cambiar foto' : 'Subir foto'}
+                            </Button>
+                            <span className="pro-form__avatar-hint">JPG, PNG o WEBP · máx 2 MB</span>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             <section className="pro-form__block">
                 <header className="pro-form__block-head">
                     <h4>Datos de usuario</h4>
@@ -166,7 +245,6 @@ export function ProfessionalFormModal({
                             required
                             {...register('email')}
                             placeholder="maria@ejemplo.com"
-                            disabled={!!editing}
                         />
                         {errors.email && <span className="pro-form__error">{errors.email.message}</span>}
                     </div>

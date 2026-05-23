@@ -120,7 +120,12 @@ export function ProfesionalesTable({ professionals, onEdit, onDelete, onResendWe
 
                                     {/* Avatar grande circular */}
                                     <div className="zs-pro-avatar">
-                                        <span className="zs-pro-avatar__initials">{getInitials(fullName)}</span>
+                                        {pro.avatar_url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={pro.avatar_url} alt={fullName} className="zs-pro-avatar__img" />
+                                        ) : (
+                                            <span className="zs-pro-avatar__initials">{getInitials(fullName)}</span>
+                                        )}
                                     </div>
 
                                     {/* Nombre + email sobre fondo oscuro */}
