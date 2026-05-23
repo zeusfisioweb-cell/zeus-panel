@@ -9,6 +9,8 @@ interface ProfesionalesTableProps {
     professionals: Professional[];
     onEdit: (pro: Professional) => void;
     onDelete: (id: string) => void;
+    onResendWelcome: (pro: Professional) => void;
+    resendingId?: string | null;
 }
 
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -28,7 +30,7 @@ function normalizeText(value?: string | null): string {
     return (value || '').trim().toLowerCase();
 }
 
-export function ProfesionalesTable({ professionals, onEdit, onDelete }: ProfesionalesTableProps) {
+export function ProfesionalesTable({ professionals, onEdit, onDelete, onResendWelcome, resendingId }: ProfesionalesTableProps) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
@@ -163,6 +165,16 @@ export function ProfesionalesTable({ professionals, onEdit, onDelete }: Profesio
                                         >
                                             <Icon name="settings" size={13} className="mr-1.5" />
                                             Editar
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            className="h-9 w-9 p-0 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
+                                            onClick={() => onResendWelcome(pro)}
+                                            disabled={resendingId === pro.id}
+                                            title="Reenviar email de acceso"
+                                            aria-label="Reenviar email de acceso"
+                                        >
+                                            <Icon name="mail" size={15} className={resendingId === pro.id ? 'animate-pulse' : ''} />
                                         </Button>
                                         <Button
                                             variant="ghost"

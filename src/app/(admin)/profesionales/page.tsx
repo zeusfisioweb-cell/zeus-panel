@@ -27,6 +27,26 @@ export default function ProfesionalesPage() {
     const [editingProf, setEditingProf] = useState<Professional | null>(null);
     const [initialSchedule, setInitialSchedule] = useState<ScheduleMap | null>(null);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+    const [resendingId, setResendingId] = useState<string | null>(null);
+
+    const handleResendWelcome = async (pro: Professional) => {
+        setResendingId(pro.id);
+        try {
+            const response = await fetch(
+                `/api/admin/professionals/${encodeURIComponent(pro.id)}/resend-welcome`,
+                { method: 'POST', credentials: 'same-origin' },
+            );
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
+            toast.success(`Email enviado a ${pro.profile?.email || 'el profesional'}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error(`No se pudo enviar: ${message}`);
+        } finally {
+            setResendingId(null);
+        }
+    };
 
     const isLoading = isLoadingPros || isLoadingServices || isLoadingCategories;
 
@@ -244,6 +264,8 @@ export default function ProfesionalesPage() {
                 professionals={enrichedProfessionals}
                 onEdit={handleOpenEdit}
                 onDelete={handleDeleteRequest}
+                onResendWelcome={handleResendWelcome}
+                resendingId={resendingId}
             />
 
             {(showModal || editingProf) && (
