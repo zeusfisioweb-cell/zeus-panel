@@ -24,34 +24,11 @@ export default function SetPasswordPage() {
             try {
                 if (typeof window !== 'undefined') {
                     const url = new URL(window.location.href);
-                    const code = url.searchParams.get('code');
-                    const hash = window.location.hash;
-
-                    // PKCE recovery flow: exchange ?code=... for a session.
-                    if (code) {
-                        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-                        if (!cancelled) {
-                            url.searchParams.delete('code');
-                            window.history.replaceState({}, '', url.pathname + url.search);
-                        }
-                        if (exchangeError) {
-                            if (!cancelled) {
-                                setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
-                                setReady(true);
-                            }
-                            return;
-                        }
-                    } else if (hash.includes('access_token')) {
-                        // Implicit flow: wait a tick for supabase-js to ingest the fragment.
-                        await new Promise((resolve) => setTimeout(resolve, 150));
-                        if (!cancelled) {
-                            window.history.replaceState({}, '', url.pathname + url.search);
-                        }
-                    } else if (hash.includes('error')) {
-                        if (!cancelled) {
-                            setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
-                            setReady(true);
-                        }
+                    if (url.searchParams.get('auth_error')) {
+                        setSessionError('Enlace inválido o caducado. Solicita uno nuevo desde la pantalla de acceso.');
+                        url.searchParams.delete('auth_error');
+                        window.history.replaceState({}, '', url.pathname + url.search);
+                        setReady(true);
                         return;
                     }
                 }
