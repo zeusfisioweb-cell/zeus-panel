@@ -8,8 +8,19 @@ import Icon from '@/components/Icon';
 import type { Appointment, AppointmentStatus, Professional } from '@/lib/types';
 import { isSameDay } from '@/lib/utils';
 import '@/styles/theme/calendar-timeline.css';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import {
+    PX_PER_MIN,
+    SLOT_MIN,
+    MIN_DUR_MIN,
+    MAX_VISIBLE_COLS,
+    TIME_W,
+    UNASSIGNED_COLOR,
+    STATUS_LABELS,
+    PALETTE,
+} from './timeline/constants';
+import { minutesOf, fmtTime, initials, snapMin } from './timeline/utils';
+import type { PositionedAppointment, PositionedItem } from './timeline/types';
+import { AppointmentCard } from './timeline/AppointmentCard';
 
 interface CitasTimelineProps {
     appointments: Appointment[];
@@ -23,152 +34,6 @@ interface CitasTimelineProps {
     onReschedule?: (id: string, newStart: Date, newEnd: Date) => void;
     isDraggable?: boolean;
 }
-
-interface PositionedAppointment {
-    appointment: Appointment;
-    topPx: number;
-    heightPx: number;
-    leftPct: number;
-    widthPct: number;
-    profColor: string;
-    profName: string;
-}
-
-interface OverflowBadge {
-    type: 'overflow';
-    topPx: number;
-    heightPx: number;
-    count: number;
-    appointments: Appointment[];
-}
-
-type PositionedItem = PositionedAppointment | OverflowBadge;
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PX_PER_MIN        = 2.2;   // 13h × 60 × 2.2 = 1716px total height
-const SLOT_MIN          = 30;
-const MIN_DUR_MIN       = 30;
-const MAX_VISIBLE_COLS  = 4;    // cap overlap columns to keep cards readable
-const TIME_W       = 64;    // px width of the time rail
-const UNASSIGNED_COLOR = '#94a3b8';
-
-
-const STATUS_LABELS: Record<AppointmentStatus, string> = {
-    pending:   'Pendiente',
-    confirmed: 'Confirmada',
-    completed: 'Completada',
-    cancelled: 'Cancelada',
-};
-
-// Fallback palette if a professional has no color_code
-const PALETTE = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6','#ef4444','#6366f1'];
-
-function minutesOf(d: Date) { return d.getHours() * 60 + d.getMinutes(); }
-
-function fmtTime(iso: string) {
-    return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
-
-function fmtDuration(min: number) {
-    if (min < 60) return `${min}min`;
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    return m === 0 ? `${h}h` : `${h}h ${m}min`;
-}
-
-function initials(name: string) {
-    return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
-}
-
-function hexToRgb(hex: string) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `${r},${g},${b}`;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
-interface AppointmentCardProps {
-    pos: PositionedAppointment;
-    onAppointmentClick: (a: Appointment) => void;
-    isDraggable?: boolean;
-    onDragStart?: (e: React.DragEvent<HTMLDivElement>, pos: PositionedAppointment) => void;
-    onDragEnd?: () => void;
-}
-
-const AppointmentCard = React.memo(({ pos, onAppointmentClick, isDraggable, onDragStart, onDragEnd }: AppointmentCardProps) => {
-    const { appointment: apt, topPx, heightPx, leftPct, widthPct, profColor, profName } = pos;
-    const isCompact  = heightPx < 44;
-    const isTiny     = heightPx < 28;
-    const rgb        = hexToRgb(profColor.startsWith('#') ? profColor : '#94a3b8');
-    const patName    = apt.patient
-        ? `${apt.patient.first_name} ${apt.patient.last_name}`
-        : apt.patient_name ?? 'Paciente';
-    const svcName    = apt.service?.name ?? '';
-    const statusName = STATUS_LABELS[apt.status].toLowerCase();
-    const ariaLabel  = `Abrir cita de ${patName}${svcName ? `, ${svcName}` : ''}, ${profName}, ${fmtTime(apt.start_time)}, ${statusName}`;
-
-    return (
-        <div
-            className={`zc-vcal__event is-${apt.status}${isCompact ? ' is-compact' : ''}${isTiny ? ' is-tiny' : ''}${isDraggable ? ' is-draggable' : ''}`}
-            role="button"
-            tabIndex={0}
-            draggable={isDraggable}
-            style={{
-                top:    `${topPx + 2}px`,
-                height: `${Math.max(22, heightPx - 4)}px`,
-                left:   `calc(${leftPct}% + 4px)`,
-                width:  `calc(${widthPct}% - 8px)`,
-                '--pc': profColor,
-                '--pc-rgb': rgb,
-                cursor: isDraggable ? 'grab' : 'pointer',
-            } as React.CSSProperties}
-            onClick={e => { e.stopPropagation(); onAppointmentClick(apt); }}
-            onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onAppointmentClick(apt);
-                }
-            }}
-            onDragStart={isDraggable && onDragStart ? e => onDragStart(e, pos) : undefined}
-            onDragEnd={isDraggable && onDragEnd ? onDragEnd : undefined}
-            aria-label={ariaLabel}
-            title={`${patName}${svcName ? ` · ${svcName}` : ''} — ${profName} (${fmtTime(apt.start_time)})`}
-        >
-            {!isTiny && (
-                <div className="zc-vcal__evt-top">
-                    <span className="zc-vcal__evt-time">
-                        {fmtTime(apt.start_time)}
-                        {(apt.service?.duration_minutes ?? apt.end_time) && (
-                            <span className="zc-vcal__evt-dur"> · {fmtDuration(
-                                apt.service?.duration_minutes ??
-                                Math.round((new Date(apt.end_time).getTime() - new Date(apt.start_time).getTime()) / 60000)
-                            )}</span>
-                        )}
-                    </span>
-                    {!isCompact && (
-                        <span className={`zc-vcal__evt-badge is-${apt.status}`}>
-                            {STATUS_LABELS[apt.status]}
-                        </span>
-                    )}
-                </div>
-            )}
-            <p className="zc-vcal__evt-patient">{patName}</p>
-            {!isCompact && svcName && (
-                <p className="zc-vcal__evt-service">{svcName}</p>
-            )}
-            {!isCompact && heightPx >= 88 && (
-                <p className="zc-vcal__evt-prof">{profName}</p>
-            )}
-        </div>
-    );
-});
-AppointmentCard.displayName = 'AppointmentCard';
-
-function snapMin(min: number, snap = 5) { return Math.round(min / snap) * snap; }
 
 export function CitasTimeline({
     appointments,
