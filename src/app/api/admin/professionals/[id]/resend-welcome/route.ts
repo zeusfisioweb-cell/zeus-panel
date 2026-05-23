@@ -49,7 +49,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const adminAuthClient = getAdminSupabase();
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const redirectTo = appUrl ? `${new URL(appUrl).origin}/login` : undefined;
+        const redirectTo = appUrl ? `${new URL(appUrl).origin}/auth/set-password` : undefined;
 
         const { data: linkData, error: linkError } = await adminAuthClient.auth.admin.generateLink({
             type: 'recovery',
