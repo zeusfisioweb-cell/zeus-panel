@@ -14,7 +14,7 @@ import {
 
 const PAYMENT_SELECT = `
     *,
-    appointment:appointments (
+    appointment:appointments!inner (
         id,
         start_time,
         end_time,

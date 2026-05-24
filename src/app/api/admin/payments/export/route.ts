@@ -67,7 +67,7 @@ export async function GET(request: Request) {
                 method,
                 notes,
                 patient:patients (first_name, last_name, document_id),
-                appointment:appointments (
+                appointment:appointments!inner (
                     start_time,
                     professional_id,
                     service:services (name)
