@@ -52,13 +52,9 @@ export async function PUT(
 ) {
     try {
         assertSameOriginMutation(request);
-        const { supabase, role, userId, professionalId } = await requirePanelAccess();
-        const scopedProfessionalId = resolveScopedProfessionalId(role, professionalId);
+        const { supabase, userId } = await requirePanelAccess({ ownerOnly: true });
         const { id } = paramsSchema.parse(await context.params);
 
-        if (scopedProfessionalId && id !== scopedProfessionalId) {
-            throw new ApiRouteError(403, 'Forbidden');
-        }
         const rawBody = await request.json();
         const parsed = upsertScheduleSchema.parse(rawBody);
 
