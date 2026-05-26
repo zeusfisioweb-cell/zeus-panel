@@ -85,7 +85,7 @@ export async function getDashboardData(
     // ── All-time stats: status counts + session breakdown + revenue ────────────
     let globalQuery = supabase
         .from('appointments')
-        .select('status, patient_id, service_id, service:services(name, price)');
+        .select('status, patient_id, service_id, end_time, service:services(name, price)');
 
     if (!isOwner && currentProfessionalId) {
         globalQuery = globalQuery.eq('professional_id', currentProfessionalId);
@@ -120,8 +120,15 @@ export async function getDashboardData(
     if (globalRes.error) {
         console.error('[getDashboardData] globalQuery failed:', globalRes.error.message);
     }
-    type RawRow = { status: string; patient_id: string | null; service_id: string | null; service: unknown };
+    type RawRow = { status: string; patient_id: string | null; service_id: string | null; end_time: string; service: unknown };
     const allRows = (globalRes.data ?? []) as RawRow[];
+    const nowMs = Date.now();
+
+    function isEffectivelyCompleted(row: RawRow): boolean {
+        if (row.status === 'completed') return true;
+        if (row.status === 'cancelled') return false;
+        return new Date(row.end_time).getTime() < nowMs;
+    }
 
     const globalStatus = { confirmed: 0, completed: 0, cancelled: 0 };
     const sessionCounts: Record<string, number> = {};
@@ -129,12 +136,16 @@ export async function getDashboardData(
     const patientIds = new Set<string>();
 
     for (const row of allRows) {
-        if (row.status === 'confirmed')  globalStatus.confirmed++;
-        if (row.status === 'completed')  globalStatus.completed++;
-        if (row.status === 'cancelled')  globalStatus.cancelled++;
-        if (row.patient_id)              patientIds.add(row.patient_id);
+        if (row.status === 'cancelled') {
+            globalStatus.cancelled++;
+        } else if (isEffectivelyCompleted(row)) {
+            globalStatus.completed++;
+        } else {
+            globalStatus.confirmed++;
+        }
+        if (row.patient_id) patientIds.add(row.patient_id);
 
-        if (row.status === 'completed') {
+        if (isEffectivelyCompleted(row)) {
             // Supabase may return the join as object or single-element array
             const svcRaw = Array.isArray(row.service) ? row.service[0] : row.service;
             const svc = svcRaw as { name: string; price: number } | null;

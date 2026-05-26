@@ -62,7 +62,11 @@ export function DashboardStats({ stats, globalStats, todayAppointments }: Dashbo
 
     // Derived today metrics (exclude cancelled from totals)
     const totalToday = todayAppointments.filter((a) => a.status !== 'cancelled').length;
-    const completedToday = todayAppointments.filter((a) => a.status === 'completed').length;
+    const completedToday = todayAppointments.filter((a) => {
+        if (a.status === 'completed') return true;
+        if (a.status === 'cancelled') return false;
+        return new Date(a.end_time).getTime() < now.getTime();
+    }).length;
     const remainingToday = todayAppointments.filter(
         (a) => a.status === 'confirmed' && new Date(a.end_time) > now
     ).length;

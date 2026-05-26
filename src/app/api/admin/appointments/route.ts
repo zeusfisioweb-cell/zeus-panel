@@ -260,6 +260,7 @@ export async function PATCH(request: Request) {
 
         const isCancelling = cleanPayload.status === 'cancelled';
         const isConfirming = cleanPayload.status === 'confirmed';
+        const isCompleting = cleanPayload.status === 'completed';
         const isChangingTiming = 'start_time' in cleanPayload || 'end_time' in cleanPayload || 'professional_id' in cleanPayload;
 
         type CurrentAppt = {
@@ -273,7 +274,7 @@ export async function PATCH(request: Request) {
 
         let currentAppt: CurrentAppt | null = null;
 
-        if (scopedProfessionalId || isCancelling || isConfirming || isChangingTiming) {
+        if (scopedProfessionalId || isCancelling || isConfirming || isCompleting || isChangingTiming) {
             const { data: curr, error: currErr } = await supabase
                 .from('appointments')
                 .select('id, patient_id, professional_id, start_time, end_time, status')
@@ -282,6 +283,10 @@ export async function PATCH(request: Request) {
             if (currErr) throw currErr;
             if (!curr) throw new ApiRouteError(404, 'Appointment not found');
             currentAppt = curr as CurrentAppt;
+        }
+
+        if (isCompleting && currentAppt && currentAppt.status === 'cancelled') {
+            throw new ApiRouteError(422, 'No se puede completar una cita cancelada');
         }
 
         if (scopedProfessionalId && currentAppt) {
