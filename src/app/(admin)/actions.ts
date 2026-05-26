@@ -156,16 +156,34 @@ export async function getDashboardData(
         }
     }
 
-    const sessionBreakdown = Object.entries(sessionCounts)
+    // Session breakdown scoped to the selected date (todayRes) so the donut
+    // reflects the chosen day, not all-time history.
+    const todayRows = (todayRes.data ?? []) as Appointment[];
+    const todaySessionCounts: Record<string, number> = {};
+    let todayRevenue = 0;
+
+    for (const apt of todayRows) {
+        if (apt.status === 'cancelled') continue;
+        const isCompleted = apt.status === 'completed' || new Date(apt.end_time).getTime() < nowMs;
+        if (!isCompleted) continue;
+        const svcRaw = Array.isArray(apt.service) ? (apt.service as unknown[])[0] : apt.service;
+        const svc = svcRaw as { name: string; price: number } | null;
+        if (svc?.name) {
+            todaySessionCounts[svc.name] = (todaySessionCounts[svc.name] ?? 0) + 1;
+            todayRevenue += svc.price ?? 0;
+        }
+    }
+
+    const sessionBreakdown = Object.entries(todaySessionCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 8)
         .map(([name, value]) => ({ name, value }));
 
-    const totalGlobalAppointments =
-        globalStatus.confirmed + globalStatus.completed + globalStatus.cancelled;
+    const todayNonCancelled = todayRows.filter((a) => a.status !== 'cancelled').length;
+    const totalGlobalAppointments = todayNonCancelled;
 
     const globalStats: DashboardGlobalStats = {
-        estimatedRevenue,
+        estimatedRevenue: todayRevenue,
         totalGlobalAppointments,
         sessionBreakdown,
         globalStatus,
