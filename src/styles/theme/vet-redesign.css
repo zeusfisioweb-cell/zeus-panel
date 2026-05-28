@@ -323,8 +323,8 @@ html[data-sector="vet"] .sidebar__user--compact {
 }
 
 html[data-sector="vet"] .sidebar__user-avatar {
-  background: linear-gradient(135deg, var(--vet-warm) 0%, var(--vet-warm-hover) 100%) !important;
-  color: var(--vet-forest-deep) !important;
+  background: linear-gradient(135deg, var(--vet-forest) 0%, var(--vet-forest-deep) 100%) !important;
+  color: var(--vet-mint) !important;
   font-family: var(--vet-font-display) !important;
   font-weight: 700 !important;
   width: 36px !important;
