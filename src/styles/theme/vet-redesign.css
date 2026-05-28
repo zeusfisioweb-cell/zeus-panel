@@ -1,0 +1,1690 @@
+/* ==========================================================================
+   VET — Redesign Layer (Cinematic Forest, Operativo Cálido)
+   Última capa de la cascade. Se carga después de vet-master.css y reemplaza
+   visualmente todo el panel cuando html[data-sector="vet"].
+   Mantiene class names legacy (.sidebar, .panel-topbar, .zs-kpi, .btn, etc.)
+   y los redefine. Scope :root[data-sector="vet"] + specificity alta.
+   Paleta y typografía alineadas con localhost:3000/veterinaria/plantilla.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. TOKENS — paleta forest + semánticos
+   ========================================================================== */
+
+:root[data-sector="vet"] {
+  /* Paleta cruda */
+  --vet-forest-deep: #1b4332;
+  --vet-forest: #2d6a4f;
+  --vet-forest-soft: #3f8062;
+  --vet-mint: #95d5b2;
+  --vet-mint-glow: #b7e4c7;
+  --vet-mint-bg: #e7f2eb;
+  --vet-warm: #e89b4c;
+  --vet-warm-hover: #d88838;
+  --vet-warm-soft: #f7d6ad;
+  --vet-cream: #fafcf7;
+  --vet-cream-soft: #f1f8f4;
+  --vet-cream-deep: #e6efe9;
+  --vet-black: #1b2c24;
+  --vet-soft: #4a5c50;
+  --vet-line: #dce6de;
+  --vet-line-strong: #bdcfc1;
+  --vet-white: #ffffff;
+  --vet-danger: #c1432f;
+  --vet-danger-soft: #f5d6cf;
+  --vet-info: #3b6b8a;
+  --vet-info-soft: #d2e1ec;
+
+  /* Semánticos panel */
+  --vet-bg-canvas: var(--vet-cream);
+  --vet-bg-surface: var(--vet-white);
+  --vet-bg-surface-2: var(--vet-cream-soft);
+  --vet-bg-sidebar: var(--vet-forest-deep);
+  --vet-bg-topbar: var(--vet-white);
+  --vet-border: var(--vet-line);
+  --vet-border-strong: var(--vet-line-strong);
+  --vet-text: var(--vet-black);
+  --vet-text-soft: var(--vet-soft);
+  --vet-text-mute: #708077;
+  --vet-text-on-dark: #eef5f0;
+  --vet-text-on-dark-mute: #a9c0b1;
+  --vet-radius-sm: 8px;
+  --vet-radius-md: 12px;
+  --vet-radius-lg: 16px;
+  --vet-radius-xl: 22px;
+  --vet-radius-pill: 999px;
+  --vet-shadow-card: 0 1px 2px rgba(27, 67, 50, 0.04), 0 4px 12px -4px rgba(27, 67, 50, 0.08);
+  --vet-shadow-card-hover: 0 2px 4px rgba(27, 67, 50, 0.06), 0 12px 24px -8px rgba(27, 67, 50, 0.18);
+  --vet-shadow-pop: 0 24px 48px -12px rgba(27, 67, 50, 0.28);
+  --vet-focus-ring: 0 0 0 3px rgba(45, 106, 79, 0.25);
+
+  /* Mapping a tokens legacy (sobrescribe los heredados de tokens.css/vet-master.css) */
+  --brand-main: var(--vet-forest);
+  --brand-dark: var(--vet-forest-deep);
+  --brand-light: var(--vet-mint-glow);
+  --accent-main: var(--vet-warm);
+  --bg-base: var(--vet-bg-canvas);
+  --bg-canvas: var(--vet-bg-canvas);
+  --bg-surface: var(--vet-bg-surface);
+  --bg-surface-2: var(--vet-bg-surface-2);
+  --bg-sidebar: var(--vet-bg-sidebar);
+  --bg-card: var(--vet-bg-surface);
+  --text-main: var(--vet-text);
+  --text-soft: var(--vet-text-soft);
+  --text-muted: var(--vet-text-mute);
+  --border-color: var(--vet-border);
+  --border-strong: var(--vet-border-strong);
+  --success-main: var(--vet-forest);
+  --success-soft: var(--vet-mint-glow);
+  --warning-main: var(--vet-warm);
+  --warning-soft: var(--vet-warm-soft);
+  --danger-main: var(--vet-danger);
+  --danger-soft: var(--vet-danger-soft);
+  --info-main: var(--vet-info);
+  --info-soft: var(--vet-info-soft);
+  --shadow-sm: var(--vet-shadow-card);
+  --shadow-md: var(--vet-shadow-card-hover);
+  --shadow-lg: var(--vet-shadow-pop);
+
+  /* Tipografía (usa next/font CSS vars declarados en app/layout.tsx) */
+  --vet-font-display: var(--font-vet-display), "Fraunces", Georgia, serif;
+  --vet-font-body: var(--font-vet-sans), "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--vet-font-body);
+  --font-serif: var(--vet-font-display);
+}
+
+/* ==========================================================================
+   2. CANVAS GLOBAL
+   ========================================================================== */
+
+html[data-sector="vet"],
+html[data-sector="vet"] body {
+  background: var(--vet-bg-canvas) !important;
+  color: var(--vet-text) !important;
+  font-family: var(--vet-font-body) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-sector="vet"] body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+html[data-sector="vet"] h1,
+html[data-sector="vet"] h2,
+html[data-sector="vet"] .vet-display {
+  font-family: var(--vet-font-display) !important;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--vet-text);
+}
+
+html[data-sector="vet"] h3,
+html[data-sector="vet"] h4 {
+  font-family: var(--vet-font-body) !important;
+  font-weight: 600;
+  color: var(--vet-text);
+}
+
+html[data-sector="vet"] ::selection {
+  background: var(--vet-mint);
+  color: var(--vet-forest-deep);
+}
+
+html[data-sector="vet"] *:focus-visible {
+  outline: none;
+  box-shadow: var(--vet-focus-ring);
+}
+
+/* ==========================================================================
+   3. ADMIN SHELL + MAIN CONTENT
+   ========================================================================== */
+
+html[data-sector="vet"] .admin-shell,
+html[data-sector="vet"] .admin-shell--modern {
+  background: var(--vet-bg-canvas) !important;
+}
+
+html[data-sector="vet"] .main-content {
+  background: var(--vet-bg-canvas) !important;
+  color: var(--vet-text);
+}
+
+html[data-sector="vet"] .admin-shell--summary .main-content,
+html[data-sector="vet"] .admin-shell--modern .main-content {
+  padding: 28px 32px !important;
+}
+
+@media (max-width: 768px) {
+  html[data-sector="vet"] .admin-shell--summary .main-content,
+  html[data-sector="vet"] .admin-shell--modern .main-content {
+    padding: 18px 16px !important;
+  }
+}
+
+/* ==========================================================================
+   4. SIDEBAR (forest deep, links mint, brand Fraunces)
+   ========================================================================== */
+
+html[data-sector="vet"] .sidebar {
+  background: linear-gradient(180deg, var(--vet-forest-deep) 0%, #15382a 100%) !important;
+  border-right: 1px solid rgba(149, 213, 178, 0.08) !important;
+  color: var(--vet-text-on-dark) !important;
+  width: 248px !important;
+}
+
+html[data-sector="vet"] .sidebar__brand {
+  padding: 20px 20px 16px !important;
+  border-bottom: 1px solid rgba(149, 213, 178, 0.1) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-sector="vet"] .sidebar__brand-image {
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  display: flex;
+  align-items: center;
+}
+
+html[data-sector="vet"] .sidebar__brand-image img {
+  height: 26px !important;
+  width: auto !important;
+  max-width: 140px !important;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.88;
+}
+
+html[data-sector="vet"] .sidebar__overview {
+  background: rgba(149, 213, 178, 0.08) !important;
+  border: 1px solid rgba(149, 213, 178, 0.14) !important;
+  color: var(--vet-text-on-dark) !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  margin: 14px 14px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+html[data-sector="vet"] .sidebar__overview-label {
+  color: var(--vet-mint) !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+}
+
+html[data-sector="vet"] .sidebar__overview-title {
+  color: var(--vet-text-on-dark) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+html[data-sector="vet"] .sidebar__overview-meta {
+  color: var(--vet-text-on-dark-mute) !important;
+  font-size: 11px !important;
+}
+
+html[data-sector="vet"] .sidebar__nav {
+  padding: 4px 10px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+html[data-sector="vet"] .sidebar__section-title {
+  color: var(--vet-mint) !important;
+  opacity: 0.65;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+  padding: 16px 12px 8px !important;
+}
+
+html[data-sector="vet"] .admin-shell .sidebar__link,
+html[data-sector="vet"] .sidebar__link {
+  display: flex !important;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  color: var(--vet-text-on-dark-mute) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  position: relative;
+}
+
+html[data-sector="vet"] .admin-shell .sidebar__link:hover,
+html[data-sector="vet"] .sidebar__link:hover {
+  background: rgba(149, 213, 178, 0.1) !important;
+  color: var(--vet-text-on-dark) !important;
+}
+
+html[data-sector="vet"] .admin-shell--modern .sidebar__link--active,
+html[data-sector="vet"] .admin-shell--modern.admin-shell--summary .sidebar__link--active,
+html[data-sector="vet"] .admin-shell .sidebar__link--active,
+html[data-sector="vet"] .sidebar__link--active {
+  background: linear-gradient(90deg, rgba(149, 213, 178, 0.22) 0%, rgba(149, 213, 178, 0.06) 100%) !important;
+  border: 1px solid rgba(149, 213, 178, 0.22) !important;
+  color: var(--vet-mint) !important;
+  font-weight: 600 !important;
+  box-shadow: inset 3px 0 0 0 var(--vet-mint) !important;
+}
+
+html[data-sector="vet"] .admin-shell--modern .sidebar__link--active::before,
+html[data-sector="vet"] .sidebar__link--active::before {
+  content: none !important;
+}
+
+html[data-sector="vet"] .admin-shell--modern .sidebar__link--active .sidebar__link-icon,
+html[data-sector="vet"] .sidebar__link--active .sidebar__link-icon {
+  background: rgba(149, 213, 178, 0.18) !important;
+  color: var(--vet-mint) !important;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+html[data-sector="vet"] .sidebar__link-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+
+html[data-sector="vet"] .sidebar__link-label {
+  flex: 1;
+}
+
+html[data-sector="vet"] .sidebar__footer,
+html[data-sector="vet"] .sidebar__footer--compact {
+  border-top: 1px solid rgba(149, 213, 178, 0.1) !important;
+  padding: 14px !important;
+  background: rgba(0, 0, 0, 0.18) !important;
+}
+
+html[data-sector="vet"] .sidebar__user,
+html[data-sector="vet"] .sidebar__user--compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+html[data-sector="vet"] .sidebar__user-avatar {
+  background: linear-gradient(135deg, var(--vet-warm) 0%, var(--vet-warm-hover) 100%) !important;
+  color: var(--vet-forest-deep) !important;
+  font-family: var(--vet-font-display) !important;
+  font-weight: 700 !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html[data-sector="vet"] .sidebar__user-avatar--sm {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 12px;
+}
+
+html[data-sector="vet"] .sidebar__user-name {
+  color: var(--vet-text-on-dark) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+html[data-sector="vet"] .sidebar__user-role {
+  color: var(--vet-text-on-dark-mute) !important;
+  font-size: 11px !important;
+  margin-top: 1px;
+}
+
+html[data-sector="vet"] .sidebar__logout-icon {
+  color: var(--vet-text-on-dark-mute) !important;
+  background: transparent !important;
+  border: 1px solid rgba(149, 213, 178, 0.14) !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px !important;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+html[data-sector="vet"] .sidebar__logout-icon:hover {
+  background: rgba(193, 67, 47, 0.15) !important;
+  color: #f3b7ac !important;
+  border-color: rgba(193, 67, 47, 0.3) !important;
+}
+
+html[data-sector="vet"] .sidebar-mobile-toggle {
+  background: var(--vet-forest) !important;
+  color: var(--vet-white) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--vet-shadow-card-hover);
+}
+
+html[data-sector="vet"] .sidebar-backdrop {
+  background: rgba(27, 44, 36, 0.55) !important;
+  backdrop-filter: blur(2px);
+}
+
+/* ==========================================================================
+   5. TOPBAR
+   ========================================================================== */
+
+html[data-sector="vet"] .panel-topbar,
+html[data-sector="vet"] .panel-topbar--modern {
+  background: var(--vet-bg-topbar) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  padding: 18px 22px !important;
+  margin: 0 0 22px !important;
+  box-shadow: var(--vet-shadow-card) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  position: relative;
+}
+
+html[data-sector="vet"] .panel-topbar::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--vet-mint) 0%, transparent 60%);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+html[data-sector="vet"] .panel-topbar__primary,
+html[data-sector="vet"] .panel-topbar__meta,
+html[data-sector="vet"] .panel-topbar__date-block,
+html[data-sector="vet"] .panel-topbar__user-block {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+html[data-sector="vet"] .panel-topbar__primary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+html[data-sector="vet"] .panel-topbar__kicker {
+  color: var(--vet-forest) !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+}
+
+html[data-sector="vet"] .panel-topbar__title {
+  color: var(--vet-text) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+html[data-sector="vet"] .panel-topbar__meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+html[data-sector="vet"] .panel-topbar__date-block,
+html[data-sector="vet"] .panel-topbar__user-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+
+html[data-sector="vet"] .panel-topbar__date-label,
+html[data-sector="vet"] .panel-topbar__role {
+  color: var(--vet-text-soft) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+}
+
+html[data-sector="vet"] .panel-topbar__date {
+  color: var(--vet-text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+html[data-sector="vet"] .panel-topbar__user-block {
+  padding-left: 16px;
+  border-left: 1px solid var(--vet-border);
+}
+
+html[data-sector="vet"] .panel-topbar__name {
+  color: var(--vet-text) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* ==========================================================================
+   6. KPI CARDS (.zs-kpi*) — fix bug + nuevo diseño
+   ========================================================================== */
+
+html[data-sector="vet"] .summary-v5-kpis {
+  background: transparent !important;
+  color: var(--vet-text) !important; /* defensa contra inherit blanco */
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+}
+
+html[data-sector="vet"] .zs-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  background: transparent !important;
+}
+
+@media (max-width: 1100px) {
+  html[data-sector="vet"] .zs-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-sector="vet"] .zs-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+html[data-sector="vet"] .zs-kpi-link {
+  text-decoration: none !important;
+  display: block;
+}
+
+html[data-sector="vet"] .zs-kpi {
+  position: relative;
+  background: var(--vet-bg-surface) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  padding: 22px 22px 20px !important;
+  color: var(--vet-text) !important;
+  box-shadow: var(--vet-shadow-card) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  overflow: hidden;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+html[data-sector="vet"] .zs-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--vet-forest);
+  border-radius: var(--vet-radius-lg) var(--vet-radius-lg) 0 0;
+}
+
+html[data-sector="vet"] .zs-kpi::after {
+  display: none !important;
+}
+
+html[data-sector="vet"] .zs-kpi-link:hover .zs-kpi {
+  transform: translateY(-2px);
+  box-shadow: var(--vet-shadow-card-hover) !important;
+  border-color: var(--vet-border-strong) !important;
+}
+
+html[data-sector="vet"] .zs-kpi--primary::before { background: var(--vet-forest); }
+html[data-sector="vet"] .zs-kpi--success::before { background: var(--vet-mint); }
+html[data-sector="vet"] .zs-kpi--warning::before { background: var(--vet-warm); }
+html[data-sector="vet"] .zs-kpi--info::before    { background: var(--vet-info); }
+html[data-sector="vet"] .zs-kpi--neutral::before { background: var(--vet-line-strong); }
+
+html[data-sector="vet"] .zs-kpi__top {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+html[data-sector="vet"] .zs-kpi__label,
+html[data-sector="vet"] .zs-kpi--primary .zs-kpi__label,
+html[data-sector="vet"] .zs-kpi--success .zs-kpi__label,
+html[data-sector="vet"] .zs-kpi--warning .zs-kpi__label,
+html[data-sector="vet"] .zs-kpi--info .zs-kpi__label,
+html[data-sector="vet"] .zs-kpi--neutral .zs-kpi__label {
+  color: var(--vet-text-soft) !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  margin: 0 !important;
+}
+
+html[data-sector="vet"] .zs-kpi__icon,
+html[data-sector="vet"] .zs-kpi--primary .zs-kpi__icon,
+html[data-sector="vet"] .zs-kpi--success .zs-kpi__icon,
+html[data-sector="vet"] .zs-kpi--warning .zs-kpi__icon,
+html[data-sector="vet"] .zs-kpi--info .zs-kpi__icon,
+html[data-sector="vet"] .zs-kpi--neutral .zs-kpi__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vet-cream-soft) !important;
+  color: var(--vet-forest) !important;
+  border: 1px solid var(--vet-border) !important;
+  flex: 0 0 32px;
+}
+
+html[data-sector="vet"] .zs-kpi--success .zs-kpi__icon { background: var(--vet-mint-bg) !important; color: var(--vet-forest) !important; }
+html[data-sector="vet"] .zs-kpi--warning .zs-kpi__icon { background: #fbe8d2 !important; color: #a35a14 !important; }
+html[data-sector="vet"] .zs-kpi--info .zs-kpi__icon    { background: var(--vet-info-soft) !important; color: var(--vet-info) !important; }
+html[data-sector="vet"] .zs-kpi--neutral .zs-kpi__icon { background: var(--vet-cream-deep) !important; color: var(--vet-text-soft) !important; }
+
+html[data-sector="vet"] .zs-kpi__value {
+  color: var(--vet-text) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: 38px !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em !important;
+  line-height: 1.05 !important;
+  margin: 4px 0 8px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-sector="vet"] .zs-kpi__hint {
+  color: var(--vet-text-soft) !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+html[data-sector="vet"] .summary-v5-context-inline {
+  background: var(--vet-bg-surface-2) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-md) !important;
+  padding: 12px 18px !important;
+  color: var(--vet-text-soft) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  margin: 4px 0 0 !important;
+}
+
+/* ==========================================================================
+   7. BUTTONS (.btn, .btn--primary, .btn--secondary, .btn--ghost, .btn--sm)
+   ========================================================================== */
+
+html[data-sector="vet"] .btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--vet-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.005em;
+  border-radius: var(--vet-radius-pill) !important;
+  padding: 10px 20px !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  text-decoration: none !important;
+}
+
+html[data-sector="vet"] .btn:focus-visible {
+  outline: none;
+  box-shadow: var(--vet-focus-ring);
+}
+
+html[data-sector="vet"] .btn--sm {
+  padding: 7px 14px !important;
+  font-size: 12.5px !important;
+}
+
+html[data-sector="vet"] .btn--lg {
+  padding: 13px 26px !important;
+  font-size: 14.5px !important;
+}
+
+html[data-sector="vet"] .btn--primary {
+  background: var(--vet-forest) !important;
+  color: var(--vet-white) !important;
+  border-color: var(--vet-forest) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 0 6px 14px -6px rgba(27, 67, 50, 0.45);
+}
+
+html[data-sector="vet"] .btn--primary:hover {
+  background: var(--vet-forest-deep) !important;
+  border-color: var(--vet-forest-deep) !important;
+  transform: translateY(-1px);
+}
+
+html[data-sector="vet"] .btn--secondary {
+  background: var(--vet-mint-bg) !important;
+  color: var(--vet-forest-deep) !important;
+  border-color: var(--vet-mint-glow) !important;
+}
+
+html[data-sector="vet"] .btn--secondary:hover {
+  background: var(--vet-mint-glow) !important;
+  border-color: var(--vet-mint) !important;
+}
+
+html[data-sector="vet"] .btn--warm,
+html[data-sector="vet"] .btn--accent {
+  background: var(--vet-warm) !important;
+  color: var(--vet-forest-deep) !important;
+  border-color: var(--vet-warm) !important;
+}
+
+html[data-sector="vet"] .btn--warm:hover,
+html[data-sector="vet"] .btn--accent:hover {
+  background: var(--vet-warm-hover) !important;
+  border-color: var(--vet-warm-hover) !important;
+}
+
+html[data-sector="vet"] .btn--ghost,
+html[data-sector="vet"] .btn--outline {
+  background: transparent !important;
+  color: var(--vet-text) !important;
+  border-color: var(--vet-border-strong) !important;
+}
+
+html[data-sector="vet"] .btn--ghost:hover,
+html[data-sector="vet"] .btn--outline:hover {
+  background: var(--vet-cream-soft) !important;
+  border-color: var(--vet-forest) !important;
+  color: var(--vet-forest) !important;
+}
+
+html[data-sector="vet"] .btn--danger {
+  background: var(--vet-danger) !important;
+  color: var(--vet-white) !important;
+  border-color: var(--vet-danger) !important;
+}
+
+html[data-sector="vet"] .btn--danger:hover {
+  background: #a7331f !important;
+}
+
+html[data-sector="vet"] .btn:disabled,
+html[data-sector="vet"] .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ==========================================================================
+   8. CARDS, SURFACES, BENTO
+   ========================================================================== */
+
+html[data-sector="vet"] .card,
+html[data-sector="vet"] .surface-card,
+html[data-sector="vet"] .panel-card,
+html[data-sector="vet"] .bento-card,
+html[data-sector="vet"] .zs-charts-card,
+html[data-sector="vet"] .v6-card {
+  background: var(--vet-bg-surface) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  box-shadow: var(--vet-shadow-card) !important;
+  color: var(--vet-text) !important;
+  padding: 20px !important;
+}
+
+html[data-sector="vet"] .card--soft,
+html[data-sector="vet"] .surface-card--soft {
+  background: var(--vet-bg-surface-2) !important;
+  border-color: var(--vet-border-strong) !important;
+}
+
+html[data-sector="vet"] .card--dark,
+html[data-sector="vet"] .surface-card--dark {
+  background: linear-gradient(135deg, var(--vet-forest-deep) 0%, var(--vet-forest) 100%) !important;
+  border-color: var(--vet-forest-deep) !important;
+  color: var(--vet-text-on-dark) !important;
+}
+
+html[data-sector="vet"] .card--dark *,
+html[data-sector="vet"] .surface-card--dark * {
+  color: inherit;
+}
+
+html[data-sector="vet"] .card-title,
+html[data-sector="vet"] .panel-card__title,
+html[data-sector="vet"] .bento-card__title,
+html[data-sector="vet"] .zs-charts-card__title {
+  font-family: var(--vet-font-display) !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: var(--vet-text) !important;
+  margin: 0 0 12px !important;
+  letter-spacing: -0.01em;
+}
+
+html[data-sector="vet"] .card-subtitle,
+html[data-sector="vet"] .panel-card__subtitle {
+  color: var(--vet-text-soft) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+
+/* Bento overrides — grid spacing */
+html[data-sector="vet"] .bento-grid,
+html[data-sector="vet"] .zs-bento-grid {
+  gap: 16px !important;
+}
+
+/* Charts */
+html[data-sector="vet"] .zs-charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ==========================================================================
+   9. TABLES — solo data-tables específicas (NO calendarios mini-cal ni fc)
+   ========================================================================== */
+
+html[data-sector="vet"] .table,
+html[data-sector="vet"] table.data-table,
+html[data-sector="vet"] table.admin-table,
+html[data-sector="vet"] .panel-table,
+html[data-sector="vet"] .zs-pac-table,
+html[data-sector="vet"] .zs-svc-table,
+html[data-sector="vet"] .zs-cit-table,
+html[data-sector="vet"] .zs-prof-table,
+html[data-sector="vet"] .zs-caja-table,
+html[data-sector="vet"] table.vet-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: var(--vet-bg-surface);
+  border-radius: var(--vet-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--vet-border);
+  font-size: 13.5px;
+}
+
+html[data-sector="vet"] .table thead th,
+html[data-sector="vet"] table.data-table thead th,
+html[data-sector="vet"] table.admin-table thead th,
+html[data-sector="vet"] .panel-table thead th,
+html[data-sector="vet"] .zs-pac-table thead th,
+html[data-sector="vet"] .zs-svc-table thead th,
+html[data-sector="vet"] .zs-cit-table thead th,
+html[data-sector="vet"] .zs-prof-table thead th,
+html[data-sector="vet"] .zs-caja-table thead th,
+html[data-sector="vet"] table.vet-table thead th {
+  background: var(--vet-bg-surface-2) !important;
+  color: var(--vet-text-soft) !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+  padding: 12px 14px !important;
+  border-bottom: 1px solid var(--vet-border) !important;
+  text-align: left;
+}
+
+html[data-sector="vet"] .table tbody td,
+html[data-sector="vet"] table.data-table tbody td,
+html[data-sector="vet"] table.admin-table tbody td,
+html[data-sector="vet"] .panel-table tbody td,
+html[data-sector="vet"] .zs-pac-table tbody td,
+html[data-sector="vet"] .zs-svc-table tbody td,
+html[data-sector="vet"] .zs-cit-table tbody td,
+html[data-sector="vet"] .zs-prof-table tbody td,
+html[data-sector="vet"] .zs-caja-table tbody td,
+html[data-sector="vet"] table.vet-table tbody td {
+  background: var(--vet-bg-surface) !important;
+  color: var(--vet-text) !important;
+  padding: 14px !important;
+  border-bottom: 1px solid var(--vet-border) !important;
+  vertical-align: middle;
+}
+
+html[data-sector="vet"] .table tbody tr:last-child td,
+html[data-sector="vet"] table.data-table tbody tr:last-child td,
+html[data-sector="vet"] .panel-table tbody tr:last-child td,
+html[data-sector="vet"] .zs-pac-table tbody tr:last-child td,
+html[data-sector="vet"] .zs-svc-table tbody tr:last-child td,
+html[data-sector="vet"] .zs-cit-table tbody tr:last-child td,
+html[data-sector="vet"] .zs-prof-table tbody tr:last-child td,
+html[data-sector="vet"] .zs-caja-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+html[data-sector="vet"] .table tbody tr:hover td,
+html[data-sector="vet"] table.data-table tbody tr:hover td,
+html[data-sector="vet"] .panel-table tbody tr:hover td,
+html[data-sector="vet"] .zs-pac-table tbody tr:hover td,
+html[data-sector="vet"] .zs-svc-table tbody tr:hover td,
+html[data-sector="vet"] .zs-cit-table tbody tr:hover td,
+html[data-sector="vet"] .zs-prof-table tbody tr:hover td,
+html[data-sector="vet"] .zs-caja-table tbody tr:hover td {
+  background: var(--vet-cream-soft) !important;
+}
+
+/* ==========================================================================
+   10. FORMS
+   ========================================================================== */
+
+html[data-sector="vet"] input[type="text"],
+html[data-sector="vet"] input[type="email"],
+html[data-sector="vet"] input[type="password"],
+html[data-sector="vet"] input[type="number"],
+html[data-sector="vet"] input[type="date"],
+html[data-sector="vet"] input[type="time"],
+html[data-sector="vet"] input[type="datetime-local"],
+html[data-sector="vet"] input[type="tel"],
+html[data-sector="vet"] input[type="search"],
+html[data-sector="vet"] input[type="url"],
+html[data-sector="vet"] select,
+html[data-sector="vet"] textarea,
+html[data-sector="vet"] .form-input,
+html[data-sector="vet"] .form-select,
+html[data-sector="vet"] .form-textarea {
+  background: var(--vet-bg-surface) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-md) !important;
+  padding: 10px 14px !important;
+  color: var(--vet-text) !important;
+  font-family: var(--vet-font-body) !important;
+  font-size: 13.5px !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  width: 100%;
+}
+
+html[data-sector="vet"] textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+html[data-sector="vet"] input:focus,
+html[data-sector="vet"] select:focus,
+html[data-sector="vet"] textarea:focus {
+  outline: none;
+  border-color: var(--vet-forest) !important;
+  box-shadow: var(--vet-focus-ring);
+  background: var(--vet-bg-surface) !important;
+}
+
+html[data-sector="vet"] input::placeholder,
+html[data-sector="vet"] textarea::placeholder {
+  color: var(--vet-text-mute) !important;
+  opacity: 1;
+}
+
+html[data-sector="vet"] label,
+html[data-sector="vet"] .form-label {
+  color: var(--vet-text-soft) !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  margin-bottom: 6px !important;
+  display: inline-block;
+}
+
+html[data-sector="vet"] input[type="checkbox"],
+html[data-sector="vet"] input[type="radio"] {
+  accent-color: var(--vet-forest);
+  width: 16px;
+  height: 16px;
+}
+
+/* Switch */
+html[data-sector="vet"] .switch,
+html[data-sector="vet"] .toggle {
+  --switch-bg: var(--vet-line-strong);
+  --switch-on: var(--vet-forest);
+}
+
+/* ==========================================================================
+   11. BADGES / CHIPS / STATUS
+   ========================================================================== */
+
+html[data-sector="vet"] .badge,
+html[data-sector="vet"] .chip,
+html[data-sector="vet"] .status-badge,
+html[data-sector="vet"] .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px !important;
+  border-radius: var(--vet-radius-pill) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  background: var(--vet-cream-soft) !important;
+  color: var(--vet-text-soft) !important;
+  border: 1px solid var(--vet-border) !important;
+  white-space: nowrap;
+}
+
+html[data-sector="vet"] .badge--success,
+html[data-sector="vet"] .chip--success,
+html[data-sector="vet"] .status-badge--completed,
+html[data-sector="vet"] .status-badge--confirmed {
+  background: var(--vet-mint-bg) !important;
+  color: var(--vet-forest-deep) !important;
+  border-color: var(--vet-mint-glow) !important;
+}
+
+html[data-sector="vet"] .badge--warning,
+html[data-sector="vet"] .chip--warning,
+html[data-sector="vet"] .status-badge--pending,
+html[data-sector="vet"] .status-badge--no_show {
+  background: #fbe8d2 !important;
+  color: #6e3a0a !important;
+  border-color: var(--vet-warm-soft) !important;
+}
+
+html[data-sector="vet"] .badge--danger,
+html[data-sector="vet"] .chip--danger,
+html[data-sector="vet"] .status-badge--cancelled {
+  background: #fbe2dc !important;
+  color: #7a2716 !important;
+  border-color: var(--vet-danger-soft) !important;
+}
+
+html[data-sector="vet"] .badge--info,
+html[data-sector="vet"] .chip--info {
+  background: var(--vet-info-soft) !important;
+  color: var(--vet-info) !important;
+  border-color: #b5cbd9 !important;
+}
+
+/* ==========================================================================
+   12. MODALS / DRAWERS
+   ========================================================================== */
+
+html[data-sector="vet"] .modal,
+html[data-sector="vet"] .modal-dialog,
+html[data-sector="vet"] [role="dialog"] > div,
+html[data-sector="vet"] .Modal__content {
+  background: var(--vet-bg-surface) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  box-shadow: var(--vet-shadow-pop) !important;
+  color: var(--vet-text) !important;
+}
+
+html[data-sector="vet"] .modal-backdrop,
+html[data-sector="vet"] .Modal__backdrop {
+  background: rgba(27, 44, 36, 0.55) !important;
+  backdrop-filter: blur(4px);
+}
+
+html[data-sector="vet"] .modal-header,
+html[data-sector="vet"] .modal__header {
+  border-bottom: 1px solid var(--vet-border) !important;
+  padding: 18px 22px !important;
+}
+
+html[data-sector="vet"] .modal-header h2,
+html[data-sector="vet"] .modal-header h3,
+html[data-sector="vet"] .modal__title {
+  font-family: var(--vet-font-display) !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+  color: var(--vet-text) !important;
+  margin: 0 !important;
+}
+
+html[data-sector="vet"] .modal-footer,
+html[data-sector="vet"] .modal__footer {
+  border-top: 1px solid var(--vet-border) !important;
+  background: var(--vet-bg-surface-2) !important;
+  padding: 14px 22px !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Drawer derecho */
+html[data-sector="vet"] .drawer,
+html[data-sector="vet"] .panel-drawer,
+html[data-sector="vet"] .side-panel {
+  background: var(--vet-bg-surface) !important;
+  border-left: 1px solid var(--vet-border) !important;
+  box-shadow: -8px 0 24px -12px rgba(27, 67, 50, 0.18) !important;
+}
+
+/* ==========================================================================
+   13. FULLCALENDAR / AGENDA
+   ========================================================================== */
+
+html[data-sector="vet"] .fc {
+  --fc-border-color: var(--vet-border);
+  --fc-page-bg-color: var(--vet-bg-surface);
+  --fc-neutral-bg-color: var(--vet-bg-surface-2);
+  --fc-today-bg-color: var(--vet-mint-bg);
+  --fc-button-bg-color: var(--vet-bg-surface);
+  --fc-button-border-color: var(--vet-border);
+  --fc-button-text-color: var(--vet-text);
+  --fc-button-active-bg-color: var(--vet-forest);
+  --fc-button-active-border-color: var(--vet-forest);
+  --fc-button-hover-bg-color: var(--vet-cream-soft);
+  --fc-button-hover-border-color: var(--vet-border-strong);
+  font-family: var(--vet-font-body) !important;
+  background: var(--vet-bg-surface) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  border: 1px solid var(--vet-border) !important;
+  padding: 12px;
+}
+
+html[data-sector="vet"] .fc-toolbar-title {
+  font-family: var(--vet-font-display) !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: var(--vet-text) !important;
+  letter-spacing: -0.01em;
+}
+
+html[data-sector="vet"] .fc .fc-button {
+  border-radius: var(--vet-radius-pill) !important;
+  padding: 7px 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+html[data-sector="vet"] .fc .fc-button-primary:not(:disabled).fc-button-active,
+html[data-sector="vet"] .fc .fc-button-primary:not(:disabled):active {
+  background: var(--vet-forest) !important;
+  border-color: var(--vet-forest) !important;
+  color: var(--vet-white) !important;
+}
+
+html[data-sector="vet"] .fc-col-header-cell {
+  background: var(--vet-bg-surface-2) !important;
+}
+
+html[data-sector="vet"] .fc-col-header-cell-cushion {
+  color: var(--vet-text-soft) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase;
+  padding: 8px 6px !important;
+}
+
+html[data-sector="vet"] .fc-event {
+  border-radius: 8px !important;
+  border: 1px solid var(--vet-forest) !important;
+  background: var(--vet-mint-bg) !important;
+  color: var(--vet-forest-deep) !important;
+  padding: 4px 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(27, 67, 50, 0.12);
+}
+
+html[data-sector="vet"] .fc-event.status-confirmed,
+html[data-sector="vet"] .fc-event[data-status="confirmed"] {
+  background: var(--vet-mint-bg) !important;
+  border-color: var(--vet-forest) !important;
+}
+html[data-sector="vet"] .fc-event.status-completed,
+html[data-sector="vet"] .fc-event[data-status="completed"] {
+  background: var(--vet-forest) !important;
+  border-color: var(--vet-forest-deep) !important;
+  color: var(--vet-text-on-dark) !important;
+}
+html[data-sector="vet"] .fc-event.status-cancelled,
+html[data-sector="vet"] .fc-event[data-status="cancelled"] {
+  background: #fbe2dc !important;
+  border-color: var(--vet-danger) !important;
+  color: #7a2716 !important;
+  text-decoration: line-through;
+}
+html[data-sector="vet"] .fc-event.status-no_show,
+html[data-sector="vet"] .fc-event[data-status="no_show"] {
+  background: #fbe8d2 !important;
+  border-color: var(--vet-warm) !important;
+  color: #6e3a0a !important;
+}
+
+html[data-sector="vet"] .fc-timegrid-slot {
+  border-color: var(--vet-border) !important;
+  background: var(--vet-bg-surface) !important;
+}
+
+html[data-sector="vet"] .fc-timegrid-slot-label-cushion {
+  color: var(--vet-text-mute) !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+}
+
+html[data-sector="vet"] .fc-day-today {
+  background: var(--vet-mint-bg) !important;
+}
+
+html[data-sector="vet"] .fc .fc-now-indicator-line {
+  border-color: var(--vet-warm) !important;
+  border-width: 2px !important;
+}
+
+html[data-sector="vet"] .fc .fc-now-indicator-arrow {
+  border-color: var(--vet-warm) !important;
+  color: var(--vet-warm) !important;
+}
+
+/* react-day-picker mini-cal — restaurar estilo nativo */
+html[data-sector="vet"] .rdp-month_grid,
+html[data-sector="vet"] .rdp-month_grid th,
+html[data-sector="vet"] .rdp-month_grid td {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 500 !important;
+  color: inherit !important;
+}
+
+html[data-sector="vet"] .rdp-weekday {
+  color: var(--vet-text-soft) !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  padding: 6px 0 !important;
+}
+
+html[data-sector="vet"] .rdp-day_button {
+  border-radius: 8px !important;
+  font-weight: 500;
+}
+
+html[data-sector="vet"] .rdp-day_button:hover {
+  background: var(--vet-mint-bg) !important;
+  color: var(--vet-forest-deep) !important;
+}
+
+html[data-sector="vet"] .rdp-today .rdp-day_button,
+html[data-sector="vet"] .rdp-selected .rdp-day_button {
+  background: var(--vet-warm) !important;
+  color: var(--vet-forest-deep) !important;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   14. LOADING / SPINNER / EMPTY
+   ========================================================================== */
+
+html[data-sector="vet"] .loading-page {
+  background: var(--vet-bg-canvas) !important;
+  color: var(--vet-text) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 100vh;
+}
+
+html[data-sector="vet"] .spinner {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  border: 3px solid var(--vet-mint-bg) !important;
+  border-top-color: var(--vet-forest) !important;
+  animation: vet-spin 0.8s linear infinite;
+}
+
+@keyframes vet-spin {
+  to { transform: rotate(360deg); }
+}
+
+html[data-sector="vet"] .empty-state,
+html[data-sector="vet"] .panel-empty {
+  background: var(--vet-bg-surface) !important;
+  border: 1px dashed var(--vet-border-strong) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  padding: 40px 24px !important;
+  text-align: center;
+  color: var(--vet-text-soft) !important;
+}
+
+html[data-sector="vet"] .empty-state h3,
+html[data-sector="vet"] .panel-empty h3 {
+  color: var(--vet-text) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: 18px !important;
+  margin-bottom: 6px !important;
+}
+
+/* ==========================================================================
+   15. HERO / SALUDO DASHBOARD
+   ========================================================================== */
+
+html[data-sector="vet"] .panel-greeting,
+html[data-sector="vet"] .summary-v5-hero,
+html[data-sector="vet"] .v6-hero,
+html[data-sector="vet"] .dashboard-hero {
+  background: linear-gradient(135deg, var(--vet-forest-deep) 0%, var(--vet-forest) 60%, #356f54 100%) !important;
+  color: var(--vet-text-on-dark) !important;
+  border-radius: var(--vet-radius-xl) !important;
+  padding: 28px 32px !important;
+  border: 1px solid rgba(149, 213, 178, 0.18) !important;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+html[data-sector="vet"] .panel-greeting::after,
+html[data-sector="vet"] .summary-v5-hero::after,
+html[data-sector="vet"] .dashboard-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 90% 30%, rgba(149, 213, 178, 0.22) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+html[data-sector="vet"] .panel-greeting h1,
+html[data-sector="vet"] .summary-v5-hero h1,
+html[data-sector="vet"] .dashboard-hero h1 {
+  color: var(--vet-white) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: clamp(26px, 3vw, 36px) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.1 !important;
+  margin: 0 0 6px !important;
+}
+
+html[data-sector="vet"] .panel-greeting p,
+html[data-sector="vet"] .summary-v5-hero p,
+html[data-sector="vet"] .dashboard-hero p {
+  color: rgba(238, 245, 240, 0.78) !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+}
+
+/* ==========================================================================
+   15.1 ZS-DASH-HEADER (Hero del dashboard nativo del panel)
+   ========================================================================== */
+
+html[data-sector="vet"] .zs-dash-header {
+  background: linear-gradient(135deg, var(--vet-forest-deep) 0%, var(--vet-forest) 60%, #356f54 100%) !important;
+  color: var(--vet-text-on-dark) !important;
+  border-radius: var(--vet-radius-xl) !important;
+  padding: 32px 36px !important;
+  border: 1px solid rgba(149, 213, 178, 0.18) !important;
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 22px !important;
+  box-shadow: var(--vet-shadow-card-hover) !important;
+}
+
+html[data-sector="vet"] .zs-dash-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 95% 25%, rgba(232, 155, 76, 0.22) 0%, transparent 55%),
+              radial-gradient(circle at 10% 110%, rgba(149, 213, 178, 0.25) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+html[data-sector="vet"] .zs-dash-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-sector="vet"] .zs-dash-header__top {
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px;
+}
+
+html[data-sector="vet"] .zs-dash-header h1,
+html[data-sector="vet"] .zs-dash-header h2 {
+  color: var(--vet-white) !important;
+  font-family: var(--vet-font-display) !important;
+  font-size: clamp(28px, 3vw, 38px) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.05 !important;
+  margin: 0 !important;
+}
+
+html[data-sector="vet"] .zs-dash-header p,
+html[data-sector="vet"] .zs-dash-header span,
+html[data-sector="vet"] .zs-dash-header time {
+  color: rgba(238, 245, 240, 0.85) !important;
+  font-size: 13.5px !important;
+}
+
+html[data-sector="vet"] .zs-dash-header__kicker,
+html[data-sector="vet"] .zs-dash-header [class*="kicker"],
+html[data-sector="vet"] .zs-dash-header__eyebrow {
+  color: var(--vet-mint) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+}
+
+html[data-sector="vet"] .zs-dash-header__date,
+html[data-sector="vet"] .zs-dash-header time {
+  background: rgba(149, 213, 178, 0.16) !important;
+  color: var(--vet-mint) !important;
+  border: 1px solid rgba(149, 213, 178, 0.28) !important;
+  padding: 6px 14px !important;
+  border-radius: var(--vet-radius-pill) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+/* Botones dentro del hero — glass mint sobre fondo forest */
+html[data-sector="vet"] .zs-dash-header .btn,
+html[data-sector="vet"] .zs-dash-header button:not(.zs-dash-datepicker__nav) {
+  background: rgba(149, 213, 178, 0.16) !important;
+  background-image: none !important;
+  border: 1px solid rgba(149, 213, 178, 0.34) !important;
+  color: var(--vet-white) !important;
+  backdrop-filter: blur(4px);
+}
+
+html[data-sector="vet"] .zs-dash-header .btn:hover,
+html[data-sector="vet"] .zs-dash-header button:not(.zs-dash-datepicker__nav):hover {
+  background: rgba(149, 213, 178, 0.28) !important;
+  border-color: var(--vet-mint) !important;
+  color: var(--vet-white) !important;
+}
+
+html[data-sector="vet"] .zs-dash-header .btn--primary {
+  background: var(--vet-mint) !important;
+  background-image: none !important;
+  color: var(--vet-forest-deep) !important;
+  border-color: var(--vet-mint) !important;
+}
+
+html[data-sector="vet"] .zs-dash-header .btn--primary:hover {
+  background: var(--vet-mint-glow) !important;
+  color: var(--vet-forest-deep) !important;
+}
+
+html[data-sector="vet"] .zs-dash-datepicker {
+  background: rgba(149, 213, 178, 0.1) !important;
+  border: 1px solid rgba(149, 213, 178, 0.22) !important;
+  border-radius: var(--vet-radius-pill) !important;
+  padding: 4px 10px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-sector="vet"] .zs-dash-datepicker__nav {
+  color: var(--vet-mint) !important;
+  background: transparent !important;
+  border: none !important;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html[data-sector="vet"] .zs-dash-datepicker__nav:hover {
+  background: rgba(149, 213, 178, 0.22) !important;
+  color: var(--vet-white) !important;
+}
+
+html[data-sector="vet"] .zs-dash-datepicker__value {
+  color: var(--vet-white) !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overview wrapper (KPIs + ribbon) */
+html[data-sector="vet"] .summary-v5__overview {
+  display: block;
+  margin-bottom: 22px !important;
+}
+
+/* Grid principal del dashboard (agenda izquierda, charts derecha) */
+html[data-sector="vet"] .summary-v5__grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 18px !important;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  html[data-sector="vet"] .summary-v5__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-sector="vet"] .summary-v5__aside,
+html[data-sector="vet"] .summary-v5__main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ==========================================================================
+   16. AGENDA TIMELINE (Dashboard widget)
+   ========================================================================== */
+
+html[data-sector="vet"] .dashboard-agenda,
+html[data-sector="vet"] .agenda-timeline,
+html[data-sector="vet"] .zs-agenda {
+  background: var(--vet-bg-surface) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-lg) !important;
+  padding: 22px !important;
+  box-shadow: var(--vet-shadow-card) !important;
+}
+
+html[data-sector="vet"] .agenda-row,
+html[data-sector="vet"] .zs-agenda__row,
+html[data-sector="vet"] .dashboard-agenda__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 4px !important;
+  border-bottom: 1px solid var(--vet-border);
+}
+
+html[data-sector="vet"] .agenda-row:last-child,
+html[data-sector="vet"] .zs-agenda__row:last-child,
+html[data-sector="vet"] .dashboard-agenda__item:last-child {
+  border-bottom: none;
+}
+
+html[data-sector="vet"] .agenda-time,
+html[data-sector="vet"] .zs-agenda__time {
+  font-family: var(--vet-font-display) !important;
+  font-weight: 600 !important;
+  color: var(--vet-forest) !important;
+  font-size: 15px !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 54px;
+}
+
+html[data-sector="vet"] .agenda-patient,
+html[data-sector="vet"] .zs-agenda__title {
+  color: var(--vet-text) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+}
+
+html[data-sector="vet"] .agenda-meta,
+html[data-sector="vet"] .zs-agenda__meta {
+  color: var(--vet-text-soft) !important;
+  font-size: 12px !important;
+}
+
+/* ==========================================================================
+   17. CHARTS (recharts) — paleta vet
+   ========================================================================== */
+
+html[data-sector="vet"] .recharts-wrapper text,
+html[data-sector="vet"] .recharts-cartesian-axis-tick text {
+  fill: var(--vet-text-soft) !important;
+  font-size: 11px;
+  font-family: var(--vet-font-body) !important;
+}
+
+html[data-sector="vet"] .recharts-cartesian-grid line {
+  stroke: var(--vet-border) !important;
+}
+
+html[data-sector="vet"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--vet-bg-surface) !important;
+  border: 1px solid var(--vet-border) !important;
+  border-radius: var(--vet-radius-md) !important;
+  box-shadow: var(--vet-shadow-card-hover) !important;
+  font-family: var(--vet-font-body) !important;
+  font-size: 12px !important;
+  color: var(--vet-text) !important;
+  padding: 10px 12px !important;
+}
+
+/* ==========================================================================
+   18. DIVERSOS — TOASTS, LINKS, SCROLLBAR
+   ========================================================================== */
+
+html[data-sector="vet"] a {
+  color: var(--vet-forest);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+html[data-sector="vet"] a:hover {
+  color: var(--vet-forest-deep);
+}
+
+html[data-sector="vet"] hr {
+  border: none;
+  border-top: 1px solid var(--vet-border);
+  margin: 16px 0;
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar-thumb {
+  background: var(--vet-line-strong);
+  border-radius: 999px;
+  border: 2px solid var(--vet-bg-canvas);
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--vet-forest);
+}
+
+/* ==========================================================================
+   19. NUEVOS COMPONENTES OPCIONALES (vet-*) — utilizables si TSX se migra
+   ========================================================================== */
+
+html[data-sector="vet"] .vet-shell {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  min-height: 100vh;
+  background: var(--vet-bg-canvas);
+}
+
+html[data-sector="vet"] .vet-page {
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+html[data-sector="vet"] .vet-page__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+html[data-sector="vet"] .vet-page__title {
+  font-family: var(--vet-font-display);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--vet-text);
+  margin: 0;
+}
+
+html[data-sector="vet"] .vet-page__subtitle {
+  color: var(--vet-text-soft);
+  font-size: 13.5px;
+  margin: 4px 0 0;
+}
+
+html[data-sector="vet"] .vet-section-title {
+  font-family: var(--vet-font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--vet-text);
+  letter-spacing: -0.01em;
+  margin: 0 0 14px;
+}
+
+html[data-sector="vet"] .vet-kicker {
+  color: var(--vet-forest);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

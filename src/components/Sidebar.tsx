@@ -13,6 +13,7 @@ import {
     isPanelNavSection,
 } from '@/lib/panel-navigation';
 import { useAppointmentRequestsPendingCount } from '@/hooks/useAppointmentRequests';
+import { BRAND_NAME, BRAND_SHORT } from '@/branding';
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -72,11 +73,11 @@ export default function Sidebar() {
                 <div className="sidebar__brand">
                     <div className="sidebar__brand-image">
                         <Image
-                            src="/zeusheader.webp"
-                            alt="Zeus Clínica"
-                            width={200}
-                            height={60}
-                            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '60px', objectFit: 'contain' }}
+                            src="/intelidatia-logo-white.png"
+                            alt="Intelidatia"
+                            width={160}
+                            height={36}
+                            style={{ width: 'auto', height: '26px', objectFit: 'contain' }}
                             priority
                         />
                     </div>
@@ -90,9 +91,9 @@ export default function Sidebar() {
                     </button>
                 </div>
 
-                <div className="sidebar__overview bg-[rgba(173,115,50,0.05)] mx-3 mb-5 p-3 rounded-xl border border-[rgba(173,115,50,0.12)]">
-                    <span className="sidebar__overview-label text-[var(--brand-main)] font-extrabold">ESTADO</span>
-                    <strong className="sidebar__overview-title text-[13px]">Fisioterapia Zeus</strong>
+                <div className="sidebar__overview mx-3 mb-5 p-3 rounded-xl">
+                    <span className="sidebar__overview-label font-extrabold">ESTADO</span>
+                    <strong className="sidebar__overview-title text-[13px]">{BRAND_NAME}</strong>
                     <span className="sidebar__overview-meta flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--success-main)]" />
                         Clínica activa

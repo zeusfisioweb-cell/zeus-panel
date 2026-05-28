@@ -1,0 +1,828 @@
+/* ==========================================================================
+   VET — Master Theme (Cinematic Forest)
+   Alineado con http://localhost:3000/veterinaria/plantilla
+   Capa única que sobrescribe legacy (bento/panel-v6/professional-refresh/
+   panel-modernize/summary-v5) cuando html[data-sector="vet"].
+
+   ORDEN DE CAPAS:
+     1. Tokens raw (paleta vet)
+     2. Override vars semánticos en :root
+     3. Override vars dentro de scopes legacy (.admin-shell--modern, .summary-v5)
+     4. Override vars zeus/zs/ops/canela mapeadas a forest
+     5. Override structural !important (sidebar, cards, buttons, tables, calendar)
+     6. Typography Fraunces + Inter
+     7. Login split
+   ========================================================================== */
+
+/* ==========================================================================
+   1. TOKENS RAW
+   ========================================================================== */
+
+:root[data-sector="vet"] {
+  /* Paleta forest cinematic (plantilla) */
+  --vet-forest-deep: #1b4332;
+  --vet-forest: #2d6a4f;
+  --vet-black: #1b2c24;
+  --vet-cream: #fafcf7;
+  --vet-cream-soft: #f1f8f4;
+  --vet-cream-warm: #f7f1e6;
+  --vet-line: #dce6de;
+  --vet-line-strong: #c4d5c9;
+  --vet-mint: #95d5b2;
+  --vet-mint-glow: #b7e4c7;
+  --vet-warm: #e89b4c;
+  --vet-warm-hover: #d88838;
+  --vet-soft: #4a5c50;
+  --vet-ink: #0f1d16;
+
+  /* Radii editorial */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-pill: 999px;
+
+  /* Shadows cinematic */
+  --shadow-vet-sm: 0 1px 2px rgba(27, 67, 50, 0.05),
+                   0 6px 14px rgba(27, 67, 50, 0.06);
+  --shadow-vet-md: 0 12px 30px -12px rgba(27, 67, 50, 0.18),
+                   0 2px 6px rgba(27, 67, 50, 0.06);
+  --shadow-vet-lg: 0 30px 60px -20px rgba(27, 67, 50, 0.28);
+  --shadow-vet-hero: 0 30px 60px -20px rgba(27, 67, 50, 0.45);
+  --shadow-vet-warm: 0 30px 60px -20px rgba(232, 155, 76, 0.35);
+
+  /* Glow */
+  --glow-vet-mint: 0 0 28px rgba(149, 213, 178, 0.4);
+  --ring-vet-forest: 0 0 0 3px rgba(45, 106, 79, 0.22);
+}
+
+/* ==========================================================================
+   2. OVERRIDE VARS SEMÁNTICOS (:root y body bg)
+   ========================================================================== */
+
+:root[data-sector="vet"] {
+  /* Backgrounds */
+  --bg-body: var(--vet-cream);
+  --bg-base: var(--vet-cream);
+  --bg-surface: #ffffff;
+  --bg-surface-hover: var(--vet-cream-soft);
+  --bg-sidebar: var(--vet-black);
+  --bg-topbar: rgba(250, 252, 247, 0.92);
+  --bg-secondary: var(--vet-cream-soft);
+
+  /* OPS bg (bento.css fallback nivel :root) */
+  --ops-bg: var(--vet-cream);
+  --ops-bg-soft: var(--vet-cream-soft);
+  --ops-surface: #ffffff;
+  --ops-surface-soft: var(--vet-cream-soft);
+  --ops-line: var(--vet-line);
+  --ops-text: var(--vet-black);
+
+  /* Text */
+  --text-main: var(--vet-black);
+  --text-muted: var(--vet-soft);
+  --text-inverse: #ffffff;
+
+  /* Borders */
+  --border-color: var(--vet-line);
+  --line-soft: var(--vet-cream-soft);
+  --line-medium: var(--vet-line);
+  --border-focus: var(--vet-forest);
+
+  /* Brand */
+  --brand-main: var(--vet-forest);
+  --brand-hover: var(--vet-forest-deep);
+  --brand-light: var(--vet-mint);
+  --brand-dark: var(--vet-forest-deep);
+  --brand-glow: rgba(45, 106, 79, 0.12);
+  --brand-surface: rgba(45, 106, 79, 0.04);
+
+  /* Canela legacy → forest */
+  --brand-canela: var(--vet-forest);
+  --brand-canela-light: var(--vet-mint);
+  --brand-canela-dark: var(--vet-forest-deep);
+  --brand-canela-text: var(--vet-forest-deep);
+  --brand-canela-text-strong: var(--vet-black);
+
+  /* Status */
+  --success-main: var(--vet-forest);
+  --success-bg: var(--vet-cream-soft);
+  --warning-main: var(--vet-warm);
+  --warning-bg: rgba(232, 155, 76, 0.08);
+  --danger-main: #c0473b;
+  --danger-bg: rgba(192, 71, 59, 0.08);
+  --info-main: var(--vet-soft);
+
+  /* Radius */
+  --radius-card: var(--radius-lg);
+
+  /* Charts */
+  --chart-1: var(--vet-forest);
+  --chart-2: var(--vet-mint);
+  --chart-3: var(--vet-warm);
+  --chart-4: var(--vet-soft);
+  --chart-5: var(--vet-forest-deep);
+  --chart-6: #6ab48c;
+  --chart-7: #d88838;
+  --chart-8: #4a5c50;
+
+  /* Canela scale → forest scale */
+  --canela-50: #f1f8f4;
+  --canela-100: #d8ecdf;
+  --canela-200: #b7e4c7;
+  --canela-300: #95d5b2;
+  --canela-400: #6ab48c;
+  --canela-500: #2d6a4f;
+  --canela-600: #25563f;
+  --canela-700: #1b4332;
+  --canela-800: #143426;
+  --canela-900: #0d231a;
+
+  /* Glass tints crema */
+  --glass-1: rgba(250, 252, 247, 0.62);
+  --glass-2: rgba(250, 252, 247, 0.82);
+  --glass-3: rgba(250, 252, 247, 0.94);
+  --glass-canela: rgba(241, 248, 244, 0.88);
+}
+
+html[data-sector="vet"] body {
+  background-color: var(--vet-cream);
+  color: var(--vet-black);
+}
+
+/* ==========================================================================
+   3. OVERRIDE VARS DENTRO DE SCOPES LEGACY
+   (panel-v6 / bento / professional-refresh definen vars en .admin-shell--modern)
+   ========================================================================== */
+
+html[data-sector="vet"] .admin-shell,
+html[data-sector="vet"] .admin-shell--modern,
+html[data-sector="vet"] .admin-shell--modern.admin-shell--summary,
+html[data-sector="vet"] .main-content,
+html[data-sector="vet"] .content-shell,
+html[data-sector="vet"] .modal-overlay {
+  /* Zeus vars (panel-v6) */
+  --zeus-bg-top: var(--vet-cream);
+  --zeus-bg-bottom: var(--vet-cream-soft);
+  --zeus-glow-a: rgba(149, 213, 178, 0.16);
+  --zeus-glow-b: rgba(27, 67, 50, 0.08);
+  --zeus-glow-center: rgba(250, 252, 247, 0.74);
+  --zeus-surface-unified: linear-gradient(155deg, #ffffff 0%, var(--vet-cream-soft) 100%);
+  --zeus-line-unified: var(--vet-line);
+  --zeus-accent: var(--vet-forest);
+  --zeus-accent-strong: var(--vet-forest-deep);
+  --zeus-accent-soft: rgba(45, 106, 79, 0.14);
+  --zeus-surface: #ffffff;
+  --zeus-surface-soft: var(--vet-cream-soft);
+  --zeus-card-bg: linear-gradient(156deg, #ffffff 0%, var(--vet-cream-soft) 100%);
+  --zeus-card-bg-soft: linear-gradient(160deg, var(--vet-cream) 0%, var(--vet-cream-soft) 100%);
+  --zeus-text: var(--vet-black);
+  --zeus-text-muted: var(--vet-soft);
+  --zeus-line: var(--vet-line);
+
+  /* Sidebar zeus */
+  --zeus-sidebar-start: var(--vet-black);
+  --zeus-sidebar-end: var(--vet-ink);
+  --zeus-sidebar-glow: rgba(149, 213, 178, 0.22);
+  --zeus-sidebar-link-active-start: rgba(45, 106, 79, 0.55);
+  --zeus-sidebar-link-active-end: rgba(27, 67, 50, 0.92);
+
+  /* Primary buttons */
+  --zeus-primary-start: var(--vet-forest);
+  --zeus-primary-end: var(--vet-forest-deep);
+  --zeus-primary-hover-start: var(--vet-forest-deep);
+  --zeus-primary-hover-end: var(--vet-black);
+
+  /* Active states */
+  --zeus-active-start: var(--vet-mint);
+  --zeus-active-end: var(--vet-forest);
+  --zeus-active-border: rgba(149, 213, 178, 0.5);
+  --zeus-active-glow: rgba(149, 213, 178, 0.32);
+  --zeus-active-text: #ffffff;
+  --zeus-active-shadow: 0 10px 20px 0 rgba(13, 35, 26, 0.4);
+  --zeus-border-soft: var(--vet-line);
+
+  /* ZS surface (panel-v6 secondary) */
+  --zs-surface-flat: #ffffff;
+  --zs-surface-soft: var(--vet-cream-soft);
+  --zs-surface-line: var(--vet-line);
+  --zs-surface-line-soft: var(--vet-line);
+
+  /* OPS (bento.css) */
+  --ops-bg: var(--vet-cream);
+  --ops-bg-soft: var(--vet-cream-soft);
+  --ops-surface: #ffffff;
+  --ops-surface-soft: var(--vet-cream-soft);
+  --ops-line: var(--vet-line);
+  --ops-line-strong: var(--vet-line-strong);
+  --ops-text: var(--vet-black);
+  --ops-text-muted: var(--vet-soft);
+  --ops-text-subtle: #7a8a80;
+  --ops-accent: var(--vet-forest);
+  --ops-accent-strong: var(--vet-forest-deep);
+  --ops-accent-soft: rgba(45, 106, 79, 0.12);
+  --ops-shadow-sm: var(--shadow-vet-sm);
+  --ops-shadow-md: var(--shadow-vet-md);
+
+  /* Canela vars */
+  --brand-canela: var(--vet-forest);
+  --brand-canela-light: var(--vet-mint);
+  --brand-canela-dark: var(--vet-forest-deep);
+  --brand-canela-text: var(--vet-forest-deep);
+  --brand-main: var(--vet-forest);
+  --brand-hover: var(--vet-forest-deep);
+
+  /* Radius card */
+  --radius-card: var(--radius-lg);
+  --border-color: var(--vet-line);
+}
+
+html[data-sector="vet"] .summary-v5,
+html[data-sector="vet"] .admin-shell--summary .summary-v5 {
+  --sum-surface: #ffffff;
+  --sum-surface-soft: var(--vet-cream-soft);
+  --sum-border: var(--vet-line);
+  --sum-text: var(--vet-black);
+  --sum-muted: var(--vet-soft);
+  --sum-accent: var(--vet-forest);
+  --sum-accent-soft: rgba(45, 106, 79, 0.14);
+  --sum-success: var(--vet-forest);
+  --sum-success-soft: var(--vet-cream-soft);
+  --sum-info: var(--vet-soft);
+  --sum-info-soft: rgba(74, 92, 80, 0.10);
+  --sum-warning: var(--vet-warm);
+  --sum-warning-soft: rgba(232, 155, 76, 0.10);
+  --sum-danger: #c0473b;
+  --sum-danger-soft: rgba(192, 71, 59, 0.10);
+  --sum-dark-bg: linear-gradient(135deg, var(--vet-forest-deep) 0%, var(--vet-forest) 100%);
+  --sum-dark-text: var(--vet-cream);
+}
+
+/* ==========================================================================
+   4. TYPOGRAPHY — Fraunces (display) + Inter (sans)
+   Variables --font-vet-display / --font-vet-sans inyectadas via next/font
+   ========================================================================== */
+
+html[data-sector="vet"] body {
+  font-family: var(--font-vet-sans, "Inter"), system-ui, -apple-system, sans-serif;
+}
+
+html[data-sector="vet"] h1,
+html[data-sector="vet"] h2,
+html[data-sector="vet"] h3,
+html[data-sector="vet"] .display,
+html[data-sector="vet"] .section-title,
+html[data-sector="vet"] .zs-dash-header__title,
+html[data-sector="vet"] .login-heading h2,
+html[data-sector="vet"] .modal__title,
+html[data-sector="vet"] .panel-topbar__title {
+  font-family: var(--font-vet-display, "Fraunces"), Georgia, serif !important;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--vet-black);
+}
+
+html[data-sector="vet"] h1 { font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.05; }
+html[data-sector="vet"] h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); line-height: 1.1; }
+html[data-sector="vet"] h3 { font-size: clamp(1.125rem, 1.6vw, 1.375rem); line-height: 1.2; }
+
+/* ==========================================================================
+   5. SIDEBAR — Dark forest con mint active
+   ========================================================================== */
+
+html[data-sector="vet"] .sidebar,
+html[data-sector="vet"] .admin-shell--modern .sidebar,
+html[data-sector="vet"] .admin-shell--modern.admin-shell--summary .sidebar {
+  background: var(--vet-black) !important;
+  background-image: none !important;
+  color: var(--vet-cream);
+  border-right: 1px solid rgba(149, 213, 178, 0.10);
+  box-shadow: 12px 0 28px 0 rgba(13, 35, 26, 0.32);
+}
+
+html[data-sector="vet"] .sidebar::before,
+html[data-sector="vet"] .admin-shell--modern .sidebar::before {
+  background: radial-gradient(
+    circle at 12% -10%,
+    rgba(149, 213, 178, 0.22),
+    transparent 50%
+  ) !important;
+}
+
+html[data-sector="vet"] .sidebar__brand {
+  border-bottom: 1px solid rgba(149, 213, 178, 0.12);
+  padding: 18px 16px;
+}
+
+html[data-sector="vet"] .sidebar__overview {
+  background: rgba(149, 213, 178, 0.08) !important;
+  border: 1px solid rgba(149, 213, 178, 0.18) !important;
+  border-radius: var(--radius-md);
+}
+
+html[data-sector="vet"] .sidebar__overview-label {
+  color: var(--vet-mint) !important;
+}
+
+html[data-sector="vet"] .sidebar__overview-title,
+html[data-sector="vet"] .sidebar__user-name {
+  color: var(--vet-cream);
+}
+
+html[data-sector="vet"] .sidebar__overview-meta,
+html[data-sector="vet"] .sidebar__user-role,
+html[data-sector="vet"] .sidebar__section-title {
+  color: rgba(250, 252, 247, 0.6);
+}
+
+html[data-sector="vet"] .sidebar__link {
+  color: rgba(250, 252, 247, 0.78);
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease, color 0.15s ease;
+  margin: 2px 0;
+}
+
+html[data-sector="vet"] .sidebar__link:hover {
+  background: rgba(149, 213, 178, 0.08);
+  color: var(--vet-cream);
+}
+
+html[data-sector="vet"] .admin-shell--modern .sidebar__link--active,
+html[data-sector="vet"] .admin-shell--modern.admin-shell--summary .sidebar__link--active,
+html[data-sector="vet"] .sidebar__link--active {
+  background: linear-gradient(
+    92deg,
+    rgba(45, 106, 79, 0.55),
+    rgba(27, 67, 50, 0.92)
+  ) !important;
+  border: 1px solid rgba(149, 213, 178, 0.32) !important;
+  color: var(--vet-cream) !important;
+  box-shadow:
+    inset 4px 0 0 0 var(--vet-mint),
+    0 10px 20px 0 rgba(13, 35, 26, 0.4) !important;
+}
+
+html[data-sector="vet"] .admin-shell--modern .sidebar__link--active::before {
+  background: linear-gradient(180deg, var(--vet-mint) 0%, var(--vet-forest) 100%) !important;
+}
+
+html[data-sector="vet"] .admin-shell--modern .sidebar__link--active .sidebar__link-icon {
+  background: rgba(149, 213, 178, 0.16) !important;
+  color: var(--vet-mint) !important;
+}
+
+html[data-sector="vet"] .sidebar__footer {
+  border-top: 1px solid rgba(149, 213, 178, 0.10);
+}
+
+html[data-sector="vet"] .sidebar__logout-icon {
+  color: rgba(250, 252, 247, 0.6);
+}
+
+html[data-sector="vet"] .sidebar__logout-icon:hover {
+  color: var(--vet-warm);
+}
+
+/* ==========================================================================
+   6. TOPBAR / HEADER GLASS
+   ========================================================================== */
+
+html[data-sector="vet"] .panel-topbar,
+html[data-sector="vet"] [class*="topbar"] {
+  background: var(--bg-topbar);
+  border-bottom: 1px solid var(--vet-line);
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+}
+
+/* ==========================================================================
+   7. CARDS — Cinematic editorial
+   ========================================================================== */
+
+html[data-sector="vet"] .zs-pac-table-card,
+html[data-sector="vet"] .zs-pac-search-bar,
+html[data-sector="vet"] .zs-pros-toolbar,
+html[data-sector="vet"] .schedule-card,
+html[data-sector="vet"] .settings-panel,
+html[data-sector="vet"] .settings-summary-card,
+html[data-sector="vet"] .settings-save-card,
+html[data-sector="vet"] .citas-filters,
+html[data-sector="vet"] .citas-list-day,
+html[data-sector="vet"] .zc-vcal,
+html[data-sector="vet"] .zc-mini-cal,
+html[data-sector="vet"] .zc-upcoming,
+html[data-sector="vet"] .zc-timeline-wrap,
+html[data-sector="vet"] .zc-detail-panel,
+html[data-sector="vet"] .zs-charts-card,
+html[data-sector="vet"] .bento-card,
+html[data-sector="vet"] .panel-card,
+html[data-sector="vet"] .pm-card,
+html[data-sector="vet"] .summary-v5-panel,
+html[data-sector="vet"] .summary-v5-card {
+  background: #ffffff !important;
+  border: 1px solid var(--vet-line) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-vet-md) !important;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+html[data-sector="vet"] .zs-pac-table-card:hover,
+html[data-sector="vet"] .bento-card:hover,
+html[data-sector="vet"] .summary-v5-panel:hover {
+  box-shadow: 0 18px 40px -16px rgba(27, 67, 50, 0.28),
+              0 4px 10px rgba(27, 67, 50, 0.08) !important;
+}
+
+/* Headers */
+html[data-sector="vet"] .zs-pac-header,
+html[data-sector="vet"] .zs-pros-header,
+html[data-sector="vet"] .zs-svc-header,
+html[data-sector="vet"] .zs-hor-header,
+html[data-sector="vet"] .zs-cfg-header,
+html[data-sector="vet"] .zs-ch-wrap,
+html[data-sector="vet"] .zs-dash-header,
+html[data-sector="vet"] .module-header,
+html[data-sector="vet"] .module-header--settings {
+  background: #ffffff !important;
+  border: 1px solid var(--vet-line) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-vet-sm) !important;
+  padding: 24px !important;
+}
+
+html[data-sector="vet"] .zs-dash-header__eyebrow {
+  color: var(--vet-forest);
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+html[data-sector="vet"] .zs-dash-header__title {
+  color: var(--vet-black) !important;
+}
+
+html[data-sector="vet"] .zs-dash-header__meta {
+  color: var(--vet-soft);
+}
+
+/* ==========================================================================
+   8. HERO / FEATURED — Gradient forest (cinematic plantilla)
+   ========================================================================== */
+
+html[data-sector="vet"] .summary-v5__overview > :first-child,
+html[data-sector="vet"] .summary-v5-kpis,
+html[data-sector="vet"] .kpi-card--hero,
+html[data-sector="vet"] .dashboard-hero,
+html[data-sector="vet"] .stats-card--featured,
+html[data-sector="vet"] .card--featured,
+html[data-sector="vet"] .bento-card--featured {
+  background: linear-gradient(135deg, var(--vet-forest-deep) 0%, var(--vet-forest) 100%) !important;
+  background-image: linear-gradient(135deg, var(--vet-forest-deep) 0%, var(--vet-forest) 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-vet-hero) !important;
+}
+
+html[data-sector="vet"] .summary-v5__overview > :first-child h1,
+html[data-sector="vet"] .summary-v5__overview > :first-child h2,
+html[data-sector="vet"] .summary-v5__overview > :first-child h3,
+html[data-sector="vet"] .summary-v5__overview > :first-child .kpi-value,
+html[data-sector="vet"] .summary-v5-kpis * {
+  color: #ffffff !important;
+}
+
+/* Warm urgencias card */
+html[data-sector="vet"] .alert-card,
+html[data-sector="vet"] .urgencias-card,
+html[data-sector="vet"] .card--warm {
+  background: linear-gradient(135deg, var(--vet-warm) 0%, var(--vet-warm-hover) 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-vet-warm) !important;
+}
+
+/* Mint subtle */
+html[data-sector="vet"] .card--mint,
+html[data-sector="vet"] .info-card--mint {
+  background: linear-gradient(180deg, var(--vet-mint-glow) 0%, var(--vet-cream-soft) 100%);
+  border: 1px solid var(--vet-mint);
+  color: var(--vet-forest-deep);
+  border-radius: var(--radius-lg);
+}
+
+/* ==========================================================================
+   9. KPI RIBBON — panel-modernize tonal metrics
+   ========================================================================== */
+
+html[data-sector="vet"] .summary-v5-ribbon__metric {
+  background: #ffffff !important;
+  border: 1px solid var(--vet-line) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-vet-sm) !important;
+}
+
+html[data-sector="vet"] .summary-v5-ribbon__metric--primary {
+  background: linear-gradient(135deg, var(--vet-forest) 0%, var(--vet-forest-deep) 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+html[data-sector="vet"] .summary-v5-ribbon__metric--primary * {
+  color: #ffffff !important;
+}
+
+html[data-sector="vet"] .summary-v5-ribbon__metric--success {
+  background: var(--vet-cream-soft) !important;
+  border-color: var(--vet-mint) !important;
+  color: var(--vet-forest-deep) !important;
+}
+
+html[data-sector="vet"] .summary-v5-ribbon__metric--warning {
+  background: rgba(232, 155, 76, 0.08) !important;
+  border-color: rgba(232, 155, 76, 0.32) !important;
+  color: var(--vet-warm-hover) !important;
+}
+
+html[data-sector="vet"] .summary-v5-ribbon__metric--info {
+  background: var(--vet-cream-soft) !important;
+  border-color: var(--vet-line) !important;
+  color: var(--vet-soft) !important;
+}
+
+html[data-sector="vet"] .summary-v5-ribbon__metric--neutral {
+  background: #ffffff !important;
+  border-color: var(--vet-line) !important;
+}
+
+/* ==========================================================================
+   10. BUTTONS — Pill forest
+   ========================================================================== */
+
+html[data-sector="vet"] .btn {
+  border-radius: var(--radius-pill) !important;
+  font-family: var(--font-vet-sans, "Inter"), sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+html[data-sector="vet"] .btn--primary,
+html[data-sector="vet"] .admin-shell--modern .btn--primary,
+html[data-sector="vet"] .btn.btn--primary {
+  background: linear-gradient(180deg, var(--vet-forest) 0%, var(--vet-forest-deep) 100%) !important;
+  background-image: linear-gradient(180deg, var(--vet-forest) 0%, var(--vet-forest-deep) 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px -2px rgba(27, 67, 50, 0.32) !important;
+  padding: 10px 22px !important;
+}
+
+html[data-sector="vet"] .btn--primary:hover {
+  background: linear-gradient(180deg, var(--vet-forest-deep) 0%, var(--vet-black) 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -3px rgba(27, 67, 50, 0.42) !important;
+}
+
+html[data-sector="vet"] .btn--secondary,
+html[data-sector="vet"] .btn.btn--secondary {
+  background: var(--vet-cream-soft) !important;
+  background-image: none !important;
+  color: var(--vet-forest-deep) !important;
+  border: 1px solid var(--vet-line) !important;
+}
+
+html[data-sector="vet"] .btn--secondary:hover {
+  background: #ffffff !important;
+  border-color: var(--vet-mint) !important;
+}
+
+html[data-sector="vet"] .btn--lg {
+  padding: 12px 26px !important;
+  font-size: 15px;
+}
+
+html[data-sector="vet"] .btn-premium {
+  background: linear-gradient(180deg, var(--vet-forest) 0%, var(--vet-forest-deep) 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-pill) !important;
+}
+
+/* ==========================================================================
+   11. INPUTS / FORMS
+   ========================================================================== */
+
+html[data-sector="vet"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]),
+html[data-sector="vet"] textarea,
+html[data-sector="vet"] select,
+html[data-sector="vet"] .form-input,
+html[data-sector="vet"] .zs-pac-search-bar__input {
+  background: var(--vet-cream-soft);
+  border: 1px solid var(--vet-line);
+  border-radius: var(--radius-pill);
+  color: var(--vet-black);
+  padding: 10px 16px;
+  font-family: var(--font-vet-sans, "Inter"), sans-serif;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+html[data-sector="vet"] input:focus,
+html[data-sector="vet"] textarea:focus,
+html[data-sector="vet"] select:focus,
+html[data-sector="vet"] .form-input:focus,
+html[data-sector="vet"] .zs-pac-search-bar__input:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: var(--vet-forest);
+  box-shadow: var(--ring-vet-forest);
+}
+
+html[data-sector="vet"] .form-label {
+  color: var(--vet-forest-deep);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* ==========================================================================
+   12. TABLES
+   ========================================================================== */
+
+html[data-sector="vet"] table {
+  border-color: var(--vet-line);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+html[data-sector="vet"] thead {
+  background: var(--vet-cream-soft);
+}
+
+html[data-sector="vet"] th {
+  color: var(--vet-forest-deep) !important;
+  font-family: var(--font-vet-display, "Fraunces"), serif;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  border-bottom: 1px solid var(--vet-line);
+  padding: 14px 16px;
+}
+
+html[data-sector="vet"] tbody td {
+  border-bottom: 1px solid var(--vet-line);
+  padding: 14px 16px;
+}
+
+html[data-sector="vet"] tbody tr:hover td {
+  background: var(--vet-cream-soft);
+}
+
+/* ==========================================================================
+   13. BADGES
+   ========================================================================== */
+
+html[data-sector="vet"] .badge,
+html[data-sector="vet"] [class*="badge"] {
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+}
+
+html[data-sector="vet"] .status-badge--success,
+html[data-sector="vet"] .badge--success {
+  background: var(--vet-cream-soft);
+  color: var(--vet-forest-deep);
+  border: 1px solid var(--vet-mint);
+}
+
+html[data-sector="vet"] .status-badge--warning,
+html[data-sector="vet"] .badge--warning {
+  background: rgba(232, 155, 76, 0.10);
+  color: var(--vet-warm-hover);
+  border: 1px solid rgba(232, 155, 76, 0.32);
+}
+
+html[data-sector="vet"] .status-badge--danger,
+html[data-sector="vet"] .badge--danger {
+  background: rgba(192, 71, 59, 0.08);
+  color: #a23a31;
+  border: 1px solid rgba(192, 71, 59, 0.28);
+}
+
+/* ==========================================================================
+   14. CALENDAR / AGENDA
+   ========================================================================== */
+
+html[data-sector="vet"] .calendar-event--confirmed,
+html[data-sector="vet"] .fc-event-confirmed,
+html[data-sector="vet"] .zc-event--confirmed {
+  background: var(--vet-forest) !important;
+  border-color: var(--vet-forest-deep) !important;
+  color: #ffffff !important;
+}
+
+html[data-sector="vet"] .calendar-event--pending,
+html[data-sector="vet"] .fc-event-pending,
+html[data-sector="vet"] .zc-event--pending {
+  background: var(--vet-warm) !important;
+  border-color: var(--vet-warm-hover) !important;
+  color: #ffffff !important;
+}
+
+html[data-sector="vet"] .calendar-event--cancelled,
+html[data-sector="vet"] .zc-event--cancelled {
+  background: var(--vet-cream-soft) !important;
+  border-color: var(--vet-line) !important;
+  color: var(--vet-soft) !important;
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   15. MODALS
+   ========================================================================== */
+
+html[data-sector="vet"] .modal,
+html[data-sector="vet"] .modal-content {
+  background: #ffffff !important;
+  border: 1px solid var(--vet-line) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-vet-lg) !important;
+}
+
+html[data-sector="vet"] .modal-overlay {
+  background: rgba(27, 44, 36, 0.6) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+html[data-sector="vet"] .modal__title {
+  color: var(--vet-black);
+}
+
+/* ==========================================================================
+   16. LOGIN SPLIT
+   ========================================================================== */
+
+html[data-sector="vet"] .login-split__cover {
+  background: linear-gradient(148deg, var(--vet-forest-deep) 0%, var(--vet-forest) 100%);
+  color: #ffffff;
+}
+
+html[data-sector="vet"] .login-split__cover h1,
+html[data-sector="vet"] .login-split__cover p,
+html[data-sector="vet"] .login-split__cover li {
+  color: #ffffff;
+}
+
+html[data-sector="vet"] .cover-point::before {
+  background: var(--vet-mint);
+}
+
+html[data-sector="vet"] .login-split__form-wrapper {
+  background: var(--vet-cream);
+}
+
+html[data-sector="vet"] .login-form-container {
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-vet-lg);
+  border: 1px solid var(--vet-line);
+}
+
+html[data-sector="vet"] .login-heading h2 {
+  color: var(--vet-black);
+}
+
+/* ==========================================================================
+   17. SCROLLBAR
+   ========================================================================== */
+
+html[data-sector="vet"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar-track {
+  background: var(--vet-cream-soft);
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar-thumb {
+  background: var(--vet-mint);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--vet-cream-soft);
+}
+
+html[data-sector="vet"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--vet-forest);
+}
+
+/* ==========================================================================
+   18. FOCUS RING GLOBAL
+   ========================================================================== */
+
+html[data-sector="vet"] :where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--vet-forest);
+  outline-offset: 2px;
+  box-shadow: var(--ring-vet-forest);
+  border-radius: inherit;
+}
