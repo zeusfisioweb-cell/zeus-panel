@@ -13,8 +13,14 @@
 @import "../styles/theme/panel-modernize.css";
 @import "../styles/theme/portal.css";
 
+/* === VET sector master theme (cinematic forest plantilla) === */
+@import "../styles/theme/vet-master.css";
+
+/* === VET redesign layer (last, overrides everything for [data-sector="vet"]) === */
+@import "../styles/theme/vet-redesign.css";
+
 /* Forced HMR update for bento styles */
-/* turbopack-bust-2 */
+/* turbopack-bust-5 */
 
 @media print {
     /* Hide sidebar, topbar and interactive buttons */

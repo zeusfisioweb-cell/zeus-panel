@@ -322,9 +322,12 @@ html[data-sector="vet"] .sidebar__user--compact {
   gap: 10px;
 }
 
-html[data-sector="vet"] .sidebar__user-avatar {
+html[data-sector="vet"] .sidebar__user-avatar,
+html[data-sector="vet"] .admin-shell--modern .sidebar__user-avatar,
+html[data-sector="vet"] .admin-shell--modern.admin-shell--summary .sidebar__user-avatar {
   background: linear-gradient(135deg, var(--vet-forest) 0%, var(--vet-forest-deep) 100%) !important;
   color: var(--vet-mint) !important;
+  border: 1px solid rgba(149, 213, 178, 0.3) !important;
   font-family: var(--vet-font-display) !important;
   font-weight: 700 !important;
   width: 36px !important;
