@@ -146,7 +146,10 @@ export default function Sidebar() {
 
                 <div className="sidebar__footer sidebar__footer--compact">
                     <div className="sidebar__user sidebar__user--compact">
-                        <div className="sidebar__user-avatar sidebar__user-avatar--sm">
+                        <div
+                            className="sidebar__user-avatar sidebar__user-avatar--sm"
+                            style={{ background: 'linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%)', color: '#95d5b2', border: '1px solid rgba(149,213,178,0.3)' }}
+                        >
                             <span>{initials}</span>
                         </div>
                         <div className="sidebar__user-info">
