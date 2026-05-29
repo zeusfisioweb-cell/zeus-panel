@@ -34,8 +34,14 @@ export function DashboardCharts({
     globalTotalSessions,
 }: DashboardChartsProps) {
     const completedCount = statusBreakdown.find((s) => s.key === 'completed')?.value ?? 0;
-    const occupancyPct = globalTotalSessions > 0
-        ? Math.round((completedCount / globalTotalSessions) * 100)
+    // Denominador = todas las sesiones no canceladas (completadas + confirmadas),
+    // en el mismo ámbito all-time que completedCount. No usar globalTotalSessions:
+    // ese cuenta solo el día seleccionado y producía "9 de 0".
+    const nonCancelledTotal = statusBreakdown
+        .filter((s) => s.key !== 'cancelled')
+        .reduce((sum, s) => sum + s.value, 0);
+    const occupancyPct = nonCancelledTotal > 0
+        ? Math.round((completedCount / nonCancelledTotal) * 100)
         : 0;
 
     const barData = statusBreakdown.map((s) => ({
@@ -78,7 +84,7 @@ export function DashboardCharts({
                         <div className="zs-occ-strip__copy">
                             <p className="zs-occ-strip__title">Completadas</p>
                             <p className="zs-occ-strip__sub">
-                                {completedCount} de {globalTotalSessions} sesiones (sin canceladas)
+                                {completedCount} de {nonCancelledTotal} sesiones (sin canceladas)
                             </p>
                         </div>
                     </div>
